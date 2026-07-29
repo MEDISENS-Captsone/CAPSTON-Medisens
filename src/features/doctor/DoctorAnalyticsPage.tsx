@@ -4,10 +4,12 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { Icon } from '../../components/shared/Icon';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import malvarBarangaysGeoJsonRaw from '../../assets/geo/malvar-barangays.geojson?raw';
-import { fetchBarangayDrilldown, fetchDoctorAnalytics } from './doctorAnalyticsService';
-import type { AnalyticsBucket, AnalyticsPeriod, AnalyticsRow, BarangayHeatmapRow, DoctorAnalyticsData } from './doctorAnalyticsService';
+import { fetchBarangayDrilldown, fetchDoctorAnalytics, fetchStaffOperationsAnalytics } from './doctorAnalyticsService';
+import type { AnalyticsBucket, AnalyticsPeriod, AnalyticsRow, BarangayHeatmapRow, DoctorAnalyticsData, StaffOperationsAnalyticsRow, StaffOperationsRole } from './doctorAnalyticsService';
 
 type PresetKey = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+export type AnalyticsWorkspaceRole = 'doctor' | 'midwives';
+type AnalyticsView = 'clinical' | 'geographic' | 'staff';
 type WorkloadChartVariant = 'followup' | 'lab' | 'prescription';
 type BarangayHeatmapMetric = 'registered' | 'consultations' | 'pendingFollowUps' | 'vaccinations';
 type GeoPosition = [number, number];
@@ -37,6 +39,39 @@ const BARANGAY_HEATMAP_METRICS: Array<{ key: BarangayHeatmapMetric; label: strin
     { key: 'pendingFollowUps', label: 'Pending Follow-ups', field: 'pending_follow_ups', valueLabel: 'pending follow-ups' },
     { key: 'vaccinations', label: 'Vaccinations', field: 'vaccinations', valueLabel: 'vaccinations' },
 ];
+
+const ANALYTICS_VIEWS: Array<{ key: AnalyticsView; label: string; roles: readonly AnalyticsWorkspaceRole[] }> = [
+    { key: 'clinical', label: 'Clinical Analytics', roles: ['doctor', 'midwives'] },
+    { key: 'geographic', label: 'Geographic Analytics', roles: ['doctor', 'midwives'] },
+    { key: 'staff', label: 'Staff Operations', roles: ['doctor'] },
+];
+
+const DEFAULT_ANALYTICS_VIEW: AnalyticsView = 'clinical';
+
+function getAllowedViews(role: AnalyticsWorkspaceRole): AnalyticsView[] {
+    return ANALYTICS_VIEWS.filter(view => view.roles.includes(role)).map(view => view.key);
+}
+
+function resolveAnalyticsView(value: string | null, role: AnalyticsWorkspaceRole): AnalyticsView {
+    const allowed = getAllowedViews(role);
+    const candidate = (value ?? '').trim().toLowerCase() as AnalyticsView;
+    return allowed.includes(candidate) ? candidate : DEFAULT_ANALYTICS_VIEW;
+}
+
+function readViewFromLocation(role: AnalyticsWorkspaceRole): AnalyticsView {
+    if (typeof window === 'undefined') return DEFAULT_ANALYTICS_VIEW;
+    return resolveAnalyticsView(new URLSearchParams(window.location.search).get('view'), role);
+}
+
+function writeViewToLocation(view: AnalyticsView, mode: 'push' | 'replace') {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === view && mode === 'push') return;
+    params.set('view', view);
+    const url = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+    if (mode === 'push') window.history.pushState({}, '', url);
+    else window.history.replaceState({}, '', url);
+}
 
 function isoDate(date: Date): string {
     return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
@@ -1263,6 +1298,445 @@ function LabStatusChart({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
     );
 }
 
+type StaffCountMetricKey =
+    | 'consultations_completed'
+    | 'follow_ups_completed'
+    | 'lab_requests_completed'
+    | 'prescriptions_dispensed';
+type StaffTurnaroundMetricKey = 'lab_turnaround_minutes' | 'prescription_turnaround_minutes';
+type StaffChartMetric = 'count' | 'turnaround';
+
+const STAFF_CATEGORIES: Array<{ key: StaffOperationsRole; label: string; subtitle: string }> = [
+    { key: 'doctor', label: 'Doctor', subtitle: 'Consultations and follow-ups completed within the selected period.' },
+    { key: 'laboratory', label: 'Laboratory', subtitle: 'Laboratory requests completed within the selected period.' },
+    { key: 'pharmacist', label: 'Pharmacy', subtitle: 'Prescriptions dispensed within the selected period.' },
+];
+
+const STAFF_COUNT_METRICS: Record<StaffOperationsRole, Array<{ key: StaffCountMetricKey; label: string; note: string }>> = {
+    doctor: [
+        { key: 'consultations_completed', label: 'Consultations Completed', note: 'Completed in the selected period' },
+        { key: 'follow_ups_completed', label: 'Follow-ups Completed', note: 'Follow-ups marked done in the period' },
+    ],
+    laboratory: [
+        { key: 'lab_requests_completed', label: 'Lab Requests Completed', note: 'First completed result per request' },
+    ],
+    pharmacist: [
+        { key: 'prescriptions_dispensed', label: 'Prescriptions Dispensed', note: 'Dispensed in the selected period' },
+    ],
+};
+
+const STAFF_TURNAROUND_METRICS: Record<
+    StaffOperationsRole,
+    { key: StaffTurnaroundMetricKey; label: string; medianLabel: string; averageLabel: string } | null
+> = {
+    doctor: null,
+    laboratory: {
+        key: 'lab_turnaround_minutes',
+        label: 'Lab Turnaround',
+        medianLabel: 'Median turnaround from recorded request date',
+        averageLabel: 'Average turnaround from recorded request date',
+    },
+    pharmacist: {
+        key: 'prescription_turnaround_minutes',
+        label: 'Prescription Turnaround',
+        medianLabel: 'Median turnaround from recorded prescription date',
+        averageLabel: 'Average turnaround from recorded prescription date',
+    },
+};
+
+// Start fields are date-only values read as Asia/Manila local midnight, so turnaround is
+// operationally approximate even though the backend statistics themselves are exact.
+const TURNAROUND_APPROXIMATION_NOTE =
+    'Turnaround starts from date-only recorded values interpreted as local midnight, so these durations are operationally approximate and are not exact staff response times.';
+
+// role_total rows are grouped per bucket, so a single period-level median is still not
+// available from the RPC. Per-bucket medians must never be combined into one figure;
+// only an explicit period-level rollup row can supply it.
+const TURNAROUND_PERIOD_MEDIAN_NOTE =
+    'An exact median for the whole period is not available yet: medians are returned per bucket and cannot be validly combined. Per-bucket medians are plotted in the turnaround trend.';
+
+// Staff-scoped rows are never rendered and never counted. Every displayed figure comes
+// from role_total rows, so staff and role_total totals cannot be double-counted.
+function roleTotalRows(rows: StaffOperationsAnalyticsRow[]): StaffOperationsAnalyticsRow[] {
+    return rows.filter(row => row.aggregation_scope === 'role_total');
+}
+
+function staffRowsForMetric(
+    rows: StaffOperationsAnalyticsRow[],
+    role: StaffOperationsRole,
+    metricKey: string,
+): StaffOperationsAnalyticsRow[] {
+    return rows.filter(row => row.role_key === role && row.metric_key === metricKey);
+}
+
+function formatDurationMinutes(minutes: number): string {
+    if (!Number.isFinite(minutes) || minutes < 0) return '—';
+    if (minutes < 60) return `${Math.round(minutes).toLocaleString()} min`;
+    const hours = minutes / 60;
+    if (hours < 48) return `${hours.toFixed(hours < 10 ? 1 : 0)} hr`;
+    const days = hours / 24;
+    return `${days.toFixed(days < 10 ? 1 : 0)} days`;
+}
+
+// Averages re-aggregate exactly when weighted by the number of intervals in each bucket.
+// On role_total turnaround rows that interval count is attributed_count + unattributed_count.
+function weightedAverageMinutes(rows: StaffOperationsAnalyticsRow[]): number | null {
+    let weightedTotal = 0;
+    let weight = 0;
+    rows.forEach(row => {
+        const value = row.duration_minutes_avg;
+        const rowWeight = (row.attributed_count ?? 0) + (row.unattributed_count ?? 0);
+        if (value === null || rowWeight <= 0) return;
+        weightedTotal += value * rowWeight;
+        weight += rowWeight;
+    });
+    return weight === 0 ? null : weightedTotal / weight;
+}
+
+function sumStaffCount(rows: StaffOperationsAnalyticsRow[]): number {
+    return rows.reduce((total, row) => total + (row.count_value ?? 0), 0);
+}
+
+function sumStaffAttribution(rows: StaffOperationsAnalyticsRow[]): { attributed: number; unattributed: number } {
+    return rows.reduce(
+        (totals, row) => ({
+            attributed: totals.attributed + (row.attributed_count ?? 0),
+            unattributed: totals.unattributed + (row.unattributed_count ?? 0),
+        }),
+        { attributed: 0, unattributed: 0 },
+    );
+}
+
+function collectStaffBuckets(rows: StaffOperationsAnalyticsRow[]): string[] {
+    return Array.from(new Set(rows.map(row => row.bucket_start))).sort();
+}
+
+function staffCountSeries(rows: StaffOperationsAnalyticsRow[], buckets: string[]): number[] {
+    const totals = new Map<string, number>();
+    rows.forEach(row => {
+        totals.set(row.bucket_start, (totals.get(row.bucket_start) ?? 0) + (row.count_value ?? 0));
+    });
+    return buckets.map(bucket => totals.get(bucket) ?? 0);
+}
+
+function StaffMetricTile({ label, value, note }: { label: string; value: string; note: string }) {
+    return (
+        <div className="doctor-insight-card">
+            <div className="doctor-insight-topline">
+                <div className="doctor-insight-label">{label}</div>
+            </div>
+            <div className="doctor-insight-value tabular-nums">{value}</div>
+            <div className="doctor-insight-note">{note}</div>
+        </div>
+    );
+}
+
+function StaffOperationsTrendChart({
+    buckets,
+    bucket,
+    series,
+    emptyTitle,
+    emptyDescription,
+    formatValue = (value: number) => value.toLocaleString(),
+}: {
+    buckets: string[];
+    bucket: AnalyticsBucket;
+    series: Array<{ label: string; values: number[]; variant: 'is-current' | 'is-previous' }>;
+    emptyTitle: string;
+    emptyDescription: string;
+    formatValue?: (value: number) => string;
+}) {
+    if (buckets.length === 0) {
+        return <EmptyState title={emptyTitle} description={emptyDescription} className="m-4" />;
+    }
+
+    const maxValue = Math.max(...series.flatMap(item => item.values), 1);
+    const axisMax = Math.max(4, Math.ceil(maxValue / 4) * 4);
+    const ticks = [axisMax, axisMax * 0.75, axisMax * 0.5, axisMax * 0.25, 0];
+    const labelStride = buckets.length > 12 ? Math.ceil(buckets.length / 6) : buckets.length > 7 ? 2 : 1;
+    const plotted = series.map(item => ({
+        ...item,
+        points: item.values.map((value, index) => chartPoint(index, value, buckets.length, axisMax)),
+    }));
+
+    return (
+        <div className="doctor-line-chart" role="img" aria-label={`Trend for ${series.map(item => item.label).join(' and ')}`}>
+            <div className="doctor-line-legend">
+                {plotted.map(item => (
+                    <span key={item.label}><i className={item.variant} />{item.label}</span>
+                ))}
+            </div>
+            <div className="doctor-line-frame">
+                <div className="doctor-line-y-axis" aria-hidden="true">
+                    {ticks.map((tick, index) => <span key={`${tick}-${index}`} className="tabular-nums">{formatValue(tick)}</span>)}
+                </div>
+                <div className="doctor-line-plot">
+                    <div className="doctor-line-grid" aria-hidden="true">{ticks.map((_, index) => <i key={index} />)}</div>
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="doctor-line-svg" aria-hidden="true">
+                        {plotted.map(item => (
+                            <path key={item.label} className={`doctor-line-path ${item.variant}`} d={svgPath(item.points)} />
+                        ))}
+                    </svg>
+                    <div className="doctor-line-hitpoints">
+                        {buckets.map((bucketStart, index) => (
+                            <span
+                                key={bucketStart}
+                                className="doctor-line-point"
+                                style={{ left: `${plotted[0].points[index].x}%`, top: `${plotted[0].points[index].y}%` }}
+                                title={`${formatBucketDate(bucketStart, bucket)}: ${plotted.map(item => `${formatValue(item.values[index])} ${item.label.toLowerCase()}`).join(', ')}`}
+                            />
+                        ))}
+                    </div>
+                    <div className="doctor-line-x-axis">
+                        {buckets.map((bucketStart, index) => (
+                            <span key={bucketStart} className={index % labelStride === 0 || index === buckets.length - 1 ? '' : 'is-hidden'}>
+                                {formatBucketDate(bucketStart, bucket)}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function StaffOperationsSkeleton() {
+    return (
+        <div className="doctor-staff-shell" aria-live="polite" aria-busy="true">
+            <div className="doctor-staff-metrics">
+                {[0, 1, 2].map(item => (
+                    <div className="doctor-insight-card" key={item}>
+                        <Skeleton className="clinical-skeleton-line w-28" />
+                        <Skeleton className="clinical-skeleton-line mt-3 w-16" />
+                        <Skeleton className="clinical-skeleton-line mt-2 w-32" />
+                    </div>
+                ))}
+            </div>
+            <SectionPanel title="Completed Activity Trend" subtitle="Preparing operational trend.">
+                <div className="doctor-chart-skeleton">
+                    <Skeleton className="h-56 w-full" />
+                </div>
+            </SectionPanel>
+        </div>
+    );
+}
+
+function StaffOperationsSection({
+    period,
+    rows,
+    isLoading,
+    error,
+}: {
+    period: AnalyticsPeriod;
+    rows: StaffOperationsAnalyticsRow[] | null;
+    isLoading: boolean;
+    error: string | null;
+}) {
+    const [category, setCategory] = useState<StaffOperationsRole>('doctor');
+    const [chartMetric, setChartMetric] = useState<StaffChartMetric>('count');
+
+    const countMetrics = STAFF_COUNT_METRICS[category];
+    const turnaroundMetric = STAFF_TURNAROUND_METRICS[category];
+    const activeCategory = STAFF_CATEGORIES.find(item => item.key === category) ?? STAFF_CATEGORIES[0];
+
+    // Doctor has no supported turnaround metric, so the toggle must not offer one.
+    const effectiveChartMetric: StaffChartMetric = turnaroundMetric ? chartMetric : 'count';
+
+    // Only role_total rows reach the UI. Staff-scoped rows carry names and per-person
+    // figures and are dropped here, which also prevents double-counting the two scopes.
+    const categoryRows = useMemo(
+        () => roleTotalRows(rows ?? []).filter(row => row.role_key === category),
+        [rows, category],
+    );
+
+    const turnaroundRows = useMemo(
+        () => (turnaroundMetric
+            ? staffRowsForMetric(categoryRows, category, turnaroundMetric.key)
+                .filter(row => row.duration_minutes_median !== null)
+                .sort((left, right) => left.bucket_start.localeCompare(right.bucket_start))
+            : []),
+        [categoryRows, category, turnaroundMetric],
+    );
+
+    const turnaroundAverageMinutes = useMemo(() => weightedAverageMinutes(turnaroundRows), [turnaroundRows]);
+
+    const countRows = useMemo(
+        () => countMetrics.flatMap(metric => staffRowsForMetric(categoryRows, category, metric.key)),
+        [categoryRows, category, countMetrics],
+    );
+
+    const buckets = useMemo(() => collectStaffBuckets(countRows), [countRows]);
+
+    const series = useMemo(
+        () => countMetrics.map((metric, index) => ({
+            label: metric.label,
+            variant: (index === 0 ? 'is-current' : 'is-previous') as 'is-current' | 'is-previous',
+            values: staffCountSeries(staffRowsForMetric(categoryRows, category, metric.key), buckets),
+        })),
+        [buckets, categoryRows, category, countMetrics],
+    );
+
+    const attribution = useMemo(() => sumStaffAttribution(countRows), [countRows]);
+    const attributionTotal = attribution.attributed + attribution.unattributed;
+    const attributedPercent = attributionTotal === 0 ? 0 : Math.round((attribution.attributed / attributionTotal) * 100);
+
+    const reliabilityLevels = useMemo(
+        () => Array.from(new Set(countRows.map(row => row.reliability))),
+        [countRows],
+    );
+
+    const hasTurnaroundRows = turnaroundRows.length > 0;
+
+    const isInitialLoading = isLoading && rows === null;
+    const isRefreshing = isLoading && rows !== null;
+
+    return (
+        <section aria-label="Staff activity and service operations" className="doctor-analytics-section">
+            <SectionHeading
+                title="Staff Activity & Service Operations"
+                subtitle="Aggregate completed workflow activity by service area. Not an individual performance score."
+            />
+
+            <div className="doctor-staff-toolbar">
+                <div className="clinical-filter-group" role="group" aria-label="Staff operations category">
+                    {STAFF_CATEGORIES.map(item => (
+                        <button
+                            key={item.key}
+                            type="button"
+                            className={`clinical-filter-button ${category === item.key ? 'is-active' : ''}`}
+                            aria-pressed={category === item.key}
+                            onClick={() => setCategory(item.key)}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+                <div className={`doctor-analytics-updating ${isRefreshing ? 'is-visible' : ''}`} role="status" aria-live="polite">
+                    <span className="doctor-analytics-spinner" aria-hidden="true" />
+                    <span>Updating</span>
+                </div>
+            </div>
+
+            <p className="doctor-staff-scope">{activeCategory.subtitle} {period.from} to {period.toExclusive}.</p>
+
+            {error && (
+                <div className="doctor-analytics-inline-alert" role="alert">
+                    <Icon name="alert-triangle" className="h-4 w-4" />
+                    <span>{error}</span>
+                </div>
+            )}
+
+            {isInitialLoading ? (
+                <StaffOperationsSkeleton />
+            ) : rows === null ? (
+                <EmptyState
+                    title="Staff Operations data unavailable"
+                    description={error ? 'The Staff Operations request failed. Clinical and Geographic Analytics are unaffected.' : 'No Staff Operations data has been loaded for this period.'}
+                />
+            ) : (
+                <div className="doctor-staff-shell">
+                    <div className="doctor-staff-metrics">
+                        {countMetrics.map(metric => (
+                            <StaffMetricTile
+                                key={metric.key}
+                                label={metric.label}
+                                value={sumStaffCount(staffRowsForMetric(categoryRows, category, metric.key)).toLocaleString()}
+                                note={metric.note}
+                            />
+                        ))}
+                        {turnaroundMetric && (
+                            <StaffMetricTile
+                                label={turnaroundMetric.label}
+                                value={turnaroundAverageMinutes === null ? 'No data' : formatDurationMinutes(turnaroundAverageMinutes)}
+                                note={turnaroundAverageMinutes === null
+                                    ? 'No valid turnaround intervals recorded in this period'
+                                    : `${turnaroundMetric.averageLabel}. Median per bucket is plotted in the trend.`}
+                            />
+                        )}
+                    </div>
+
+                    <SectionPanel
+                        title={effectiveChartMetric === 'turnaround' && turnaroundMetric ? 'Turnaround Trend' : 'Completed Activity Trend'}
+                        subtitle={effectiveChartMetric === 'turnaround' && turnaroundMetric
+                            ? turnaroundMetric.medianLabel
+                            : 'Completed workflow events over the selected period.'}
+                    >
+                        {turnaroundMetric && (
+                            <div className="doctor-staff-chart-toggle" role="group" aria-label="Trend metric">
+                                <button
+                                    type="button"
+                                    className={`clinical-filter-button ${effectiveChartMetric === 'count' ? 'is-active' : ''}`}
+                                    aria-pressed={effectiveChartMetric === 'count'}
+                                    onClick={() => setChartMetric('count')}
+                                >
+                                    Completed count
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`clinical-filter-button ${effectiveChartMetric === 'turnaround' ? 'is-active' : ''}`}
+                                    aria-pressed={effectiveChartMetric === 'turnaround'}
+                                    onClick={() => setChartMetric('turnaround')}
+                                >
+                                    Turnaround
+                                </button>
+                            </div>
+                        )}
+                        {effectiveChartMetric === 'turnaround' && turnaroundMetric ? (
+                            <StaffOperationsTrendChart
+                                buckets={turnaroundRows.map(row => row.bucket_start)}
+                                bucket={period.bucket}
+                                series={[{
+                                    label: 'Median turnaround',
+                                    variant: 'is-current',
+                                    values: turnaroundRows.map(row => row.duration_minutes_median ?? 0),
+                                }]}
+                                formatValue={formatDurationMinutes}
+                                emptyTitle="No turnaround intervals"
+                                emptyDescription="No valid turnaround intervals were recorded for this category in the selected period."
+                            />
+                        ) : (
+                            <StaffOperationsTrendChart
+                                buckets={buckets}
+                                bucket={period.bucket}
+                                series={series}
+                                emptyTitle="No activity in this period"
+                                emptyDescription="No completed activity was recorded for this category in the selected period."
+                            />
+                        )}
+                    </SectionPanel>
+
+                    <SectionPanel
+                        title="Attribution"
+                        subtitle="How much completed activity could be linked to a staff account through audit logs."
+                    >
+                        {attributionTotal === 0 ? (
+                            <EmptyState title="No activity to attribute" description="No completed activity was recorded for this category in the selected period." className="m-4" />
+                        ) : (
+                            <div className="doctor-staff-attribution">
+                                <SummaryRow label="Attributed activity" value={attribution.attributed} note={`${attributedPercent}% of completed activity`} />
+                                <SummaryRow label="Unattributed activity" value={attribution.unattributed} note="Completed, but not linkable to a staff account" />
+                            </div>
+                        )}
+                    </SectionPanel>
+
+                    <section className="doctor-analytics-note">
+                        <Icon name="alert-triangle" className="h-4 w-4" />
+                        <div>
+                            <strong>Attribution and reliability limits</strong>
+                            <p>
+                                Attribution is derived from deduplicated audit logs and is incomplete, so unattributed activity is shown rather than hidden.
+                                {reliabilityLevels.length > 0 && ` Backend reliability for the displayed counts: ${reliabilityLevels.join(', ')}.`}
+                                {turnaroundMetric && hasTurnaroundRows && ` ${TURNAROUND_APPROXIMATION_NOTE} ${TURNAROUND_PERIOD_MEDIAN_NOTE}`}
+                                {' '}These figures describe recorded workflow activity, not individual staff performance, and are not comparable across service areas.
+                            </p>
+                        </div>
+                    </section>
+                </div>
+            )}
+        </section>
+    );
+}
+
 function AnalyticsNoteCard() {
     return (
         <section className="doctor-analytics-note">
@@ -1360,8 +1834,10 @@ function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
     );
 }
 
-export function DoctorAnalyticsPage({ isOnline }: { isOnline: boolean }) {
+export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: boolean; role?: AnalyticsWorkspaceRole }) {
     const [detailTab, setDetailTab] = useState<'clinical' | 'laboratory' | 'prescriptions'>('clinical');
+    const availableViews = useMemo(() => ANALYTICS_VIEWS.filter(view => view.roles.includes(role)), [role]);
+    const [activeView, setActiveView] = useState<AnalyticsView>(() => readViewFromLocation(role));
     const [preset, setPreset] = useState<PresetKey>('month');
     const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
     const [selectedHeatmapMetric, setSelectedHeatmapMetric] = useState<BarangayHeatmapMetric>('registered');
@@ -1376,12 +1852,76 @@ export function DoctorAnalyticsPage({ isOnline }: { isOnline: boolean }) {
     const [activePeriod, setActivePeriod] = useState<AnalyticsPeriod>(defaultCustomPeriod);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [staffRows, setStaffRows] = useState<StaffOperationsAnalyticsRow[] | null>(null);
+    const [isStaffLoading, setIsStaffLoading] = useState(false);
+    const [staffError, setStaffError] = useState<string | null>(null);
+    const staffRequestKeyRef = useRef<string | null>(null);
+
+    // Normalize the URL on mount (and whenever the role changes) so an invalid or
+    // unauthorized ?view= value is rewritten to the default without adding history noise.
+    useEffect(() => {
+        const resolved = readViewFromLocation(role);
+        setActiveView(resolved);
+        writeViewToLocation(resolved, 'replace');
+    }, [role]);
+
+    // Browser back/forward between analytics tabs.
+    useEffect(() => {
+        const handlePopState = () => setActiveView(readViewFromLocation(role));
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [role]);
+
+    const selectView = (view: AnalyticsView) => {
+        const resolved = resolveAnalyticsView(view, role);
+        setActiveView(resolved);
+        writeViewToLocation(resolved, 'push');
+    };
 
     const customPeriod = useMemo(() => getCustomPeriod(customFrom, customTo), [customFrom, customTo]);
     const period = useMemo(() => preset === 'custom' ? customPeriod : getPresetPeriod(preset), [customPeriod, preset]);
     const displayPeriod = period ?? activePeriod;
     const isInitialLoading = isLoading && !data;
     const isRefreshing = isLoading && Boolean(data);
+    // Staff Operations owns its own data, loading and error states, so a Clinical or
+    // Geographic RPC failure must not blank it.
+    const isStaffOnlyView = activeView === 'staff' && role === 'doctor';
+
+    // Staff Operations is Doctor-only and lazy: the RPC is never called for other roles
+    // or while another tab is active. Failures stay local to this tab.
+    useEffect(() => {
+        if (!isStaffOnlyView || !period) return;
+
+        const requestKey = `${period.from}|${period.toExclusive}|${period.bucket}`;
+        if (staffRequestKeyRef.current === requestKey) return;
+        staffRequestKeyRef.current = requestKey;
+
+        let isCurrent = true;
+        setIsStaffLoading(true);
+        setStaffError(null);
+
+        void (async () => {
+            try {
+                const result = await fetchStaffOperationsAnalytics(period);
+                // Ignore a response whose request is no longer the newest one.
+                if (isCurrent && staffRequestKeyRef.current === requestKey) setStaffRows(result);
+            } catch (err) {
+                logError('Failed to load staff operations analytics', err);
+                if (isCurrent && staffRequestKeyRef.current === requestKey) {
+                    staffRequestKeyRef.current = null;
+                    setStaffError(err instanceof Error && err.message === 'permission_denied'
+                        ? 'Staff Operations access is limited to Doctor accounts.'
+                        : healthcareErrorMessage('load staff operations'));
+                }
+            } finally {
+                if (isCurrent) setIsStaffLoading(false);
+            }
+        })();
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [isStaffOnlyView, period]);
 
     useEffect(() => {
         let isCurrent = true;
@@ -1565,14 +2105,38 @@ export function DoctorAnalyticsPage({ isOnline }: { isOnline: boolean }) {
                 )}
             </header>
 
-            {error && (
+            <div className="doctor-analytics-tabs" role="tablist" aria-label="Analytics workspace">
+                {availableViews.map(view => (
+                    <button
+                        key={view.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeView === view.key}
+                        className={`clinical-filter-button ${activeView === view.key ? 'is-active' : ''}`}
+                        onClick={() => selectView(view.key)}
+                    >
+                        {view.label}
+                    </button>
+                ))}
+            </div>
+
+            {error && !isStaffOnlyView && (
                 <div className="doctor-analytics-inline-alert" role="alert">
                     <Icon name="alert-triangle" className="h-4 w-4" />
                     <span>{error}</span>
                 </div>
             )}
 
-            {!data || !overview ? (
+            {isStaffOnlyView ? (
+                <div className="doctor-analytics-content-shell">
+                    <StaffOperationsSection
+                        period={displayPeriod}
+                        rows={staffRows}
+                        isLoading={isStaffLoading}
+                        error={staffError}
+                    />
+                </div>
+            ) : !data || !overview ? (
                 isInitialLoading ? (
                     <AnalyticsSkeleton />
                 ) : (
@@ -1580,6 +2144,8 @@ export function DoctorAnalyticsPage({ isOnline }: { isOnline: boolean }) {
                 )
             ) : (
             <div className="doctor-analytics-content-shell">
+                {activeView === 'clinical' && (
+                <>
                 <section aria-label="Top analytics summary" className="doctor-kpi-strip">
                     <MetricCard
                         label="Consultations Completed"
@@ -1657,18 +2223,6 @@ export function DoctorAnalyticsPage({ isOnline }: { isOnline: boolean }) {
                     </div>
                 </section>
 
-                <GeographicInsightsSection
-                    rows={data.barangayDistribution}
-                    heatmapRows={data.barangayHeatmap}
-                    selectedHeatmapMetric={selectedHeatmapMetric}
-                    onSelectHeatmapMetric={setSelectedHeatmapMetric}
-                    drilldownRows={barangayDrilldown}
-                    isDrilldownLoading={isBarangayDrilldownLoading}
-                    drilldownError={drilldownError}
-                    selectedBarangay={selectedBarangay}
-                    onSelectBarangay={setSelectedBarangay}
-                />
-
                 <AnalyticsNoteCard />
 
                 <section aria-label="Detailed records" className="doctor-analytics-section">
@@ -1710,6 +2264,23 @@ export function DoctorAnalyticsPage({ isOnline }: { isOnline: boolean }) {
                         </div>
                     </SectionPanel>
                 </section>
+                </>
+                )}
+
+                {activeView === 'geographic' && (
+                    <GeographicInsightsSection
+                        rows={data.barangayDistribution}
+                        heatmapRows={data.barangayHeatmap}
+                        selectedHeatmapMetric={selectedHeatmapMetric}
+                        onSelectHeatmapMetric={setSelectedHeatmapMetric}
+                        drilldownRows={barangayDrilldown}
+                        isDrilldownLoading={isBarangayDrilldownLoading}
+                        drilldownError={drilldownError}
+                        selectedBarangay={selectedBarangay}
+                        onSelectBarangay={setSelectedBarangay}
+                    />
+                )}
+
             </div>
             )}
         </div>

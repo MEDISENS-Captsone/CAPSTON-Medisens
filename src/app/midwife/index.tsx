@@ -346,7 +346,7 @@ const MidwifeApp = () => {
                                 />
                             )}
                             {activeTab === 'analytics' && (
-                                <DoctorAnalyticsPage isOnline={isOnline} />
+                                <DoctorAnalyticsPage isOnline={isOnline} role="midwives" />
                             )}
                             {activeTab === 'records' && (
                                 <PatientRecords

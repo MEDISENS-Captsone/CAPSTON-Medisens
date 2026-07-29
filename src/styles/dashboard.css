@@ -3267,6 +3267,46 @@ td {
     font-weight: var(--font-weight-medium);
 }
 
+.doctor-staff-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.doctor-staff-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.625rem;
+}
+
+.doctor-staff-scope {
+    color: var(--text-muted);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--type-supporting-line);
+}
+
+.doctor-staff-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+}
+
+.doctor-staff-chart-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem 0;
+}
+
+.doctor-staff-attribution {
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem 0;
+}
+
 .doctor-analytics-note {
     display: flex;
     align-items: flex-start;
@@ -3906,8 +3946,17 @@ td {
     .doctor-analytics-controls { width: 100%; justify-content: flex-start; }
     .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.125rem; }
     .doctor-operational-grid,
+    .doctor-staff-metrics,
     .doctor-kpi-strip {
         grid-template-columns: 1fr;
+    }
+
+    .doctor-staff-toolbar { align-items: flex-start; }
+    .doctor-staff-toolbar .clinical-filter-group {
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.125rem;
     }
     .doctor-geographic-command {
         grid-template-areas:

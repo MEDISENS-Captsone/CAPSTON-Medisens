@@ -21,6 +21,36 @@ export interface AnalyticsRow {
     blank_group_count: number | null;
 }
 
+export type StaffOperationsMetricGroup = 'completion' | 'turnaround';
+export type StaffOperationsRole = 'doctor' | 'laboratory' | 'pharmacist';
+export type StaffOperationsAggregationScope = 'staff' | 'role_total';
+
+export interface StaffOperationsAnalyticsRow {
+    aggregation_scope: StaffOperationsAggregationScope;
+    metric_group: StaffOperationsMetricGroup;
+    metric_key:
+        | 'consultations_completed'
+        | 'follow_ups_completed'
+        | 'lab_requests_completed'
+        | 'lab_turnaround_minutes'
+        | 'prescriptions_dispensed'
+        | 'prescription_turnaround_minutes';
+    role_key: StaffOperationsRole;
+    staff_user_id: string | null;
+    staff_display_name: string | null;
+    bucket_start: string;
+    count_value: number | null;
+    duration_minutes_avg: number | null;
+    duration_minutes_median: number | null;
+    attributed_count: number;
+    unattributed_count: number;
+    reliability: 'high' | 'medium' | 'approximate';
+    attribution_source:
+        | 'audit_logs_deduplicated'
+        | 'workflow_only_unattributed'
+        | 'workflow_events_role_total';
+}
+
 export interface BarangayHeatmapRow {
     barangay: string;
     registered_patients: number | null;
@@ -78,6 +108,25 @@ async function callBarangayHeatmapRpc(args: Record<string, string | number>): Pr
         throw new Error(error.code === '42501' ? 'permission_denied' : 'analytics_unavailable');
     }
 
+    return data ?? [];
+}
+
+export async function fetchStaffOperationsAnalytics(
+    period: AnalyticsPeriod,
+): Promise<StaffOperationsAnalyticsRow[]> {
+    const client = supabase as unknown as {
+        rpc: (
+            name: string,
+            args: Record<string, string | number>,
+        ) => Promise<{ data: StaffOperationsAnalyticsRow[] | null; error: { code?: string } | null }>;
+    };
+    const { data, error } = await client.rpc('analytics_staff_operations_g4b', {
+        p_from: period.from,
+        p_to_exclusive: period.toExclusive,
+        p_bucket: period.bucket,
+    });
+
+    if (error) throw new Error(error.code === '42501' ? 'permission_denied' : 'analytics_unavailable');
     return data ?? [];
 }
 

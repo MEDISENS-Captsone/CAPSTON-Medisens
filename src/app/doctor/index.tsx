@@ -664,7 +664,7 @@ const DoctorDashboard = () => {
                         </div>
                     )}
                     {activePage === 'analytics' && (
-                        <DoctorAnalyticsPage isOnline={isOnline} />
+                        <DoctorAnalyticsPage isOnline={isOnline} role="doctor" />
                     )}
                     {activePage === 'new-record' && (
                         <Suspense fallback={<LazyPanelFallback />}>
