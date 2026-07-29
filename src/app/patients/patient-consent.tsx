@@ -117,7 +117,7 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                 consent_date: new Date().toISOString(),
             });
 
-            showToast('Consent successfully recorded!', false);
+            showToast('Patient consent saved successfully.', false);
             onConsentSaved();
         } catch (err) {
             logError('Failed to save patient consent', err);

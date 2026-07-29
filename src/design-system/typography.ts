@@ -4,7 +4,9 @@ export const typography = {
         mono: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
     },
     fontSize: {
+        caption: '0.6875rem',
         xs: '0.75rem',
+        support: '0.8125rem',
         sm: '0.875rem',
         base: '1rem',
         lg: '1.125rem',
@@ -28,8 +30,85 @@ export const typography = {
     },
     letterSpacing: {
         normal: '0',
+        label: '0.01em',
         wide: '0.025em',
         wider: '0.05em',
+        category: '0.08em',
+        navCategory: '0.11em',
+    },
+    scale: {
+        display: {
+            fontSize: '1.5rem',
+            lineHeight: '1.2',
+            fontWeight: 700,
+            letterSpacing: '0',
+        },
+        pageTitle: {
+            fontSize: '1.375rem',
+            lineHeight: '1.25',
+            fontWeight: 700,
+            letterSpacing: '0',
+        },
+        sectionTitle: {
+            fontSize: '1.0625rem',
+            lineHeight: '1.35',
+            fontWeight: 600,
+            letterSpacing: '0',
+        },
+        cardTitle: {
+            fontSize: '0.9375rem',
+            lineHeight: '1.35',
+            fontWeight: 600,
+            letterSpacing: '0',
+        },
+        body: {
+            fontSize: '0.875rem',
+            lineHeight: '1.55',
+            fontWeight: 400,
+            letterSpacing: '0',
+        },
+        supporting: {
+            fontSize: '0.8125rem',
+            lineHeight: '1.45',
+            fontWeight: 400,
+            letterSpacing: '0',
+        },
+        label: {
+            fontSize: '0.8125rem',
+            lineHeight: '1.35',
+            fontWeight: 500,
+            letterSpacing: '0.01em',
+        },
+        table: {
+            fontSize: '0.8125rem',
+            lineHeight: '1.45',
+            fontWeight: 400,
+            letterSpacing: '0',
+        },
+        button: {
+            fontSize: '0.875rem',
+            lineHeight: '1.2',
+            fontWeight: 600,
+            letterSpacing: '0',
+        },
+        navigation: {
+            fontSize: '0.875rem',
+            lineHeight: '1.25',
+            fontWeight: 500,
+            letterSpacing: '0',
+        },
+        category: {
+            fontSize: '0.6875rem',
+            lineHeight: '1.25',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+        },
+        caption: {
+            fontSize: '0.75rem',
+            lineHeight: '1.35',
+            fontWeight: 400,
+            letterSpacing: '0',
+        },
     },
 } as const;
 

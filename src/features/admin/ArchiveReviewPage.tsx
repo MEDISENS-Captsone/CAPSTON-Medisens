@@ -235,7 +235,7 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
 
                 <div className="clinical-toolbar">
                     <div className="clinical-search">
-                        <Icon name="search" className="h-4 w-4 text-[#5F82A3]" />
+                        <Icon name="search" className="h-4 w-4 text-[var(--text-secondary)]" />
                         <input
                             type="text"
                             aria-label="Search archive review patients"

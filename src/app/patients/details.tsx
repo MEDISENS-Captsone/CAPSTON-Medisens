@@ -31,7 +31,7 @@ interface Patient {
 }
 
 interface EditForm extends Omit<Patient, 'id' | 'age' | 'consent_signed'> { age: string; }
-interface NavItem { id: string; label: string; icon: string; }
+interface NavItem { id: string; label: string; icon: string; group?: string; }
 
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] as const;
 const EDUCATION_LEVELS = [
@@ -45,29 +45,55 @@ const PATIENT_DETAILS_COLUMNS = 'id, firstName, middleName, lastName, suffix, ag
 
 const PATIENT_DETAILS_NAV_ITEMS: Record<(typeof PATIENT_DETAILS_ROLES)[number], NavItem[]> = {
     doctor: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'consultation', label: 'Consultation', icon: 'clipboard' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'consultation', label: 'Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
     ],
     nurse: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
-        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
+        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
     ],
     midwives: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'reports', label: 'OCR Reports', icon: 'chart' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'reports', label: 'OCR Reports', icon: 'chart', group: 'Records & Governance' },
     ],
     BHW: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
     ],
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+const DIGITS_ONLY_PATTERN = '[0-9]*';
+const NAME_TEXT_PATTERN = "[A-Za-z .'-]*";
+const NUMERIC_ONLY_EDIT_FIELDS = new Set<keyof EditForm>(['age', 'contactNumber']);
+const NAME_TEXT_EDIT_FIELDS = new Set<keyof EditForm>([
+    'firstName',
+    'middleName',
+    'lastName',
+    'suffix',
+    'nationality',
+    'civilStatus',
+    'relativeName',
+    'relativeRelation',
+]);
+
+function sanitizeEditValue(field: keyof EditForm, value: string) {
+    if (NUMERIC_ONLY_EDIT_FIELDS.has(field)) return value.replace(/\D/g, '');
+    if (NAME_TEXT_EDIT_FIELDS.has(field)) return value.replace(/[^a-zA-Z\s'.-]/g, '');
+    return value;
+}
+
+function restrictedInputProps(field: keyof EditForm): Pick<React.InputHTMLAttributes<HTMLInputElement>, 'inputMode' | 'pattern'> {
+    if (NUMERIC_ONLY_EDIT_FIELDS.has(field)) return { inputMode: 'numeric', pattern: DIGITS_ONLY_PATTERN };
+    if (NAME_TEXT_EDIT_FIELDS.has(field)) return { pattern: NAME_TEXT_PATTERN };
+    return {};
+}
+
 function DetailItem({ label, value }: { label: string; value?: string | number | null }) {
     const isEmpty = value === null || value === undefined || value === '';
     return (
@@ -164,8 +190,10 @@ function DetailsPage() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
-        setEditForm(f => ({ ...f, [id]: value }));
-        if (id === 'religion' && value !== 'Other') setOtherReligion('');
+        const field = id as keyof EditForm;
+        const sanitizedValue = sanitizeEditValue(field, value);
+        setEditForm(f => ({ ...f, [field]: sanitizedValue }));
+        if (field === 'religion' && sanitizedValue !== 'Other') setOtherReligion('');
     };
 
     const handleOtherReligion = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +256,7 @@ function DetailsPage() {
     const labelCls = "block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2";
 
     return (
-        <div className="flex w-full min-h-screen bg-[#F8FAFC] text-slate-800 overflow-x-hidden relative">
+        <div className="flex w-full min-h-screen bg-[var(--bg)] text-slate-800 overflow-x-hidden relative">
             <ToastComponent />
 
             <Sidebar activePage="records" userName={userName} userInitials={userInitials} userRole={role.toUpperCase()} navItems={navItems} onNavigate={handleNavigate} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} isOnline={isOnline} />
@@ -265,7 +293,7 @@ function DetailsPage() {
                         ) : showConsent ? (
                             <div className="">
                                 <button onClick={() => setShowConsent(false)} className="mb-4 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">Back to Details</button>
-                                <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setShowConsent(false); loadPatient(); }} />
+                                <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setPatient(current => current ? { ...current, consent_signed: true } : current); setShowConsent(false); loadPatient(); }} />
                             </div>
                         ) : editing && !isArchivedPatient ? (
                             // Edit Mode Form...
@@ -285,11 +313,11 @@ function DetailsPage() {
                                 <div className={sectionCls}>
                                     <div className={headerCls}>I. Patient's Information Record</div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                        <div><label className={labelCls}>First Name</label><input type="text" id="firstName" value={editForm.firstName} onChange={handleChange} className={inputCls} required /></div>
-                                        <div><label className={labelCls}>Middle Name</label><input type="text" id="middleName" value={editForm.middleName} onChange={handleChange} className={inputCls} /></div>
-                                        <div><label className={labelCls}>Last Name</label><input type="text" id="lastName" value={editForm.lastName} onChange={handleChange} className={inputCls} required /></div>
-                                        <div><label className={labelCls}>Suffix</label><input type="text" id="suffix" value={editForm.suffix} onChange={handleChange} className={inputCls} placeholder="Jr., Sr., III" /></div>
-                                        <div><label className={labelCls}>Age</label><input type="number" id="age" value={editForm.age} onChange={handleChange} className={inputCls} required min="0" /></div>
+                                        <div><label className={labelCls}>First Name</label><input type="text" id="firstName" value={editForm.firstName} onChange={handleChange} className={inputCls} required {...restrictedInputProps('firstName')} /></div>
+                                        <div><label className={labelCls}>Middle Name</label><input type="text" id="middleName" value={editForm.middleName} onChange={handleChange} className={inputCls} {...restrictedInputProps('middleName')} /></div>
+                                        <div><label className={labelCls}>Last Name</label><input type="text" id="lastName" value={editForm.lastName} onChange={handleChange} className={inputCls} required {...restrictedInputProps('lastName')} /></div>
+                                        <div><label className={labelCls}>Suffix</label><input type="text" id="suffix" value={editForm.suffix} onChange={handleChange} className={inputCls} placeholder="Jr., Sr., III" {...restrictedInputProps('suffix')} /></div>
+                                        <div><label className={labelCls}>Age</label><input type="text" id="age" value={editForm.age} onChange={handleChange} className={inputCls} required {...restrictedInputProps('age')} /></div>
                                         <div>
                                             <label className={labelCls}>Sex</label>
                                             <div className="flex gap-3">
@@ -299,9 +327,9 @@ function DetailsPage() {
                                         </div>
                                         <div><label className={labelCls}>Birthday</label><input type="date" id="birthday" value={editForm.birthday} onChange={handleChange} className={inputCls} /></div>
                                         <div><label className={labelCls}>Birth Place</label><input type="text" id="birthPlace" value={editForm.birthPlace} onChange={handleChange} className={inputCls} /></div>
-                                        <div><label className={labelCls}>Contact Number</label><input type="tel" id="contactNumber" value={editForm.contactNumber} onChange={handleChange} className={inputCls} placeholder="09XXXXXXXXX" /></div>
+                                        <div><label className={labelCls}>Contact Number</label><input type="tel" id="contactNumber" value={editForm.contactNumber} onChange={handleChange} className={inputCls} placeholder="09XXXXXXXXX" {...restrictedInputProps('contactNumber')} /></div>
                                         <div className="md:col-span-2"><label className={labelCls}>Address</label><input type="text" id="address" value={editForm.address} onChange={handleChange} className={inputCls} required /></div>
-                                        <div><label className={labelCls}>Nationality</label><input type="text" id="nationality" value={editForm.nationality} onChange={handleChange} className={inputCls} /></div>
+                                        <div><label className={labelCls}>Nationality</label><input type="text" id="nationality" value={editForm.nationality} onChange={handleChange} className={inputCls} {...restrictedInputProps('nationality')} /></div>
                                         <div>
                                             <label className={labelCls}>Religion</label>
                                             <select id="religion" value={editForm.religion.startsWith('Other:') ? 'Other' : editForm.religion} onChange={handleChange} className={inputCls}>
@@ -309,10 +337,10 @@ function DetailsPage() {
                                                 {RELIGION_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
                                             </select>
                                             {(editForm.religion === 'Other' || editForm.religion.startsWith('Other:')) && (
-                                                <input type="text" value={otherReligion || (editForm.religion.startsWith('Other:') ? editForm.religion.replace(/^Other:\s*/, '') : '')} onChange={handleOtherReligion} className={`${inputCls} mt-2`} placeholder="Enter religion" />
+                                                <input type="text" value={otherReligion || (editForm.religion.startsWith('Other:') ? editForm.religion.replace(/^Other:\s*/, '') : '')} onChange={handleOtherReligion} className={`${inputCls} mt-2`} placeholder="Enter religion" pattern={NAME_TEXT_PATTERN} />
                                             )}
                                         </div>
-                                        <div><label className={labelCls}>Civil Status</label><input type="text" id="civilStatus" value={editForm.civilStatus} onChange={handleChange} className={inputCls} /></div>
+                                        <div><label className={labelCls}>Civil Status</label><input type="text" id="civilStatus" value={editForm.civilStatus} onChange={handleChange} className={inputCls} {...restrictedInputProps('civilStatus')} /></div>
                                         <div>
                                             <label className={labelCls}>Blood Type</label>
                                             <select id="bloodType" value={editForm.bloodType} onChange={handleChange} className={inputCls}>
@@ -364,8 +392,8 @@ function DetailsPage() {
                                 <div className={sectionCls}>
                                     <div className={headerCls}>III. Emergency Contact</div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                        <div><label className={labelCls}>Relative's Name</label><input type="text" id="relativeName" value={editForm.relativeName} onChange={handleChange} className={inputCls} /></div>
-                                        <div><label className={labelCls}>Relationship</label><input type="text" id="relativeRelation" value={editForm.relativeRelation} onChange={handleChange} className={inputCls} /></div>
+                                        <div><label className={labelCls}>Relative's Name</label><input type="text" id="relativeName" value={editForm.relativeName} onChange={handleChange} className={inputCls} {...restrictedInputProps('relativeName')} /></div>
+                                        <div><label className={labelCls}>Relationship</label><input type="text" id="relativeRelation" value={editForm.relativeRelation} onChange={handleChange} className={inputCls} {...restrictedInputProps('relativeRelation')} /></div>
                                         <div><label className={labelCls}>Relative's Address</label><input type="text" id="relativeAddress" value={editForm.relativeAddress} onChange={handleChange} className={inputCls} /></div>
                                     </div>
                                 </div>

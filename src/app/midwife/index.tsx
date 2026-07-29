@@ -16,6 +16,7 @@ import PatientRecords from '../../features/midwife/patientRecords';
 import CensusEntry from '../../features/midwife/censusEntry';
 import PatientConsent from '../patients/patient-consent';
 import { useMidwifeData } from '../../features/midwife/useMidwifeData';
+import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 
@@ -175,7 +176,7 @@ function PatientModal({
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 ">
-            <div className="bg-[#F8FAFC] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-sm flex flex-col max-h-[92vh] sm:max-h-[88vh]">
+            <div className="bg-[var(--bg)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-sm flex flex-col max-h-[92vh] sm:max-h-[88vh]">
 
                 {/* Modal Header */}
                 <div className="px-5 py-4 border-b border-slate-200 bg-white rounded-t-2xl flex items-center justify-between shrink-0">
@@ -294,14 +295,15 @@ const MidwifeApp = () => {
     }, [handleRealtimeChange]);
 
     const midwifeNavItems = [
-        { id: 'dashboard', label: 'Home',           icon: 'home' },
-        { id: 'records',   label: 'Patient Records', icon: 'users' },
-        { id: 'census',    label: 'Census Entry',    icon: 'clipboard' },
-        { id: 'reports',   label: 'OCR Reports',     icon: 'chart' },
+        { id: 'dashboard', label: 'Home',           icon: 'home', group: 'Overview' },
+        { id: 'analytics', label: 'Analytics',      icon: 'chart', group: 'Insights' },
+        { id: 'records',   label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'census',    label: 'Census Entry',    icon: 'clipboard', group: 'Maternal & Community Care' },
+        { id: 'reports',   label: 'OCR Reports',     icon: 'chart', group: 'Records & Governance' },
     ];
 
     return (
-        <div className="flex h-screen w-full bg-[#F8FAFC] overflow-hidden">
+        <div className="flex h-screen w-full bg-[var(--bg)] overflow-hidden">
             <Sidebar
                 activePage={activeTab}
                 userName={userData.name}
@@ -317,6 +319,7 @@ const MidwifeApp = () => {
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 <Topbar
                     title={activeTab === 'dashboard' ? 'Midwife Dashboard'
+                        : activeTab === 'analytics' ? 'Analytics'
                         : activeTab === 'records' ? 'Patient Records'
                         : activeTab === 'census' ? 'Census Entry'
                         : activeTab === 'reports' ? 'OCR Generation'
@@ -330,7 +333,7 @@ const MidwifeApp = () => {
                 />
 
                 {/* Content */}
-                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC]">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-[var(--bg)]">
                     <div className="w-full min-h-full pwa-page-pad">
                         <div className="w-full">
                             {activeTab === 'dashboard' && (
@@ -341,6 +344,9 @@ const MidwifeApp = () => {
                                     onNavigateToRecords={() => setActiveTab('records')}
                                     onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
                                 />
+                            )}
+                            {activeTab === 'analytics' && (
+                                <DoctorAnalyticsPage isOnline={isOnline} role="midwives" />
                             )}
                             {activeTab === 'records' && (
                                 <PatientRecords

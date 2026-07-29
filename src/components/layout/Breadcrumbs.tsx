@@ -14,11 +14,11 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
 
     return (
         <nav aria-label="Breadcrumb" className="hidden sm:block">
-            <ol className="flex min-w-0 items-center gap-1 text-xs font-semibold text-[#5F82A3]">
+            <ol className="flex min-w-0 items-center gap-1 text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)] text-[var(--text-secondary)]">
                 {items.map((item, index) => (
                     <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
-                        {index > 0 && <Icon name="chevron-right" className="h-3.5 w-3.5 shrink-0 text-[#9BCBEA]" />}
-                        <span className={item.current ? 'truncate text-[#0F3154]' : 'truncate'} aria-current={item.current ? 'page' : undefined}>
+                        {index > 0 && <Icon name="chevron-right" className="h-3.5 w-3.5 shrink-0 text-[var(--border-strong)]" />}
+                        <span className={item.current ? 'truncate text-[var(--text)]' : 'truncate'} aria-current={item.current ? 'page' : undefined}>
                             {item.label}
                         </span>
                     </li>

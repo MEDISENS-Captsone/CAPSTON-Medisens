@@ -41,9 +41,19 @@ interface CreateUserResponse {
     details?: Record<string, unknown>;
 }
 
+interface UpdateUserRoleResponse {
+    user?: UserProfile;
+    error?: string;
+}
+
+interface DeleteUserResponse {
+    ok?: boolean;
+    error?: string;
+}
+
 const isAdminRole = (value: string): value is AdminRole => (ROLES as readonly string[]).includes(value);
 
-async function getFunctionErrorMessage(error: unknown, data?: CreateUserResponse | null): Promise<string> {
+async function getFunctionErrorMessage(error: unknown, data?: { error?: string } | null, fallback = 'Function request failed.'): Promise<string> {
     if (data?.error) return data.error;
 
     const context = error && typeof error === 'object' && 'context' in error
@@ -52,7 +62,7 @@ async function getFunctionErrorMessage(error: unknown, data?: CreateUserResponse
 
     if (context instanceof Response) {
         try {
-            const body = await context.clone().json() as CreateUserResponse;
+            const body = await context.clone().json() as { error?: string };
             if (body.error) return body.error;
         } catch {
             try {
@@ -64,7 +74,7 @@ async function getFunctionErrorMessage(error: unknown, data?: CreateUserResponse
         }
     }
 
-    return error instanceof Error ? error.message : 'Create-user function failed.';
+    return error instanceof Error ? error.message : fallback;
 }
 
 // ─── Utility Components ───────────────────────────────────────────────────────
@@ -136,6 +146,7 @@ const AdminDashboard = () => {
     // Data State
     const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshingUsers, setIsRefreshingUsers] = useState(false);
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -159,8 +170,8 @@ const AdminDashboard = () => {
     const [userToDelete, setUserToDelete] = useState<{ id: string, name: string } | null>(null);
 
     const navItems = [
-        { id: 'admin', label: 'User Management', icon: 'users' },
-        { id: 'audit-log', label: 'Audit Log', icon: 'clipboard' },
+        { id: 'admin', label: 'User Management', icon: 'users', group: 'Administration' },
+        { id: 'audit-log', label: 'Audit Log', icon: 'clipboard', group: 'Records & Governance' },
     ];
 
     useEffect(() => {
@@ -183,32 +194,45 @@ const AdminDashboard = () => {
 
     }, [activePage]);
 
-    // Background Refresh Interval (1.5s)
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (activePage === 'admin' && isOnline) {
-                loadUsers(true);
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && activePage === 'admin' && isOnline) {
+                void loadUsers(true);
             }
-        }, 1500);
-        return () => clearInterval(interval);
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [activePage, isOnline]);
 
     const loadUsers = async (isSilent = false) => {
-        if (!isSilent) setIsLoading(true);
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, full_name, role, email')
-            .order('role', { ascending: true });
-
-        if (error) {
-            if (!isSilent) {
-                logError('Failed to load users', error);
-                showToast(healthcareErrorMessage('load user accounts'), true);
-            }
+        if (isSilent) {
+            setIsRefreshingUsers(true);
         } else {
-            setAllUsers((data as UserProfile[]) || []);
+            setIsLoading(true);
         }
-        if (!isSilent) setIsLoading(false);
+
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, full_name, role, email')
+                .order('role', { ascending: true });
+
+            if (error) {
+                if (!isSilent) {
+                    logError('Failed to load users', error);
+                    showToast(healthcareErrorMessage('load user accounts'), true);
+                }
+            } else {
+                setAllUsers((data as UserProfile[]) || []);
+            }
+        } finally {
+            if (isSilent) {
+                setIsRefreshingUsers(false);
+            } else {
+                setIsLoading(false);
+            }
+        }
     };
 
     const filteredUsers = useMemo(() => {
@@ -266,33 +290,25 @@ const AdminDashboard = () => {
 
         if (isEditMode && editingUserId) {
             // Update existing user
-            const { error } = await supabase
-                .from('profiles')
-                .update({ full_name: fullName, role })
-                .eq('id', editingUserId);
+            const { data, error } = await supabase.functions.invoke<UpdateUserRoleResponse>('update-user-role', {
+                body: { userId: editingUserId, fullName, role },
+            });
 
             setIsSaving(false);
 
-            if (error) {
-                logError('Failed to update user profile', error);
+            if (error || data?.error || !data?.user) {
+                const message = await getFunctionErrorMessage(error, data, 'Update-user-role function failed.');
+                logError('Failed to update user profile', { error, response: data, message });
                 showToast(healthcareErrorMessage('update the user profile'), true);
                 return;
             }
-            showToast(`${fullName}'s profile updated successfully.`);
-            void logAuditEvent({
-                action: 'update',
-                module: 'Administration',
-                recordId: editingUserId,
-                recordType: 'profile',
-                description: 'Updated RHU user profile.',
-                metadata: { profile_id: editingUserId, action_scope: 'user_profile' },
-            });
+            showToast(`${data.user.full_name || fullName}'s profile updated successfully.`);
             
             // Optimistically update local state
-            setAllUsers(prev => prev.map(u => u.id === editingUserId ? { ...u, full_name: fullName, role } : u));
+            setAllUsers(prev => prev.map(u => u.id === editingUserId ? { ...u, ...data.user } : u));
             
             closeUserModal();
-            loadUsers();
+            void loadUsers(true);
         } else {
             // Create new user
             const email = safeTrim(fEmail);
@@ -325,7 +341,7 @@ const AdminDashboard = () => {
             });
             setAllUsers(prev => [data.user as UserProfile, ...prev]);
             closeUserModal();
-            loadUsers();
+            void loadUsers(true);
         }
     };
 
@@ -356,15 +372,15 @@ const AdminDashboard = () => {
         }
 
         setIsSaving(true);
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', userToDelete.id);
+        const { data, error } = await supabase.functions.invoke<DeleteUserResponse>('delete-user', {
+            body: { userId: userToDelete.id },
+        });
 
         setIsSaving(false);
 
-        if (error) {
-            logError('Failed to delete user profile', error);
+        if (error || data?.error || !data?.ok) {
+            const message = await getFunctionErrorMessage(error, data, 'Delete-user function failed.');
+            logError('Failed to delete user profile', { error, response: data, message });
             showToast(healthcareErrorMessage('delete the user profile'), true);
             closeConfirmModal();
             return;
@@ -378,7 +394,7 @@ const AdminDashboard = () => {
         closeConfirmModal();
         
         // Then re-fetch to ensure sync with server
-        loadUsers();
+        void loadUsers(true);
     };
 
     return (
@@ -445,9 +461,22 @@ const AdminDashboard = () => {
                     {/* Main Content Card */}
                     <div className="ops-panel flex flex-col">
                         {/* Card Header */}
-                        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60">
-                            <h2 className="text-base font-semibold text-slate-800 tracking-tight">Staff Accounts</h2>
-                            <p className="text-sm text-slate-500">Maintain authorized MEDISENS access and role assignments.</p>
+                        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-base font-semibold text-slate-800 tracking-tight">Staff Accounts</h2>
+                                <p className="text-sm text-slate-500">Maintain authorized MEDISENS access and role assignments.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {isRefreshingUsers && <span className="text-xs font-semibold text-slate-400" role="status">Updating...</span>}
+                                <button
+                                    type="button"
+                                    onClick={() => void loadUsers(true)}
+                                    disabled={isRefreshingUsers || !isOnline}
+                                    className="clinical-row-action min-w-[96px] justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Icon name="refresh" className="h-3.5 w-3.5" /> Refresh
+                                </button>
+                            </div>
                         </div>
 
                         {/* Filter Bar */}

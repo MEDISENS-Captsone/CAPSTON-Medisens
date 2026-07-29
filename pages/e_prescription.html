@@ -4,157 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediSens | Doctor Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script> 
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../src/styles/dashboard.css">
     <style>
         * { box-sizing: border-box; }
-        body { 
-            background-color: #F8FAFC; margin: 0; padding: 0; 
+        body {
+            background-color: #F7F8FC; margin: 0; padding: 0;
             font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-            color: #1e293b; height: 100vh; overflow: hidden;
+            color: #1F1F1F; height: 100vh; overflow: hidden;
         }
-        .main-wrapper { 
-            margin-left: 240px; 
-            display: flex; flex-direction: column; 
+        .main-wrapper {
+            margin-left: 240px;
+            display: flex; flex-direction: column;
             height: 100vh; overflow-y: auto;
             width: calc(100vw - 240px);
         }
-        .content { 
-            padding: 12px 24px; 
-            width: 100%; 
-            display: flex; 
-            flex-direction: column; 
+        .content {
+            padding: 12px 24px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
             gap: 10px;
             flex: 1;
         }
-        .welcome-row { 
-            display: flex; justify-content: space-between; 
-            align-items: center; flex-wrap: wrap; gap: 6px; 
+        .welcome-row {
+            display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap; gap: 6px;
         }
         .welcome-row h1 { font-size: 1.2rem !important; margin: 0 0 1px 0 !important; }
         .welcome-row p { font-size: 0.75rem !important; margin: 0 !important; }
-        .stats-row { 
-            display: grid; grid-template-columns: repeat(4, 1fr); 
-            gap: 10px; 
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
         }
-        .stat-card { 
-            background: white; border-radius: 10px; 
-            border: 1px solid #e2e8f0; padding: 12px; 
+        .stat-card {
+            background: white; border-radius: 10px;
+            border: 1px solid #DDE3F5; padding: 12px;
             display: flex; align-items: center; gap: 10px;
         }
-        .stat-icon-wrap { 
-            width: 34px; height: 34px; border-radius: 9px; 
-            display: flex; align-items: center; justify-content: center; 
+        .stat-icon-wrap {
+            width: 34px; height: 34px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
             font-size: 1rem; flex-shrink: 0;
         }
         .stat-body { flex: 1; min-width: 0; }
-        .stat-val { font-size: 1.4rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
-        .stat-label { font-size: 0.65rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
-        .stat-hint { font-size: 0.65rem; color: #94a3b8; margin-top: 1px; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; color: #1F1F1F; line-height: 1.1; }
+        .stat-label { font-size: 0.65rem; font-weight: 600; color: #6A6E83; text-transform: uppercase; letter-spacing: 0.04em; }
+        .stat-hint { font-size: 0.65rem; color: #A8B1CE; margin-top: 1px; }
         .stat-hint.up { color: #16a34a; }
         .stat-hint.down { color: #dc2626; }
         .grid-2-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .card { 
-            background: white; border-radius: 10px; 
-            border: 1px solid #e2e8f0; padding: 12px; 
+        .card {
+            background: white; border-radius: 10px;
+            border: 1px solid #DDE3F5; padding: 12px;
         }
-        .card-hd { 
-            display: flex; justify-content: space-between; 
-            align-items: flex-start; margin-bottom: 8px; 
+        .card-hd {
+            display: flex; justify-content: space-between;
+            align-items: flex-start; margin-bottom: 8px;
         }
-        .card-title { font-size: 0.82rem; font-weight: 700; color: #0f172a; }
-        .card-sub { font-size: 0.67rem; color: #94a3b8; margin-top: 1px; }
+        .card-title { font-size: 0.82rem; font-weight: 700; color: #1F1F1F; }
+        .card-sub { font-size: 0.67rem; color: #A8B1CE; margin-top: 1px; }
         #patientQueue { max-height: 200px; overflow-y: auto; }
         #followUpList { max-height: 200px; overflow-y: auto; }
-        .queue-item { 
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 6px 0; border-bottom: 1px solid #f1f5f9; 
+        .queue-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 0; border-bottom: 1px solid #F2F3FF;
         }
-        .queue-av { 
-            width: 30px; height: 30px; border-radius: 50%; 
-            background: #334155; color: white; 
-            display: flex; align-items: center; justify-content: center; 
+        .queue-av {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: #5A81FA; color: white;
+            display: flex; align-items: center; justify-content: center;
             font-weight: 700; font-size: 0.75rem; flex-shrink: 0;
         }
         .queue-info { flex: 1; margin-left: 8px; }
-        .queue-name { font-size: 0.78rem; font-weight: 700; color: #0f172a; }
-        .queue-meta { font-size: 0.65rem; color: #94a3b8; }
-        .queue-time { font-size: 0.7rem; font-weight: 700; color: #334155; }
-        .view-all-link { 
-            width: 100%; margin-top: 6px; padding: 6px; background: none; 
-            border: none; color: #334155; font-size: 0.72rem; 
-            font-weight: 600; cursor: pointer; text-align: center; display: block; 
+        .queue-name { font-size: 0.78rem; font-weight: 700; color: #1F1F1F; }
+        .queue-meta { font-size: 0.65rem; color: #A8B1CE; }
+        .queue-time { font-size: 0.7rem; font-weight: 700; color: #5A81FA; }
+        .view-all-link {
+            width: 100%; margin-top: 6px; padding: 6px; background: none;
+            border: none; color: #5A81FA; font-size: 0.72rem;
+            font-weight: 600; cursor: pointer; text-align: center; display: block;
         }
         .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .qa-btn { 
-            display: flex; flex-direction: column; align-items: center; gap: 4px; 
-            padding: 10px 8px; background: #f8fafc; border: 1px solid #e2e8f0; 
-            border-radius: 8px; text-decoration: none; color: #334155; 
-            font-size: 0.7rem; font-weight: 600; transition: all 0.15s; cursor: pointer; 
+        .qa-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 10px 8px; background: #F7F8FC; border: 1px solid #DDE3F5;
+            border-radius: 8px; text-decoration: none; color: #5A81FA;
+            font-size: 0.7rem; font-weight: 600; transition: all 0.15s; cursor: pointer;
         }
-        .qa-btn:hover { background: #F1F5F9; border-color: #CBD5E1; color: #1E293B; }
+        .qa-btn:hover { background: #F2F3FF; border-color: #A8B1CE; color: #2B318A; }
         .qa-icon { font-size: 1.1rem; }
         .progress-item { margin-bottom: 7px; }
         .progress-hd { display: flex; justify-content: space-between; margin-bottom: 3px; }
-        .progress-label { font-size: 0.72rem; font-weight: 600; color: #334155; }
-        .progress-val { font-size: 0.72rem; font-weight: 700; color: #64748b; }
-        .progress-track { height: 5px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+        .progress-label { font-size: 0.72rem; font-weight: 600; color: #5A81FA; }
+        .progress-val { font-size: 0.72rem; font-weight: 700; color: #6A6E83; }
+        .progress-track { height: 5px; background: #F2F3FF; border-radius: 4px; overflow: hidden; }
         .progress-fill { height: 100%; border-radius: 4px; }
-        .pf-blue { background: #334155; }
-        .pf-pink { background: #64748B; }
-        .pf-indigo { background: #475569; }
+        .pf-blue { background: #5A81FA; }
+        .pf-pink { background: #6A6E83; }
+        .pf-indigo { background: #6A6E83; }
         .pf-green { background: #16a34a; }
-        .morb-btn { 
-            margin-top: 8px; width: 100%; padding: 6px; 
-            background: #f8fafc; border: 1px solid #e2e8f0; 
-            border-radius: 7px; font-size: 0.72rem; font-weight: 600; 
-            color: #64748b; cursor: pointer; 
+        .morb-btn {
+            margin-top: 8px; width: 100%; padding: 6px;
+            background: #F7F8FC; border: 1px solid #DDE3F5;
+            border-radius: 7px; font-size: 0.72rem; font-weight: 600;
+            color: #6A6E83; cursor: pointer;
         }
         .toolbar { margin-bottom: 8px; }
-        .search-bar { 
-            display: flex; align-items: center; gap: 6px; 
-            background: #f8fafc; border: 1px solid #e2e8f0; 
-            border-radius: 7px; padding: 6px 10px; 
+        .search-bar {
+            display: flex; align-items: center; gap: 6px;
+            background: #F7F8FC; border: 1px solid #DDE3F5;
+            border-radius: 7px; padding: 6px 10px;
         }
-        .search-bar input { 
-            border: none; background: transparent; outline: none; 
-            font-size: 0.78rem; width: 100%; color: #334155; 
+        .search-bar input {
+            border: none; background: transparent; outline: none;
+            font-size: 0.78rem; width: 100%; color: #5A81FA;
         }
         .table-wrap { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-        th { 
-            text-align: left; padding: 6px 8px; font-size: 0.65rem; 
-            font-weight: 700; color: #94a3b8; text-transform: uppercase; 
-            letter-spacing: 0.04em; border-bottom: 1px solid #f1f5f9; 
+        th {
+            text-align: left; padding: 6px 8px; font-size: 0.65rem;
+            font-weight: 700; color: #A8B1CE; text-transform: uppercase;
+            letter-spacing: 0.04em; border-bottom: 1px solid #F2F3FF;
         }
-        td { padding: 8px; border-bottom: 1px solid #f8fafc; color: #334155; }
-        tr:hover td { background: #f8fafc; }
-        .btn { 
-            display: inline-flex; align-items: center; gap: 5px; 
-            padding: 5px 12px; border-radius: 7px; font-size: 0.75rem; 
-            font-weight: 600; cursor: pointer; border: none; text-decoration: none; 
+        td { padding: 8px; border-bottom: 1px solid #F7F8FC; color: #5A81FA; }
+        tr:hover td { background: #F7F8FC; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 7px; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; border: none; text-decoration: none;
         }
-        .btn-primary { background: #334155; color: white; }
+        .btn-primary { background: #5A81FA; color: white; }
         .btn-sm { padding: 4px 10px; font-size: 0.7rem; }
-        .sync-chip { 
-            display: flex; align-items: center; gap: 5px; font-size: 0.67rem; 
-            font-weight: 600; color: #16a34a; background: #f0fdf4; 
-            border: 1px solid #bbf7d0; border-radius: 20px; padding: 3px 10px; 
+        .sync-chip {
+            display: flex; align-items: center; gap: 5px; font-size: 0.67rem;
+            font-weight: 600; color: #16a34a; background: #f0fdf4;
+            border: 1px solid #bbf7d0; border-radius: 20px; padding: 3px 10px;
         }
         .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
-        .loading-msg { text-align: center; color: #94a3b8; font-size: 0.78rem; padding: 12px; }
-        .si-blue { background: #F1F5F9; }
+        .loading-msg { text-align: center; color: #A8B1CE; font-size: 0.78rem; padding: 12px; }
+        .si-blue { background: #F2F3FF; }
         .si-green { background: #DCFCE7; }
-        .si-pink { background: #F8FAFC; }
-        .si-indigo { background: #F1F5F9; }
-        .si-purple { background: #F1F5F9; }
+        .si-pink { background: #F7F8FC; }
+        .si-indigo { background: #F2F3FF; }
+        .si-purple { background: #F2F3FF; }
     </style>
 </head>
 <body>
 
 <aside class="fixed inset-y-0 left-0 z-50 w-[260px] md:w-[240px] bg-white border-r border-slate-200 flex flex-col transform transition-transform duration-300 ease-in-out print:hidden translate-x-0">
-    
+
     <div class="flex items-center justify-between p-5 border-b border-slate-200 shrink-0">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md shrink-0 transition-colors duration-500 bg-slate-700">
@@ -166,7 +166,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="px-5 py-4 text-[0.65rem] font-bold uppercase tracking-widest text-slate-400 shrink-0">Main Menu</div>
     <nav class="flex-1 flex flex-col gap-1 px-3 overflow-y-auto scrollbar-hide">
         <button onclick="window.location.href='doctor.html'" class="flex items-center w-full text-left gap-3 py-2.5 text-sm transition-colors font-semibold bg-slate-100 text-slate-700 rounded-r-lg relative -ml-3 pl-6 pr-3">

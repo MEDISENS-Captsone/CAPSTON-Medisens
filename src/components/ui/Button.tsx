@@ -14,17 +14,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-    primary: 'border-[#334155] bg-[#334155] text-white shadow-sm hover:border-[#1E293B] hover:bg-[#1E293B]',
-    secondary: 'border-[#2F7D75] bg-[#2F7D75] text-white shadow-sm hover:border-[#276961] hover:bg-[#276961]',
-    outline: 'border-[#CBD5E1] bg-white text-[#172033] shadow-sm hover:border-[#94A3B8] hover:bg-[#F8FAFC] hover:text-[#1E293B]',
-    ghost: 'border-transparent bg-transparent text-[#456987] hover:bg-[#F8FAFC] hover:text-[#0F3154]',
+    primary: 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white shadow-sm hover:border-[var(--brand-primary-hover)] hover:bg-[var(--brand-primary-hover)]',
+    secondary: 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white shadow-sm hover:border-[var(--brand-active-hover)] hover:bg-[var(--brand-active-hover)]',
+    outline: 'border-[var(--border-strong)] bg-white text-[var(--text)] shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
+    ghost: 'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
     danger: 'border-red-600 bg-red-600 text-white shadow-sm shadow-red-600/20 hover:border-red-700 hover:bg-red-700',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-    sm: 'min-h-8 rounded-md px-3 py-1 text-xs',
-    md: 'min-h-9 rounded-lg px-3 py-2 text-sm',
-    lg: 'min-h-10 rounded-lg px-4 py-2 text-sm',
+    sm: 'min-h-8 rounded-md px-3 py-1 text-[length:var(--type-caption-size)]',
+    md: 'min-h-9 rounded-lg px-3 py-2 text-[length:var(--type-button-size)]',
+    lg: 'min-h-10 rounded-lg px-4 py-2 text-[length:var(--type-button-size)]',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             type={type}
             disabled={disabled || isLoading}
             className={cn(
-                'inline-flex max-w-full items-center justify-center gap-2 border font-semibold leading-tight transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#42AEE8] disabled:cursor-not-allowed disabled:border-[#DDE7EF] disabled:bg-[#F3F7FA] disabled:text-[#7BA1C3] disabled:shadow-none',
+                'inline-flex max-w-full items-center justify-center gap-2 border font-semibold leading-[var(--type-button-line)] tracking-[var(--tracking-normal)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)] disabled:shadow-none',
                 sizeClasses[size],
                 variantClasses[variant],
                 className,

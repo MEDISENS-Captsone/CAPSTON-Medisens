@@ -29,6 +29,14 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function logFailure(stage: string, details: Record<string, unknown>) {
+  console.error("[MEDISENS create-user] failed", { stage, ...details });
+}
+
+function errorResponse(status = 400) {
+  return jsonResponse({ error: "Unable to create user account. Please try again." }, status);
+}
+
 function isRole(value: unknown): value is Role {
   return typeof value === "string" && ALLOWED_ROLES.has(value as Role);
 }
@@ -51,15 +59,23 @@ function validatePayload(value: unknown): CreateUserPayload {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed." }, 405);
+  if (req.method !== "POST") return errorResponse(405);
 
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase function secrets are not configured.");
+      logFailure("configuration", {
+        hasSupabaseUrl: Boolean(SUPABASE_URL),
+        hasAnonKey: Boolean(SUPABASE_ANON_KEY),
+        hasServiceRoleKey: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+      });
+      return errorResponse(500);
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return jsonResponse({ error: "Missing authorization header." }, 401);
+    if (!authHeader) {
+      logFailure("authorization", { reason: "missing_authorization_header" });
+      return errorResponse(401);
+    }
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
@@ -69,7 +85,10 @@ Deno.serve(async (req) => {
     });
 
     const { data: authData, error: authError } = await userClient.auth.getUser();
-    if (authError || !authData.user) return jsonResponse({ error: "Invalid session." }, 401);
+    if (authError || !authData.user) {
+      logFailure("auth_user", { message: authError?.message ?? null });
+      return errorResponse(401);
+    }
 
     const callerUserId = authData.user.id;
 
@@ -80,47 +99,39 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (callerError) {
-      return jsonResponse({
-        error: "Admin authorization failed: caller profile lookup failed.",
-        details: {
-          reason: "profile_lookup_error",
-          message: callerError.message,
-          caller_user_id: callerUserId,
-        },
-      }, 403);
+      logFailure("profile_lookup", {
+        reason: "profile_lookup_error",
+        message: callerError.message,
+        caller_user_id: callerUserId,
+      });
+      return errorResponse(403);
     }
 
     if (!callerProfile) {
-      return jsonResponse({
-        error: "Admin authorization failed: no profile found for authenticated user.",
-        details: {
-          reason: "profile_not_found",
-          caller_user_id: callerUserId,
-        },
-      }, 403);
+      logFailure("profile_lookup", {
+        reason: "profile_not_found",
+        caller_user_id: callerUserId,
+      });
+      return errorResponse(403);
     }
 
     if (callerProfile.id !== callerUserId) {
-      return jsonResponse({
-        error: "Admin authorization failed: profile user mismatch.",
-        details: {
-          reason: "profile_user_mismatch",
-          caller_user_id: callerUserId,
-          profile_id: callerProfile.id,
-        },
-      }, 403);
+      logFailure("authorization", {
+        reason: "profile_user_mismatch",
+        caller_user_id: callerUserId,
+        profile_id: callerProfile.id,
+      });
+      return errorResponse(403);
     }
 
     if (callerProfile.role !== ADMIN_ROLE) {
-      return jsonResponse({
-        error: "Admin authorization failed: authenticated user is not an administrator.",
-        details: {
-          reason: "role_mismatch",
-          expected_role: ADMIN_ROLE,
-          actual_role: callerProfile.role ?? null,
-          caller_user_id: callerUserId,
-        },
-      }, 403);
+      logFailure("authorization", {
+        reason: "role_mismatch",
+        expected_role: ADMIN_ROLE,
+        actual_role: callerProfile.role ?? null,
+        caller_user_id: callerUserId,
+      });
+      return errorResponse(403);
     }
 
     const payload = validatePayload(await req.json());
@@ -133,7 +144,11 @@ Deno.serve(async (req) => {
     });
 
     if (createError || !createdUser.user) {
-      return jsonResponse({ error: createError?.message || "Failed to create auth user." }, 400);
+      logFailure("auth_create", {
+        email: payload.email,
+        message: createError?.message ?? "missing_created_user",
+      });
+      return errorResponse(400);
     }
 
     const { error: profileError } = await adminClient
@@ -147,7 +162,13 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       await adminClient.auth.admin.deleteUser(createdUser.user.id);
-      return jsonResponse({ error: `Auth user rolled back. Profile creation failed: ${profileError.message}` }, 400);
+      logFailure("profile_upsert", {
+        created_user_id: createdUser.user.id,
+        email: payload.email,
+        requested_role: payload.role,
+        message: profileError.message,
+      });
+      return errorResponse(400);
     }
 
     return jsonResponse({
@@ -159,7 +180,9 @@ Deno.serve(async (req) => {
       },
     }, 201);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unexpected create-user failure.";
-    return jsonResponse({ error: message }, 400);
+    logFailure("unexpected", {
+      message: err instanceof Error ? err.message : "Unexpected create-user failure.",
+    });
+    return errorResponse(400);
   }
 });

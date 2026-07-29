@@ -137,15 +137,23 @@ export default function FollowUp() {
     const labelCls = clinicalLabelClass;
     const sectionCls = "bg-white border border-slate-200 rounded-lg p-4 md:p-5 shadow-sm mb-4";
 
-    const navItems = role === 'doctor' 
-        ? [ { id: 'dashboard', label: 'Dashboard', icon: 'home' }, { id: 'records', label: 'Patient Records', icon: 'users' }, { id: 'consultation', label: 'Consultation', icon: 'clipboard' } ]
-        : [ { id: 'dashboard', label: 'Dashboard', icon: 'home' }, { id: 'new-record', label: 'New Record', icon: 'user-plus' }, { id: 'consultation', label: 'Consultation', icon: 'clipboard' } ];
+    const navItems = role === 'doctor'
+        ? [
+            { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+            { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+            { id: 'consultation', label: 'Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
+        ]
+        : [
+            { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+            { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
+            { id: 'consultation', label: 'Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
+        ];
 
     const patientFullName = patient ? safeTrim(`${patient.lastName}, ${patient.firstName} ${patient.middleName || ''}`) : 'Loading...';
     const patientInitials = patient ? `${patient.firstName?.[0] || ''}${patient.lastName?.[0] || ''}`.toUpperCase() : '?';
 
     return (
-        <div className="flex w-full min-h-screen bg-[#F8FAFC] text-slate-800 overflow-x-hidden font-sans">
+        <div className="flex w-full min-h-screen bg-[var(--bg)] text-slate-800 overflow-x-hidden font-sans">
             
             <ToastComponent />
 

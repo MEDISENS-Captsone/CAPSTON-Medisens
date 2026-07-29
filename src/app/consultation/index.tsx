@@ -234,7 +234,7 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                         {sectionBtn('Consultations', 'consultation', consultations.length)}
                         {sectionBtn('Initial', 'initial', initialConsults.length)}
                     </div>
-                    <div className="py-4 bg-[#F8FAFC]">
+                    <div className="py-4 bg-[var(--bg)]">
                         {loading ? (
                             <SkeletonList rows={3} />
                         ) : totalCount === 0 ? (

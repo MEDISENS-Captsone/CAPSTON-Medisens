@@ -42,8 +42,8 @@ export function ClinicalDrawer({
             >
                 <div className="clinical-drawer-header">
                     <div className="min-w-0">
-                        <div id={labelledBy} className="font-semibold text-slate-900 text-base">{title}</div>
-                        {subtitle && <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>}
+                        <div id={labelledBy} className="text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">{title}</div>
+                        {subtitle && <div className="mt-0.5 text-[length:var(--type-caption-size)] leading-[var(--type-caption-line)] text-[var(--text-secondary)]">{subtitle}</div>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                         {status}
@@ -51,7 +51,7 @@ export function ClinicalDrawer({
                             type="button"
                             onClick={onClose}
                             aria-label={`Close ${title}`}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--brand-soft-surface)] text-[var(--text-secondary)] transition-colors"
                         >
                             <Icon name="close" className="h-4 w-4" />
                         </button>

@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? D
 
 const ALLOWED_ACTIONS = new Set(["login", "logout", "create", "update", "view", "generate", "dispense", "archived", "restored"]);
 const ALLOWED_MODULES = new Set(["Authentication", "Administration", "Patient Records", "Consultation", "Census Entry", "Laboratory", "Pharmacy", "Reports", "Patient Archive"]);
-const ALLOWED_RECORD_TYPES = new Set(["profile", "patient", "consultation", "initial_consultation", "fhsis_log", "lab_request", "lab_result", "prescription", "report", null]);
+const ALLOWED_RECORD_TYPES = new Set(["profile", "patient", "consultation", "initial_consultation", "follow_up", "fhsis_log", "lab_request", "lab_result", "prescription", "report", null]);
 const ALLOWED_METADATA_KEYS = new Set([
   "source",
   "status",

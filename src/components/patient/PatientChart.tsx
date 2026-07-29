@@ -57,9 +57,9 @@ export function PatientChartIdentityHeader({
     return (
         <div className={cn('patient-chart-identity-header', compact && 'is-compact', className)}>
             <div className="patient-chart-identity">
-                <div className="patient-chart-avatar bg-[#334155]">{initials(patient)}</div>
+                <div className="patient-chart-avatar bg-[var(--brand-primary)]">{initials(patient)}</div>
                 <div className="min-w-0">
-                    <div id={titleId} className="font-semibold text-[#172033] leading-tight truncate">
+                    <div id={titleId} className="font-semibold text-[var(--text)] leading-tight truncate">
                         {title ?? formatPatientChartName(patient)}
                     </div>
                     <div className="text-xs text-slate-500 font-medium mt-0.5 truncate">

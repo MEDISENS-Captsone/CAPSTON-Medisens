@@ -62,9 +62,9 @@ function LabRequest() {
         
         others: formData.others || null,
         requested_by: formData.requestedBy || null,
-        status: formData.status
+        status: 'Pending'
       });
-      showToast(formData.status === 'Completed' ? 'Laboratory results recorded.' : 'Laboratory request sent to the work queue.', false);
+      showToast('Laboratory request sent to the work queue.', false);
     } catch (err) {
       logError('Failed to submit lab request', err);
       showToast(healthcareErrorMessage("submit the lab request"), true);

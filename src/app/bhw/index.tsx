@@ -45,10 +45,10 @@ const BhwDashboard = () => {
     }, [activePage]);
 
     const navItems = [
-        { id: 'dashboard', label: 'Home', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
-        { id: 'reports', label: 'OCR Generation', icon: 'chart' }
+        { id: 'dashboard', label: 'Home', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
+        { id: 'reports', label: 'OCR Generation', icon: 'chart', group: 'Records & Governance' }
     ];
 
     useEffect(() => {
@@ -135,7 +135,7 @@ const BhwDashboard = () => {
     const recentPatients = useMemo(() => patients.slice(0, 5), [patients]);
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden w-full">
+        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             
             <Sidebar
                 activePage={activePage}
@@ -161,7 +161,7 @@ const BhwDashboard = () => {
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[#F8FAFC]">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full ">
                         
                         {/* ─── DASHBOARD VIEW ─── */}
@@ -202,13 +202,15 @@ const BhwDashboard = () => {
                                                 <div className="ops-empty">No recent registrations.</div>
                                             ) : (
                                                 recentPatients.map(p => (
-                                                    <div key={p.id} onClick={() => setSelectedPatient(p)} className="ops-row cursor-pointer sm:grid-cols-[minmax(0,2fr)_120px_96px]">
+                                                    <div key={p.id} onClick={() => setSelectedPatient(p)} className="ops-row bhw-recent-registration-row cursor-pointer">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="ops-row-title">{p.lastName}, {p.firstName}</div>
                                                             <div className="ops-row-meta">{p.sex || '-'} | {p.bloodType || '-'} | {p.address || 'No address'}</div>
                                                         </div>
-                                                        <div className="ops-row-meta">{p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</div>
-                                                        <div className="ops-action sm:text-right">Open Chart</div>
+                                                        <div className="bhw-recent-registration-meta">
+                                                            <div className="ops-row-meta">{p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</div>
+                                                            <div className="ops-action">Open Chart</div>
+                                                        </div>
                                                     </div>
                                                 ))
                                             )}
@@ -254,7 +256,7 @@ const BhwDashboard = () => {
 
                         {/* ─── MODULAR COMPONENT TABS ─── */}
                         {activePage === 'records' && (
-                            <div className="w-full pwa-dense-panel min-h-[500px] m-3 md:m-4 xl:m-5">
+                            <div className="pwa-page-pad patient-list-page-shell">
                                 <Suspense fallback={<LazyPanelFallback />}>
                                     <RecordsComponent onPatientClick={(p) => setSelectedPatient(p as any)} />
                                 </Suspense>
@@ -270,7 +272,7 @@ const BhwDashboard = () => {
                         )}
 
                         {activePage === 'reports' && (
-                            <div className="w-full bg-[#F8FAFC] min-h-[500px] m-3 md:m-4 xl:m-5">
+                            <div className="w-full bg-[var(--bg)] min-h-[500px] m-3 md:m-4 xl:m-5">
                                 {/* Pass the newly fetched FHSIS logs down to the generator */}
                                 <Suspense fallback={<LazyPanelFallback />}>
                                     <ReportGenerator records={records} />

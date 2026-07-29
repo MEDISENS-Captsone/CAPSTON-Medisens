@@ -5,50 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Patient Records | MediSens</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
         /* CSS Reset & Body Setup */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: #F8FAFC; /* Matches Tailwind slate-50 */
-            color: #0F172A; 
-            min-height: 100vh; 
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #F7F8FC; /* Matches Tailwind slate-50 */
+            color: #1F1F1F;
+            min-height: 100vh;
         }
 
         /* The Responsive Container */
-        .page-container { 
-            width: 100%; 
+        .page-container {
+            width: 100%;
             max-width: none;
             min-width: 0;
         }
 
         /* Card Styles */
-        .list-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); overflow: hidden; }
-        .list-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px; border-bottom: 1px solid #E2E8F0; }
+        .list-card { background: #FFFFFF; border: 1px solid #DDE3F5; border-radius: 12px; box-shadow: 0 1px 2px rgba(43,49,138,0.05); overflow: hidden; }
+        .list-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px; border-bottom: 1px solid #DDE3F5; }
         .list-header-title { font-size: 1.4rem; font-weight: 800; }
-        .list-count { background: #334155; color: #FFFFFF; padding: 4px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; }
+        .list-count { background: #5A81FA; color: #FFFFFF; padding: 4px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; }
 
         /* Custom Search Bar */
-        .search-wrap { padding: 16px 32px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; }
-        .search-wrap input { width: 100%; padding: 14px 16px 14px 44px; border: 1.5px solid #CBD5E1; border-radius: 10px; font-size: 1rem; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: #FFFFFF url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2364748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') no-repeat 14px center; }
-        .search-wrap input:focus { border-color: #334155; box-shadow: 0 0 0 4px rgba(51,65,85,0.12); }
+        .search-wrap { padding: 16px 32px; background: #F7F8FC; border-bottom: 1px solid #DDE3F5; }
+        .search-wrap input { width: 100%; padding: 14px 16px 14px 44px; border: 1.5px solid #A8B1CE; border-radius: 10px; font-size: 1rem; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: #FFFFFF url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2364748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') no-repeat 14px center; }
+        .search-wrap input:focus { border-color: #5A81FA; box-shadow: 0 0 0 4px rgba(90,129,250,0.16); }
 
         /* Larger Patient Rows */
         .patient-list { max-height: calc(100vh - 250px); overflow-y: auto; }
         .patient-list > .grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
-        .patient-row { display: flex; align-items: center; padding: 20px 32px; border-bottom: 1px solid #E2E8F0; cursor: pointer; transition: background 0.15s; }
-        .patient-row:hover { background: #F8FAFC; } 
+        .patient-row { display: flex; align-items: center; padding: 20px 32px; border-bottom: 1px solid #DDE3F5; cursor: pointer; transition: background 0.15s; }
+        .patient-row:hover { background: #F7F8FC; }
         .patient-row:last-child { border-bottom: none; }
-        .patient-av { width: 52px; height: 52px; border-radius: 50%; background: #334155; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; margin-right: 20px; box-shadow: none; }
+        .patient-av { width: 52px; height: 52px; border-radius: 50%; background: #5A81FA; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; margin-right: 20px; box-shadow: none; }
         .patient-info { flex: 1; }
-        .patient-name { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 4px; }
-        .patient-meta { font-size: 0.9rem; color: #64748B; font-weight: 500; }
-        .patient-arrow { color: #94A3B8; font-size: 1.4rem; font-weight: bold; transition: color 0.2s; }
-        .patient-row:hover .patient-arrow { color: #334155; }
-        .empty-list { padding: 60px 20px; text-align: center; color: #64748B; font-size: 1.1rem; }
+        .patient-name { font-size: 1.1rem; font-weight: 700; color: #1F1F1F; margin-bottom: 4px; }
+        .patient-meta { font-size: 0.9rem; color: #6A6E83; font-weight: 500; }
+        .patient-arrow { color: #A8B1CE; font-size: 1.4rem; font-weight: bold; transition: color 0.2s; }
+        .patient-row:hover .patient-arrow { color: #5A81FA; }
+        .empty-list { padding: 60px 20px; text-align: center; color: #6A6E83; font-size: 1.1rem; }
 
         /* Cellphone Compatibility */
         @media (max-width: 600px) {
@@ -56,7 +56,7 @@
             .list-header-title { font-size: 1.2rem; }
             .search-wrap { padding: 14px 20px; }
             .patient-row { padding: 16px 20px; }
-            .patient-row:hover { padding-left: 20px; } 
+            .patient-row:hover { padding-left: 20px; }
             .patient-av { width: 44px; height: 44px; font-size: 1rem; margin-right: 14px; }
             .patient-name { font-size: 1rem; }
         }

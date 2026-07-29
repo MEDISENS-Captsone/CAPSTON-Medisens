@@ -67,7 +67,7 @@ function PharmacyDashboard() {
     const isOnline = useOnlineStatus();
 
     const pharmacistNavItems = [
-        { id: 'queue', label: 'Pending Queue', icon: 'pill' }
+        { id: 'queue', label: 'Pending Queue', icon: 'pill', group: 'Pharmacy Operations' }
     ];
 
     useEffect(() => {
@@ -292,7 +292,7 @@ function PharmacyDashboard() {
     const allChecked = medsToDispense.length > 0 && medsToDispense.every((_, i) => dispenseChecklist[i]);
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden w-full">
+        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             <ToastComponent />
             <Sidebar
                 activePage={activePage}
@@ -318,7 +318,7 @@ function PharmacyDashboard() {
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[#F8FAFC]">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full max-w-full flex flex-col gap-6">
                         {activePage === 'queue' && (
                             <>

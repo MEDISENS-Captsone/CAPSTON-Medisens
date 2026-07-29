@@ -75,10 +75,9 @@ export async function upsertConsultation(payload: WorkflowPayload, consultationI
 }
 
 export async function upsertFollowUpByConsultation(consultationId: number, payload: WorkflowPayload): Promise<void> {
-    // TODO(audit): Add follow-up audit entries after confirming whether follow-ups are in scope for the Audit Log module.
     const { data: existing, error: checkError } = await supabase
         .from('follow_up')
-        .select('consultation_id')
+        .select('followup_id, patient_id')
         .eq('consultation_id', consultationId)
         .maybeSingle();
 
@@ -87,11 +86,42 @@ export async function upsertFollowUpByConsultation(consultationId: number, paylo
     if (existing) {
         const { error } = await supabase.from('follow_up').update(payload).eq('consultation_id', consultationId);
         if (error) throw error;
+        void logAuditEvent({
+            action: 'update',
+            module: 'Consultation',
+            recordId: existing.followup_id as string | number | null,
+            recordType: 'follow_up',
+            description: 'Updated follow-up record.',
+            metadata: {
+                followup_id: existing.followup_id as string | number | undefined,
+                consultation_id: consultationId,
+                patient_id: (payload.patient_id || existing.patient_id) as string | number | undefined,
+                status: payload.follow_up_status as string | undefined,
+            },
+        });
         return;
     }
 
-    const { error } = await supabase.from('follow_up').insert([payload]);
+    const { data, error } = await supabase
+        .from('follow_up')
+        .insert([payload])
+        .select('followup_id')
+        .single();
     if (error) throw error;
+    const followupId = data.followup_id as number;
+    void logAuditEvent({
+        action: 'create',
+        module: 'Consultation',
+        recordId: followupId,
+        recordType: 'follow_up',
+        description: 'Created follow-up record.',
+        metadata: {
+            followup_id: followupId,
+            consultation_id: consultationId,
+            patient_id: payload.patient_id as string | number | undefined,
+            status: payload.follow_up_status as string | undefined,
+        },
+    });
 }
 
 export async function upsertLatestFollowUpByPatient(patientId: string, payload: WorkflowPayload): Promise<void> {
@@ -108,15 +138,44 @@ export async function upsertLatestFollowUpByPatient(patientId: string, payload: 
     if (existing) {
         const { error } = await supabase.from('follow_up').update(payload).eq('followup_id', existing.followup_id);
         if (error) throw error;
+        void logAuditEvent({
+            action: 'update',
+            module: 'Consultation',
+            recordId: existing.followup_id as string | number,
+            recordType: 'follow_up',
+            description: 'Updated follow-up record.',
+            metadata: {
+                followup_id: existing.followup_id as string | number,
+                patient_id: patientId,
+                status: payload.follow_up_status as string | undefined,
+            },
+        });
         return;
     }
 
-    const { error } = await supabase.from('follow_up').insert([payload]);
+    const { data, error } = await supabase
+        .from('follow_up')
+        .insert([payload])
+        .select('followup_id')
+        .single();
     if (error) throw error;
+    const followupId = data.followup_id as number;
+    void logAuditEvent({
+        action: 'create',
+        module: 'Consultation',
+        recordId: followupId,
+        recordType: 'follow_up',
+        description: 'Created follow-up record.',
+        metadata: {
+            followup_id: followupId,
+            patient_id: patientId,
+            status: payload.follow_up_status as string | undefined,
+        },
+    });
 }
 
 export async function createLabRequest(payload: WorkflowPayload): Promise<void> {
-    const { error } = await supabase.from('lab_request').insert([payload]);
+    const { error } = await supabase.from('lab_request').insert([{ ...payload, status: 'Pending' }]);
     if (error) throw error;
     void logAuditEvent({
         action: 'create',

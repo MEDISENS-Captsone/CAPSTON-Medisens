@@ -120,7 +120,7 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
 
                 <div className="clinical-toolbar">
                     <div className="clinical-search">
-                        <Icon name="search" className="h-4 w-4 text-[#5F82A3]" />
+                        <Icon name="search" className="h-4 w-4 text-[var(--text-secondary)]" />
                         <input
                             type="text"
                             aria-label="Search patient records by name"
@@ -160,29 +160,29 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                 )}
 
                 <div className="clinical-table-scroll">
-                    <table className="clinical-table min-w-[760px]">
+                    <table className="clinical-table patient-records-table min-w-[760px]">
                         <thead>
                             <tr>
-                                <th>Patient</th>
-                                <th>Age / Sex</th>
-                                <th>Barangay</th>
-                                <th>Classification</th>
-                                <th>Contact</th>
-                                <th className="text-right">Action</th>
+                                <th className="patient-records-col-patient">Patient</th>
+                                <th className="patient-records-col-demographics">Age / Sex</th>
+                                <th className="patient-records-col-barangay">Barangay</th>
+                                <th className="patient-records-col-classification">Classification</th>
+                                <th className="patient-records-col-contact">Contact</th>
+                                <th className="patient-records-col-action text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr>
+                                <tr className="patient-records-state-row">
                                     <td colSpan={6}>
                                         <SkeletonTable rows={6} columns={6} />
                                     </td>
                                 </tr>
                             ) : patients.length === 0 ? (
-                                <tr>
+                                <tr className="patient-records-state-row">
                                     <td colSpan={6}>
                                         <div className="clinical-table-state">
-                                            <Icon name="inbox" className="h-5 w-5 text-[#7BA1C3]" />
+                                            <Icon name="inbox" className="h-5 w-5 text-[var(--border-strong)]" />
                                             No matching patients found.
                                         </div>
                                     </td>
@@ -190,15 +190,17 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                             ) : (
                                 patients.map(p => (
                                     <tr key={p.id} onClick={() => handleRowClick(p)} className="cursor-pointer">
-                                        <td>
-                                            <div className="clinical-primary">{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</div>
-                                            <div className="clinical-secondary">Patient record no. {p.id}</div>
+                                        <td className="patient-records-col-patient">
+                                            <div className="patient-records-primary-cell">
+                                                <div className="clinical-primary">{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</div>
+                                                <div className="clinical-secondary">Patient record no. {p.id}</div>
+                                            </div>
                                         </td>
-                                        <td>{p.age ?? '-'} / {p.sex || '-'}</td>
-                                        <td>{p.address?.split(',')[0] || '-'}</td>
-                                        <td><span className="clinical-neutral-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</span></td>
-                                        <td>{p.contactNumber || '-'}</td>
-                                        <td className="text-right">
+                                        <td className="patient-records-col-demographics">{p.age ?? '-'} / {p.sex || '-'}</td>
+                                        <td className="patient-records-col-barangay">{p.address?.split(',')[0] || '-'}</td>
+                                        <td className="patient-records-col-classification"><span className="clinical-neutral-badge patient-records-classification-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</span></td>
+                                        <td className="patient-records-col-contact">{p.contactNumber || '-'}</td>
+                                        <td className="patient-records-col-action text-right">
                                             <button
                                                 type="button"
                                                 onClick={(event) => {

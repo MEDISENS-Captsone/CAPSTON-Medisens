@@ -2,15 +2,15 @@ import type { ReactNode } from 'react';
 import { cn } from './utils';
 
 export const clinicalInputClass =
-    'w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-500';
+    'w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2.5 text-left text-[length:var(--type-body-size)] font-normal leading-[var(--type-body-line)] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--border-strong)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)]';
 
 export const clinicalTextareaClass = cn(clinicalInputClass, 'resize-y leading-relaxed');
 
 export const clinicalLabelClass =
-    'block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5';
+    'mb-1.5 block text-[length:var(--type-label-size)] font-medium leading-[var(--type-label-line)] tracking-[var(--tracking-label)] text-[var(--text-secondary)]';
 
 export const clinicalSectionHeaderClass =
-    'text-sm font-semibold text-slate-800 uppercase tracking-wide border-b border-slate-100 pb-3 mb-4';
+    'mb-4 border-b border-[var(--border-soft)] pb-3 text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] tracking-[var(--tracking-normal)] text-[var(--text)]';
 
 export const clinicalInputErrorClass = cn(
     clinicalInputClass,
@@ -36,7 +36,7 @@ export function ClinicalField({ label, htmlFor, children, required, hint, error,
             </label>
             {children}
             {(error || hint) && (
-                <p className={cn('mt-1 text-xs font-semibold leading-relaxed', error ? 'text-red-600' : 'text-slate-500')}>
+                <p className={cn('mt-1 text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)]', error ? 'text-red-600' : 'text-[var(--text-secondary)]')}>
                     {error || hint}
                 </p>
             )}

@@ -12,9 +12,9 @@ export interface ToastProps {
 }
 
 const typeClasses = {
-    success: 'bg-[#2F7D75]',
+    success: 'bg-green-700',
     error: 'bg-red-700',
-    info: 'bg-[#334155]',
+    info: 'bg-[var(--brand-active)]',
 } as const;
 
 export function Toast({ message, type = 'success', subText, onClose, className, icon }: ToastProps) {
@@ -29,16 +29,16 @@ export function Toast({ message, type = 'success', subText, onClose, className, 
                 className,
             )}
         >
-            <div aria-hidden="true" className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white/20 text-sm font-black">
+            <div aria-hidden="true" className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white/20 text-[length:var(--type-label-size)] font-semibold">
                 {icon ?? (type === 'error' ? <Icon name="alert-triangle" className="h-4 w-4" /> : <Icon name="check" className="h-4 w-4" />)}
             </div>
             <div className="min-w-0 flex-1">
                 <div className="flex items-start gap-3">
-                    <p className="text-sm font-bold leading-snug tracking-wide">{message}</p>
+                    <p className="text-[length:var(--type-body-size)] font-semibold leading-[var(--type-body-line)] tracking-[var(--tracking-normal)]">{message}</p>
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white/10 text-sm font-black opacity-80 transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                            className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white/10 text-[length:var(--type-label-size)] font-semibold opacity-80 transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                             aria-label="Close message"
                             type="button"
                         >
@@ -46,7 +46,7 @@ export function Toast({ message, type = 'success', subText, onClose, className, 
                         </button>
                     )}
                 </div>
-                {subText && <p className="mt-1 text-xs font-medium text-white/90">{subText}</p>}
+                {subText && <p className="mt-1 text-[length:var(--type-caption-size)] font-normal leading-[var(--type-caption-line)] text-white/90">{subText}</p>}
             </div>
         </div>
     );
