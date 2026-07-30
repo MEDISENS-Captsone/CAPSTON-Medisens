@@ -664,7 +664,7 @@ export function PatientDetailModal({
                                         ) : (
                                             <div className="flex flex-col gap-2">
                                                 {vaccineRecords.map((vr) => (
-                                                    <div key={vr.id} className="bg-white border border-[var(--border)] rounded-lg p-3 shadow-sm hover:border-[#83C9F2] transition-colors relative">
+                                                    <div key={vr.id} className="bg-white border border-[var(--border)] rounded-lg p-3 shadow-sm hover:border-[var(--brand-primary)] transition-colors relative">
                                                         <button
                                                             type="button"
                                                             onClick={() => setPendingRemoveVaccine(vr)}
@@ -678,39 +678,39 @@ export function PatientDetailModal({
                                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pr-6">
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Vaccine</div>
-                                                                <div className="text-sm font-bold text-slate-800">{getVaccineDisplayName(vr)}</div>
+                                                                <div className="text-sm font-bold text-[var(--text)]">{getVaccineDisplayName(vr)}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Category</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.vaccine_category || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.vaccine_category || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Dose</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.dose_label || '—'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.dose_label || '—'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Date Given</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.date_given || '—'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.date_given || '—'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Remarks</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.remarks || '—'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.remarks || '—'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Next Due</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.next_due_date || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.next_due_date || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Administered By</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.administered_by || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.administered_by || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Facility</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.facility || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.facility || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Lot No.</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.lot_number || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.lot_number || '-'}</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -757,7 +757,7 @@ export function PatientDetailModal({
                                 <button
                                     type="button"
                                     onClick={() => setShowHistory(false)}
-                                    className={`mb-4 flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors ${focusCls}`}
+                                    className={`mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-2)] hover:text-[var(--text)] transition-colors ${focusCls}`}
                                 >
                                     Back to Details
                                 </button>
@@ -783,7 +783,7 @@ export function PatientDetailModal({
                                 type="button"
                                 onClick={() => setPendingRemoveVaccine(null)}
                                 disabled={Boolean(removingVaccineId)}
-                                className={`flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                className={`flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                             >
                                 Cancel
                             </button>

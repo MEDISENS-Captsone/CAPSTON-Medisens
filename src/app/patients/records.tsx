@@ -59,9 +59,11 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
     const [search, setSearch] = useState('');
     const [selectedBarangay, setSelectedBarangay] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     const fetchPatients = useCallback(async () => {
         setLoading(true);
+        setLoadError(false);
         const { data, error } = await supabase
             .from('patients')
             .select(PATIENT_REGISTRY_COLUMNS)
@@ -71,6 +73,8 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
 
         if (error) {
             console.error('Database Error:', error);
+            // A failed load must not be presented as an empty registry.
+            setLoadError(true);
             setLoading(false);
             return;
         }
@@ -113,7 +117,7 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                 <div className="clinical-table-titlebar">
                     <div>
                         <h2 className="clinical-table-title">Patient Registry</h2>
-                        <p className="clinical-table-subtitle">{patients.length} registered patient{patients.length !== 1 ? 's' : ''}</p>
+                        <p className="clinical-table-subtitle">{allPatients.length} registered patient{allPatients.length !== 1 ? 's' : ''}</p>
                     </div>
                     <span className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</span>
                 </div>
@@ -178,12 +182,22 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                                         <SkeletonTable rows={6} columns={6} />
                                     </td>
                                 </tr>
+                            ) : loadError ? (
+                                <tr className="patient-records-state-row">
+                                    <td colSpan={6}>
+                                        <div className="clinical-table-state" role="alert">
+                                            <Icon name="alert-triangle" className="h-5 w-5 text-[var(--border-strong)]" />
+                                            Patient records could not be loaded.
+                                            <button type="button" className="clinical-link-action" onClick={() => void fetchPatients()}>Retry</button>
+                                        </div>
+                                    </td>
+                                </tr>
                             ) : patients.length === 0 ? (
                                 <tr className="patient-records-state-row">
                                     <td colSpan={6}>
                                         <div className="clinical-table-state">
                                             <Icon name="inbox" className="h-5 w-5 text-[var(--border-strong)]" />
-                                            No matching patients found.
+                                            {allPatients.length === 0 ? 'No patients are registered yet.' : 'No patients match the current search or filter.'}
                                         </div>
                                     </td>
                                 </tr>
