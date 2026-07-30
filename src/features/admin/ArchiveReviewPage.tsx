@@ -298,7 +298,7 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
                                     <td>{formatDate(patient.last_activity_at || patient.created_at)}</td>
                                     <td className="archive-table-center"><ArchiveStatusBadge patient={patient} /></td>
                                     <td>
-                                        <div className="max-w-[260px] text-sm text-slate-600">
+                                        <div className="max-w-[260px] text-sm text-[var(--text-2)]">
                                             {patient.archive_reason || 'No archive note recorded.'}
                                         </div>
                                     </td>
@@ -322,13 +322,13 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
 
             {!readOnly && selectedPatient && action && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={(event) => { if (event.target === event.currentTarget && !isSaving) closeAction(); }}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="archive-action-title" className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="border-b border-slate-100 p-5">
-                            <h3 id="archive-action-title" className="text-lg font-semibold text-slate-900">{action === 'archive' ? 'Archive Patient Record' : 'Restore Patient Record'}</h3>
-                            <p className="mt-1 text-sm text-slate-500">{patientName(selectedPatient)} | Patient record no. {selectedPatient.id}</p>
+                    <div role="dialog" aria-modal="true" aria-labelledby="archive-action-title" className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-white shadow-sm">
+                        <div className="border-b border-[var(--border-soft)] p-5">
+                            <h3 id="archive-action-title" className="text-lg font-semibold text-[var(--text)]">{action === 'archive' ? 'Archive Patient Record' : 'Restore Patient Record'}</h3>
+                            <p className="mt-1 text-sm text-[var(--text-secondary)]">{patientName(selectedPatient)} | Patient record no. {selectedPatient.id}</p>
                         </div>
                         <div className="space-y-4 p-5">
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-2)]">
                                 Archiving will hide this patient from active records. Their medical history and other health information will remain available and can be restored later.
                             </div>
                             <label className="block">
@@ -336,14 +336,14 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
                                 <textarea
                                     value={reason}
                                     onChange={event => setReason(event.target.value)}
-                                    className="mt-1 min-h-[110px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"
+                                    className="mt-1 min-h-[110px] w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]"
                                     placeholder={action === 'archive' ? 'Enter the reason for archiving this patient record.' : 'Explain why this patient record should be restored to active records.'}
                                 />
                             </label>
                         </div>
-                        <div className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 p-4">
-                            <button type="button" onClick={closeAction} disabled={isSaving} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={submitArchiveAction} disabled={isSaving} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ${action === 'archive' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 hover:bg-slate-800'}`}>
+                        <div className="flex justify-end gap-3 border-t border-[var(--border-soft)] bg-[var(--surface-subtle)] p-4">
+                            <button type="button" onClick={closeAction} disabled={isSaving} className="rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-bold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] disabled:opacity-50">Cancel</button>
+                            <button type="button" onClick={submitArchiveAction} disabled={isSaving} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ${action === 'archive' ? 'bg-red-600 hover:bg-red-700' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)]'}`}>
                                 {isSaving ? 'Saving...' : action === 'archive' ? 'Archive Record' : 'Restore Record'}
                             </button>
                         </div>
