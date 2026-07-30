@@ -1562,6 +1562,44 @@ td {
     gap: clamp(1rem, 1.35vw, 1.35rem);
 }
 
+/* Tab panel wrapper. Matches the content shell's rhythm so wiring the tabs to their
+   panels does not change spacing. */
+.doctor-map-skeleton-stage {
+    min-height: clamp(14rem, 30vh, 20rem);
+    padding: 0 0.95rem;
+}
+
+.doctor-map-skeleton-legend {
+    height: 2rem;
+    margin: 0.75rem 0.95rem 0.95rem;
+}
+
+.doctor-stale-notice {
+    padding: 0.5rem 1rem 0;
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+}
+
+.doctor-analytics-failure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.doctor-analytics-inline-alert .clinical-filter-button {
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
+.doctor-analytics-view {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: clamp(1rem, 1.35vw, 1.35rem);
+}
+
 .doctor-analytics-inline-alert {
     display: flex;
     align-items: center;
@@ -1756,24 +1794,22 @@ td {
 
 .doctor-operational-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     gap: 0.875rem;
 }
 
 .doctor-geographic-command {
     display: grid;
-    min-height: 35rem;
+    min-height: clamp(24rem, 46vh, 32rem);
     grid-template-areas: "ranking map summary";
     grid-template-columns: minmax(13rem, 22fr) minmax(0, 52fr) minmax(16rem, 26fr);
     gap: 0;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 1rem;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 251, 252, 0.98) 100%),
-        radial-gradient(circle at 52% 18%, rgba(90, 129, 250, 0.08), transparent 36%);
-    box-shadow: 0 14px 34px rgba(43, 49, 138, 0.07);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
 }
 
 .doctor-geographic-panel {
@@ -1781,7 +1817,7 @@ td {
     min-width: 0;
     min-height: 0;
     flex-direction: column;
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--surface);
 }
 
 .doctor-geographic-ranking-panel {
@@ -1794,7 +1830,7 @@ td {
 
 .doctor-geographic-map-panel {
     grid-area: map;
-    background: linear-gradient(180deg, #FFFFFF 0%, var(--surface-subtle) 100%);
+    background: var(--surface);
 }
 
 .doctor-geographic-summary-panel {
@@ -1853,10 +1889,10 @@ td {
     flex-direction: column;
     justify-content: space-between;
     border: 1px solid var(--border);
-    border-radius: 0.875rem;
-    background: linear-gradient(180deg, #FFFFFF 0%, #FBFDFD 100%);
+    border-radius: var(--radius);
+    background: var(--surface);
     padding: 0.85rem 0.95rem;
-    box-shadow: 0 10px 24px rgba(31, 93, 116, 0.055);
+    box-shadow: var(--shadow-sm);
 }
 
 .doctor-insight-topline {
@@ -1968,15 +2004,15 @@ td {
 .doctor-clinical-grid .doctor-dashboard-card {
     overflow: hidden;
     border-color: var(--border);
-    border-radius: 0.75rem;
-    background: linear-gradient(180deg, #FFFFFF 0%, var(--surface-subtle) 100%);
-    box-shadow: 0 10px 26px rgba(31, 93, 116, 0.055);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
 }
 
 .doctor-operational-grid .ops-panel-header,
 .doctor-clinical-grid .ops-panel-header {
     border-bottom-color: var(--border);
-    background: linear-gradient(180deg, var(--surface-subtle) 0%, #FFFFFF 100%);
+    background: var(--surface);
     padding: 0.85rem 1rem 0.75rem;
 }
 
@@ -2054,12 +2090,6 @@ td {
     font-weight: var(--font-weight-medium);
 }
 
-.doctor-pending-list {
-    display: flex;
-    flex-direction: column;
-    padding: 0.5rem 1rem;
-}
-
 .doctor-analytics-summary-row {
     display: flex;
     align-items: center;
@@ -2080,6 +2110,31 @@ td {
     line-height: 1;
 }
 
+/* Workspace-level tabs sit on the page, above the panels. They read as primary
+   navigation: a full-width underline rail with an active marker. */
+.doctor-workspace-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.125rem;
+}
+
+.doctor-workspace-tabs .clinical-filter-button {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    padding-inline: 0.75rem;
+}
+
+.doctor-workspace-tabs .clinical-filter-button.is-active {
+    border-bottom-color: var(--brand-primary);
+    background: none;
+    color: var(--brand-active);
+}
+
+/* Detail tabs live inside a panel and stay as secondary chips. */
 .doctor-analytics-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -2112,7 +2167,7 @@ td {
     gap: 0.8rem;
     min-height: 3.5rem;
     border: 1px solid transparent;
-    border-radius: 0.75rem;
+    border-radius: var(--radius);
     padding: 0.55rem 0.625rem;
 }
 
@@ -2135,7 +2190,6 @@ td {
     color: var(--brand-active);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
-    box-shadow: inset 0 0 0 3px #F3F8FA;
 }
 
 .doctor-ranking-main {
@@ -2182,11 +2236,23 @@ td {
 }
 
 .doctor-ranking-track span {
+    position: relative;
     display: block;
     height: 100%;
-    min-width: 0.25rem;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--brand-primary), var(--border-strong));
+    background: var(--brand-primary);
+}
+
+.doctor-ranking-track span.is-nonzero::after,
+.doctor-barangay-track span.is-nonzero::after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    border-radius: inherit;
+    background: var(--brand-primary);
+    content: "";
 }
 
 .doctor-barangay-chart {
@@ -2219,7 +2285,7 @@ td {
     align-items: center;
     gap: 0.44rem;
     border: 1px solid transparent;
-    border-radius: 0.75rem;
+    border-radius: var(--radius);
     background: transparent;
     padding: 0.3rem 0.4rem;
     text-align: left;
@@ -2240,9 +2306,8 @@ td {
 }
 
 .doctor-barangay-row.is-selected {
-    border-color: rgba(90, 129, 250, 0.35);
+    border-color: var(--brand-primary);
     background: var(--brand-soft-surface);
-    box-shadow: inset 0 0 0 1px rgba(90, 129, 250, 0.12);
 }
 
 .doctor-barangay-main {
@@ -2285,18 +2350,19 @@ td {
 }
 
 .doctor-barangay-track span {
+    position: relative;
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent-surface));
+    background: var(--brand-primary);
 }
 
 .doctor-barangay-selection {
     display: grid;
     gap: 0.35rem;
-    border: 1px solid rgba(90, 129, 250, 0.22);
-    border-radius: 0.85rem;
-    background: linear-gradient(180deg, var(--brand-soft-surface) 0%, #FFFFFF 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--brand-soft-surface);
     padding: 0.75rem 0.8rem;
 }
 
@@ -2342,8 +2408,8 @@ td {
     align-items: center;
     gap: 0.75rem;
     border: 1px solid var(--border);
-    border-radius: 0.85rem;
-    background: linear-gradient(180deg, #FFFFFF 0%, #F6FBFA 100%);
+    border-radius: var(--radius);
+    background: var(--surface);
     padding: 0.75rem;
 }
 
@@ -2356,7 +2422,6 @@ td {
     background:
         radial-gradient(circle at center, #FFFFFF 0 61%, transparent 62%),
         conic-gradient(var(--brand-primary) 0 var(--doctor-coverage-rate), var(--border) var(--doctor-coverage-rate) 100%);
-    box-shadow: inset 0 0 0 1px rgba(90, 129, 250, 0.1);
 }
 
 .doctor-coverage-ring > div {
@@ -2383,7 +2448,6 @@ td {
     color: var(--text-secondary);
     font-size: var(--type-category-size);
     font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
 }
 
 .doctor-coverage-rate-copy {
@@ -2438,9 +2502,9 @@ td {
 .doctor-map-placeholder {
     display: flex;
     flex-direction: column;
-    min-height: 31rem;
+    min-height: clamp(20rem, 40vh, 28rem);
     height: 100%;
-    background: linear-gradient(180deg, #FFFFFF 0%, var(--surface-subtle) 100%);
+    background: var(--surface);
 }
 
 .doctor-map-metric-selector {
@@ -2453,8 +2517,8 @@ td {
 .doctor-map-metric-selector button {
     min-height: 1.9rem;
     border: 1px solid var(--border);
-    border-radius: 999px;
-    background: linear-gradient(180deg, #FFFFFF 0%, var(--surface-subtle) 100%);
+    border-radius: var(--radius-control);
+    background: var(--surface);
     padding: 0.32rem 0.68rem;
     color: var(--text-secondary);
     font-size: var(--type-caption-size);
@@ -2472,9 +2536,8 @@ td {
 
 .doctor-map-metric-selector button.is-active {
     border-color: rgba(90, 129, 250, 0.48);
-    background: linear-gradient(180deg, var(--brand-soft-surface) 0%, var(--brand-accent-surface) 100%);
+    background: var(--brand-accent-surface);
     color: var(--brand-active);
-    box-shadow: inset 0 0 0 1px rgba(90, 129, 250, 0.14), 0 4px 10px rgba(43, 49, 138, 0.08);
 }
 
 .doctor-map-choropleth {
@@ -2488,17 +2551,14 @@ td {
 .doctor-map-stage {
     position: relative;
     display: grid;
-    min-height: 28.25rem;
+    min-height: clamp(17rem, 36vh, 25rem);
     height: 100%;
     overflow: hidden;
     place-items: center;
     border: 1px solid var(--border);
-    border-radius: 1rem;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 243, 255, 0.98)),
-        radial-gradient(circle at 18% 18%, rgba(90, 129, 250, 0.1), transparent 32%),
-        radial-gradient(circle at 82% 78%, rgba(209, 221, 255, 0.3), transparent 35%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 14px 30px rgba(43, 49, 138, 0.08);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
 }
 
 .doctor-map-stage::before {
@@ -2506,7 +2566,7 @@ td {
     position: absolute;
     inset: 0.75rem;
     border: 1px solid rgba(211, 227, 231, 0.68);
-    border-radius: 0.75rem;
+    border-radius: var(--radius);
     pointer-events: none;
 }
 
@@ -2574,12 +2634,11 @@ td {
     display: grid;
     width: min(11.5rem, calc(100% - 2rem));
     gap: 0.16rem;
-    border: 1px solid rgba(168, 177, 206, 0.72);
-    border-radius: 0.85rem;
-    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
     padding: 0.65rem 0.75rem;
-    box-shadow: 0 12px 28px rgba(31, 93, 116, 0.13);
-    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-lg);
     pointer-events: none;
     transition: opacity 120ms ease, transform 120ms ease;
 }
@@ -2616,19 +2675,18 @@ td {
     bottom: 1rem;
     left: 1rem;
     display: grid;
-    grid-template-columns: auto repeat(5, minmax(1.55rem, 1fr)) auto;
+    grid-template-columns: auto repeat(5, minmax(1.55rem, 1fr)) auto auto;
     align-items: center;
     gap: 0;
     max-width: 22rem;
-    border: 1px solid rgba(198, 218, 225, 0.88);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.93);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
     padding: 0.5rem 0.68rem;
     color: var(--text-secondary);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
-    box-shadow: 0 10px 24px rgba(31, 93, 116, 0.1);
-    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-md);
 }
 
 .doctor-map-legend i {
@@ -2670,10 +2728,8 @@ td {
     aspect-ratio: 1.1;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 0.9rem;
-    background:
-        linear-gradient(135deg, rgba(90, 129, 250, 0.12), rgba(209, 221, 255, 0.24)),
-        var(--surface-subtle);
+    border-radius: var(--radius);
+    background: var(--surface-subtle);
 }
 
 .doctor-map-frame::before,
@@ -2767,7 +2823,7 @@ td {
 
 .doctor-geo-detail-error {
     border: 1px solid #F0C9C9;
-    border-radius: 0.625rem;
+    border-radius: var(--radius);
     background: #FFF7F7;
     padding: 0.55rem 0.7rem;
     color: #9F3A3A;
@@ -2800,7 +2856,7 @@ td {
     align-content: start;
     gap: 0.25rem;
     border: 1px solid var(--border);
-    border-radius: 0.7rem;
+    border-radius: var(--radius);
     background: #FFFFFF;
     padding: 0.6rem 0.65rem;
 }
@@ -2838,8 +2894,8 @@ td {
     align-self: start;
     height: max-content;
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    background: linear-gradient(180deg, #FFFFFF 0%, var(--surface-subtle) 100%);
+    border-radius: var(--radius);
+    background: var(--surface);
     padding: 0.65rem 0.7rem;
 }
 
@@ -2894,7 +2950,7 @@ td {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent-surface));
+    background: var(--brand-primary);
 }
 
 .doctor-geo-bar-row strong {
@@ -2916,264 +2972,101 @@ td {
     margin-top: 0.3rem;
 }
 
-.doctor-workload-chart {
+.doctor-status-bar-chart {
     display: flex;
-    min-height: 12.25rem;
+    min-height: 9rem;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 0.875rem;
-    padding: 1rem;
-}
-
-.doctor-workload-summary {
-    display: grid;
-    grid-template-columns: 4.75rem minmax(0, 1fr);
-    gap: 0.875rem;
-    align-items: center;
-}
-
-.doctor-lab-summary {
-    grid-template-columns: minmax(0, 1fr) auto;
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    background: #FFFFFF;
-    padding: 0.75rem;
-}
-
-.doctor-donut-chart {
-    display: grid;
-    width: 4.75rem;
-    aspect-ratio: 1;
-    place-items: center;
-    border-radius: 999px;
-    background:
-        radial-gradient(circle at center, #FFFFFF 0 62%, transparent 63%),
-        conic-gradient(
-            var(--brand-primary) 0 var(--doctor-donut-primary),
-            #D9A441 var(--doctor-donut-primary) var(--doctor-donut-secondary),
-            #D8E2E8 var(--doctor-donut-secondary) 100%
-        );
-    box-shadow: inset 0 0 0 1px rgba(31, 93, 116, 0.08);
-}
-
-.doctor-donut-chart > div {
-    display: flex;
-    width: 3.35rem;
-    height: 3.35rem;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    border-radius: 999px;
-    background: #FFFFFF;
-    text-align: center;
+    gap: 0.75rem;
+    padding: 0.95rem;
 }
 
-.doctor-donut-chart strong {
-    color: var(--brand-active);
-    font-size: var(--type-section-title-size);
-    font-weight: var(--font-weight-bold);
-    line-height: 1;
+.doctor-status-bar-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
 }
 
-.doctor-donut-chart span {
-    margin-top: 0.1rem;
-    color: var(--text-muted);
-    font-size: var(--type-category-size);
-    font-weight: var(--font-weight-bold);
-    line-height: 1;
-    text-transform: uppercase;
-}
-
-.doctor-workload-total,
-.doctor-lab-total,
-.doctor-lab-key-metric {
+.doctor-status-bar-head > div {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: 0.18rem;
+    gap: 0.15rem;
 }
 
-.doctor-workload-total span,
-.doctor-lab-total span,
-.doctor-lab-key-metric span {
-    color: var(--text-muted);
+.doctor-status-bar-head span {
+    color: var(--text-secondary);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
 }
 
-.doctor-workload-total strong,
-.doctor-lab-total strong,
-.doctor-lab-key-metric strong {
+.doctor-status-bar-head strong {
     color: var(--text);
-    font-size: 1.45rem;
+    font-size: 1.35rem;
     font-weight: var(--font-weight-bold);
     line-height: 1;
 }
 
-.doctor-workload-total small,
-.doctor-lab-total small {
-    color: var(--text-3);
-    font-size: var(--type-caption-size);
-    font-weight: var(--font-weight-medium);
-}
-
-.doctor-lab-key-metric {
+.doctor-status-bar-key {
     align-items: flex-end;
     text-align: right;
 }
 
-.doctor-workload-compact-legend {
-    display: grid;
-    gap: 0.45rem;
+.doctor-status-bar {
+    display: flex;
+    overflow: hidden;
+    height: 0.6rem;
+    border-radius: var(--radius-sm);
+    background: var(--border-soft);
 }
 
-.doctor-status-chip-row,
-.doctor-lab-status-row {
+.doctor-status-bar span {
+    display: block;
+    height: 100%;
+}
+
+.doctor-status-bar .is-completed { background: var(--brand-primary); }
+.doctor-status-bar .is-pending { background: #D9A441; }
+
+.doctor-status-bar-legend {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.625rem;
-    min-height: 2rem;
-    border: 1px solid var(--border);
-    border-radius: 0.625rem;
-    background: #FFFFFF;
-    padding: 0.4rem 0.55rem;
-    color: var(--text-2);
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 0.5rem 0.75rem;
+}
+
+.doctor-status-bar-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: baseline;
+    gap: 0.4rem;
+    color: var(--text-secondary);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
 }
 
-.doctor-status-chip-row strong,
-.doctor-lab-status-row strong {
+.doctor-status-bar-item::before {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    content: "";
+}
+
+.doctor-status-bar-item.is-completed::before { background: var(--brand-primary); }
+.doctor-status-bar-item.is-pending::before { background: #D9A441; }
+
+.doctor-status-bar-item strong {
     color: var(--text);
     font-weight: var(--font-weight-bold);
 }
 
-.doctor-status-chip-row::before {
-    content: "";
-    width: 0.45rem;
-    height: 0.45rem;
-    border-radius: 999px;
-    background: #D8E2E8;
-}
-
-.doctor-status-chip-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-}
-
-.doctor-status-chip-row.is-completed::before { background: var(--brand-primary); }
-.doctor-status-chip-row.is-pending::before { background: #D9A441; }
-.doctor-status-chip-row.is-other::before { background: var(--border-strong); }
-
-.doctor-status-mini-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    border-top: 1px solid var(--border-soft);
-    padding-top: 0.75rem;
-}
-
-.doctor-status-chip-row span,
-.doctor-lab-status-row span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.doctor-lab-status-chart {
-    display: flex;
-    min-height: 12.25rem;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 0.875rem;
-    padding: 1rem;
-}
-
-.doctor-lab-segmented-bar {
-    display: flex;
-    height: 0.7rem;
-    overflow: hidden;
-    border-radius: 999px;
-    background: var(--border-soft);
-}
-
-.doctor-lab-segmented-bar span {
-    display: block;
-    min-width: 0.35rem;
-    border-right: 2px solid var(--surface);
-}
-
-.doctor-lab-segmented-bar span:last-child {
-    border-right: 0;
-}
-
-.doctor-lab-segmented-bar .is-pending { background: #D9A441; }
-.doctor-lab-segmented-bar .is-completed { background: var(--brand-primary); }
-.doctor-lab-segmented-bar .is-other { background: var(--border-strong); }
-
-.doctor-lab-status-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-}
-
-.doctor-lab-status-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.doctor-lab-status-row div {
-    display: inline-flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: 0.4rem;
-}
-
-.doctor-lab-status-row small {
+.doctor-status-bar-item small {
     color: var(--text-muted);
     font-size: var(--type-caption-size);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-medium);
 }
 
-.doctor-chart-skeleton {
-    display: grid;
-    min-height: 13rem;
-    gap: 1rem;
-    align-items: center;
-    padding: 1rem;
-}
-
-.doctor-chart-skeleton.is-donut,
-.doctor-chart-skeleton.is-radial,
-.doctor-chart-skeleton.is-radar {
-    grid-template-columns: 8rem minmax(0, 1fr);
-}
-
-.doctor-skeleton-donut {
-    width: 8rem;
-    aspect-ratio: 1;
-    border-radius: 999px;
-}
-
-.doctor-skeleton-semi {
-    align-self: end;
-    width: 8rem;
-    height: 4.25rem;
-    border-radius: 8rem 8rem 0 0;
-}
-
-.doctor-skeleton-radar {
-    width: 8rem;
-    aspect-ratio: 1;
-    border-radius: 1.25rem;
-    clip-path: polygon(50% 0, 96% 32%, 79% 90%, 21% 90%, 4% 32%);
-}
-
-.doctor-skeleton-lines {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 0.625rem;
-}
 
 .doctor-status-list {
     display: flex;
@@ -3299,6 +3192,54 @@ td {
     flex-wrap: wrap;
     gap: 0.375rem;
     padding: 0.75rem 1rem 0;
+}
+
+.doctor-detail-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.625rem;
+    padding: 0.75rem 1rem 0;
+}
+
+.doctor-detail-filter {
+    display: flex;
+    min-width: 10rem;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: var(--text-secondary);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
+}
+
+.doctor-detail-filter-count {
+    padding-bottom: 0.5rem;
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+}
+
+.doctor-map-legend-scope {
+    padding-left: 0.5rem;
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+}
+
+.doctor-map-empty-note {
+    padding: 0.5rem 0.75rem 0;
+    color: var(--text-muted);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--type-supporting-line);
+    text-align: center;
+}
+
+.doctor-staff-tile-meta {
+    margin-top: 0.125rem;
+    color: var(--text-secondary);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
 }
 
 .doctor-staff-attribution {
@@ -3569,7 +3510,8 @@ td {
 }
 
 .doctor-line-chart {
-    min-height: 19rem;
+    --doctor-line-height: clamp(10rem, 26vw, 14rem);
+    min-height: 0;
     padding: 0.9rem 1rem 0.85rem;
 }
 
@@ -3607,7 +3549,7 @@ td {
 
 .doctor-line-y-axis {
     display: flex;
-    height: 14rem;
+    height: var(--doctor-line-height);
     flex-direction: column;
     justify-content: space-between;
     padding-bottom: 1.65rem;
@@ -3620,7 +3562,7 @@ td {
 .doctor-line-plot {
     position: relative;
     min-width: 0;
-    height: 14rem;
+    height: var(--doctor-line-height);
     padding-bottom: 1.65rem;
 }
 
@@ -3684,7 +3626,33 @@ td {
 .doctor-line-point:focus-visible {
     width: 0.8rem;
     height: 0.8rem;
-    outline: 2px solid rgba(90, 129, 250, 0.22);
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 1px;
+}
+
+.doctor-line-point::after {
+    position: absolute;
+    bottom: calc(100% + 0.4rem);
+    left: 50%;
+    z-index: 3;
+    display: none;
+    width: max-content;
+    max-width: 12rem;
+    transform: translateX(-50%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 0.3rem 0.45rem;
+    color: var(--text);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+    box-shadow: var(--shadow-md);
+    content: attr(data-value);
+}
+
+.doctor-line-point:hover::after,
+.doctor-line-point:focus-visible::after {
+    display: block;
 }
 
 .doctor-line-x-axis {
@@ -3692,197 +3660,25 @@ td {
     right: 0;
     bottom: 0;
     left: 0;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(2.25rem, 1fr);
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    overflow: hidden;
     color: var(--text-secondary);
     font-size: var(--type-category-size);
     font-weight: var(--font-weight-medium);
 }
 
 .doctor-line-x-axis span {
-    overflow: hidden;
+    flex: 0 0 auto;
     text-align: center;
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .doctor-line-x-axis span.is-hidden {
-    visibility: hidden;
+    display: none;
 }
 
-.doctor-radar-chart,
-.doctor-prescription-chart,
-.doctor-gauge-chart {
-    display: flex;
-    min-height: 14rem;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.8rem;
-    padding: 0.95rem;
-}
-
-.doctor-radar-svg {
-    width: min(100%, 15rem);
-    height: 9.75rem;
-    align-self: center;
-}
-
-.doctor-radar-ring {
-    fill: none;
-    stroke: var(--border);
-    stroke-width: 1;
-}
-
-.doctor-radar-axis {
-    stroke: var(--border-soft);
-    stroke-width: 1;
-}
-
-.doctor-radar-shape {
-    fill: rgba(90, 129, 250, 0.16);
-    stroke: var(--brand-primary);
-    stroke-width: 2;
-    stroke-linejoin: round;
-}
-
-.doctor-radar-dot {
-    fill: var(--brand-primary);
-    stroke: #FFFFFF;
-    stroke-width: 1.5;
-}
-
-.doctor-radar-label {
-    fill: var(--text-secondary);
-    font-size: var(--type-category-size);
-    font-weight: var(--font-weight-semibold);
-}
-
-.doctor-radar-legend {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem 0.65rem;
-}
-
-.doctor-radar-legend span {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.45rem;
-    color: var(--text-secondary);
-    font-size: var(--type-caption-size);
-    font-weight: var(--font-weight-bold);
-}
-
-.doctor-radar-legend strong {
-    color: var(--text);
-    font-weight: var(--font-weight-bold);
-}
-
-.doctor-prescription-chart {
-    align-items: center;
-}
-
-.doctor-donut-chart.is-prescription {
-    width: 7.6rem;
-}
-
-.doctor-donut-chart.is-prescription > div {
-    width: 5.25rem;
-    height: 5.25rem;
-}
-
-.doctor-donut-chart.is-prescription strong {
-    font-size: 1.35rem;
-}
-
-.doctor-chart-legend {
-    display: grid;
-    width: 100%;
-    gap: 0.45rem;
-}
-
-.doctor-chart-legend .doctor-status-chip-row {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-}
-
-.doctor-chart-legend small {
-    color: var(--text-secondary);
-    font-size: var(--type-caption-size);
-    font-weight: var(--font-weight-bold);
-}
-
-.doctor-gauge-chart {
-    align-items: center;
-}
-
-.doctor-gauge-arc {
-    position: relative;
-    display: grid;
-    width: 9.4rem;
-    height: 4.7rem;
-    place-items: end center;
-    overflow: hidden;
-}
-
-.doctor-gauge-arc::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 9.4rem 9.4rem 0 0;
-    background: conic-gradient(from 270deg at 50% 100%, var(--brand-primary) 0 var(--doctor-gauge-angle), var(--border-soft) var(--doctor-gauge-angle) 180deg, transparent 180deg);
-}
-
-.doctor-gauge-arc::after {
-    content: "";
-    position: absolute;
-    right: 1.05rem;
-    bottom: -0.05rem;
-    left: 1.05rem;
-    height: 3.7rem;
-    border-radius: 7.4rem 7.4rem 0 0;
-    background: #FFFFFF;
-}
-
-.doctor-gauge-arc > div {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-bottom: 0.15rem;
-}
-
-.doctor-gauge-arc strong {
-    color: var(--text);
-    font-size: 1.45rem;
-    font-weight: var(--font-weight-bold);
-    line-height: 1;
-}
-
-.doctor-gauge-arc span {
-    margin-top: 0.15rem;
-    color: var(--text-secondary);
-    font-size: var(--type-category-size);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-}
-
-.doctor-gauge-counts {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem 0.85rem;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    font-weight: var(--font-weight-bold);
-}
-
-.doctor-gauge-counts strong {
-    color: var(--text);
-    font-weight: var(--font-weight-bold);
-}
 
 @media (max-width: 900px) {
     .doctor-kpi-strip {
@@ -3945,6 +3741,7 @@ td {
     .doctor-analytics-period { align-items: flex-start; }
     .doctor-analytics-controls { width: 100%; justify-content: flex-start; }
     .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.125rem; }
+    .doctor-workspace-tabs { flex-wrap: nowrap; overflow-x: auto; }
     .doctor-operational-grid,
     .doctor-staff-metrics,
     .doctor-kpi-strip {
@@ -3987,7 +3784,7 @@ td {
         justify-self: center;
     }
     .doctor-map-placeholder {
-        min-height: 25rem;
+        min-height: clamp(16rem, 34vh, 22rem);
     }
     .doctor-map-metric-selector {
         flex-wrap: nowrap;
@@ -4012,7 +3809,22 @@ td {
         bottom: 0.7rem;
         left: 0.7rem;
         grid-template-columns: auto repeat(5, minmax(0.9rem, 1fr)) auto;
+        row-gap: 0.25rem;
         max-width: none;
+    }
+    /* The scope tag drops to its own row instead of squeezing the swatch ramp. */
+    .doctor-map-legend-scope {
+        grid-column: 1 / -1;
+        padding-left: 0;
+        text-align: center;
+    }
+    .doctor-detail-filter {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+    .doctor-detail-filters,
+    .doctor-staff-chart-toggle {
+        padding-inline: 0.75rem;
     }
     .doctor-coverage-rate-card,
     .doctor-coverage-metric-grid {
@@ -4035,20 +3847,6 @@ td {
     .doctor-barangay-percent {
         grid-column: 2;
         justify-self: start;
-    }
-    .doctor-workload-summary,
-    .doctor-lab-summary {
-        grid-template-columns: 1fr;
-    }
-    .doctor-donut-chart {
-        width: 4.75rem;
-        justify-self: center;
-    }
-    .doctor-workload-total,
-    .doctor-lab-total,
-    .doctor-lab-key-metric {
-        align-items: center;
-        text-align: center;
     }
     .doctor-kpi-grid { grid-template-columns: 1fr; }
     .doctor-trend-figure { padding: 0.875rem 0.625rem; }
