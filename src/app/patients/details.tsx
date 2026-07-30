@@ -98,7 +98,7 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
     const isEmpty = value === null || value === undefined || value === '';
     return (
         <div className="flex flex-col gap-1">
-            <div className="text-[0.68rem] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</div>
+            <div className="text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</div>
             <div className={`text-sm font-semibold ${isEmpty ? 'text-[var(--text-muted)] italic' : 'text-[var(--text)]'}`}>
                 {isEmpty ? 'Not provided' : value}
             </div>
@@ -262,14 +262,14 @@ function DetailsPage() {
             <Sidebar activePage="records" userName={userName} userInitials={userInitials} userRole={role.toUpperCase()} navItems={navItems} onNavigate={handleNavigate} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} isOnline={isOnline} />
 
             <div className="flex-1 flex flex-col min-h-screen w-full md:pl-[240px]">
-                <header className="h-[72px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
+                <header className="h-[52px] md:h-[56px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-3 md:px-5 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-[var(--text-2)] hover:bg-[var(--surface-subtle)] rounded-lg"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
-                        <div className="font-bold text-lg text-[var(--text)]">{editing ? 'Edit Profile' : 'Patient Profile'}</div>
+                        <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">{editing ? 'Edit Profile' : 'Patient Profile'}</h1>
                     </div>
                     <div className="flex items-center gap-3">
 
-                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-[var(--surface-subtle)] text-[var(--text-2)] text-xs font-bold rounded-lg hover:bg-[var(--border-soft)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
+                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
                     </div>
                 </header>
 
@@ -477,14 +477,14 @@ function DetailsPage() {
                                 <div className="flex flex-col gap-3">
                                     {/* Midwife action */}
                                     {role === 'midwives' && !patient.consent_signed && !isArchivedPatient && (
-                                        <button onClick={() => setShowConsent(true)} className="w-full bg-[var(--brand-active)] text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
+                                        <button onClick={() => setShowConsent(true)} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
                                             Proceed to Patient Consent
                                         </button>
                                     )}
 
                                     {/* Nurse / Doctor / any role action */}
                                     {(role === 'nurse' || role === 'doctor' || role === 'midwives' || role === 'BHW') && (
-                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
+                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
                                             View Complete Transaction History
                                         </button>
                                     )}

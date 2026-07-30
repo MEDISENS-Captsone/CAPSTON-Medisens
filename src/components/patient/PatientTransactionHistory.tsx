@@ -82,7 +82,7 @@ function CardHeader({ type, title, date, status, summary }: PatientTransaction) 
                 <h4 className="mt-2 text-base font-extrabold text-[var(--text)]">{title}</h4>
                 {summary && <p className="mt-1 text-sm font-medium leading-snug text-[var(--text-2)]">{summary}</p>}
             </div>
-            <div className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] sm:text-right">{formatDate(date)}</div>
+            <div className="whitespace-nowrap text-xs font-semibold text-[var(--text-secondary)] sm:text-right">{formatDate(date)}</div>
         </div>
     );
 }
@@ -94,7 +94,7 @@ function ItemsGrid({ items }: { items: PatientTransaction['items'] }) {
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map(group => (
                 <div key={group.label} className={`rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 ${!group.values.length ? 'hidden' : ''}`}>
-                    <div className="mb-2 text-[0.68rem] font-black uppercase tracking-widest text-[var(--text-2)]">{group.label}</div>
+                    <div className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--text-2)]">{group.label}</div>
                     <ul className="space-y-1.5">
                         {group.values.map((value, index) => (
                             <li

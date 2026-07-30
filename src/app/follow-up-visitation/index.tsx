@@ -176,19 +176,19 @@ export default function FollowUp() {
 
             <div className="flex-1 flex flex-col min-h-screen w-full md:pl-[240px] print:pl-0">
                 {/* TOPBAR */}
-                <header className="h-[64px] md:h-[72px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm md:shadow-none">
+                <header className="h-[52px] md:h-[56px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-3 md:px-5 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-[var(--text-2)] hover:bg-[var(--surface-subtle)] rounded-lg">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                         </button>
-                        <div className="font-bold text-lg text-[var(--text)]">Follow-Up Visitation</div>
+                        <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">Follow-Up Visitation</h1>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="hidden sm:block text-right">
                             <div className="text-sm font-bold text-[var(--text)] leading-tight">{userName}</div>
                             <div className="text-[0.7rem] text-[var(--text-secondary)] capitalize">{role}</div>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold shadow-md">{userInitials}</div>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--brand-active)] text-[length:var(--type-label-size)] font-semibold text-white shadow-sm">{userInitials}</div>
                     </div>
                 </header>
 
@@ -199,9 +199,9 @@ export default function FollowUp() {
                     <div className="w-full ">
                         
                         <div className="flex items-center gap-4 mb-6">
-                            <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-bold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors">← Back</button>
+                            <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
                             <div>
-                                <h1 className="text-2xl font-black text-[var(--text)] tracking-tight">Follow-Up Record</h1>
+                                <h1 className="text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)]">Follow-Up Record</h1>
                                 <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">RHU Form Part IV</p>
                             </div>
                         </div>

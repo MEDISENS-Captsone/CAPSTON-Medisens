@@ -53,7 +53,7 @@ function HistoryModal({ patient, logs, onClose }: { patient: any; logs: any[]; o
                                         <div className="text-xs text-[var(--text-2)] space-y-1">
                                             {log.category === 'child' && log.data_fields?.vaccine_records && Array.isArray(log.data_fields.vaccine_records) && (
                                                 <div className="mb-2 p-2 bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">
-                                                    <span className="font-bold text-[var(--text-2)] uppercase text-[0.6rem] tracking-wider block mb-1">Vaccine Records</span>
+                                                    <span className="font-semibold text-[var(--text-2)] uppercase text-[0.6rem] tracking-wide block mb-1">Vaccine Records</span>
                                                     {normalizeVaccineRecords(log.data_fields).map(vaccine => (
                                                         <div key={vaccine.id} className="mb-2 rounded-md border border-[var(--border)] bg-white p-2 last:mb-0">
                                                             <div className="font-bold text-[var(--text)]">{getVaccineDisplayName(vaccine)}</div>
@@ -173,7 +173,7 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                 {/* Right side */}
                                 <div className="shrink-0 flex items-center gap-3">
                                     <div className="flex flex-col items-end gap-1.5">
-                                        <span className="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                                        <span className="text-[0.65rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
                                             {patient.created_at
                                                 ? new Date(patient.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
                                                 : '—'}
