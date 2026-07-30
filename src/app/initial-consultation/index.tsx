@@ -10,8 +10,9 @@ import { clinicalInputClass, clinicalLabelClass } from '../../components/ui/Clin
 // Shared clinical form classes
 const inputClasses = clinicalInputClass;
 const labelClasses = clinicalLabelClass;
-const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-slate-200 mb-4 overflow-hidden";
-const legendClasses = "w-full px-4 py-3 border-b border-slate-200 text-sm font-semibold text-slate-800 uppercase tracking-wide bg-slate-50/60 flex items-center gap-2";
+const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-[var(--border)] mb-4 overflow-hidden";
+// Full section headings stay sentence case; uppercase is reserved for small field labels.
+const legendClasses = "w-full px-4 py-3 border-b border-[var(--border)] text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)] bg-[var(--surface-subtle)] flex items-center gap-2";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface InitialConsultationData {
@@ -250,21 +251,21 @@ export function ConsultationComponent() {
 
             <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2"><Icon name="clipboard" className="h-6 w-6" /> Initial Consultation</h1>
+                    <h1 className="text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)] flex items-center gap-2"><Icon name="clipboard" className="h-6 w-6" /> Initial Consultation</h1>
                     {patientInfo ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-                            <span className="font-semibold text-slate-800 bg-slate-50 border border-slate-200 px-3 py-1 rounded-md">{patientName}</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1 rounded-md"><Icon name="user" className="h-3.5 w-3.5" /> {patientInfo.sex || 'N/A'}</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1 rounded-md"><Icon name="calendar" className="h-3.5 w-3.5" /> {patientInfo.age ?? 'N/A'} yrs</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1 rounded-md"><Icon name="droplet" className="h-3.5 w-3.5" /> {patientInfo.bloodType || 'N/A'}</span>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--text-2)]">
+                            <span className="font-semibold text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] px-3 py-1 rounded-md">{patientName}</span>
+                            <span className="inline-flex items-center gap-1.5 bg-white border border-[var(--border)] px-3 py-1 rounded-md"><Icon name="user" className="h-3.5 w-3.5" /> {patientInfo.sex || 'N/A'}</span>
+                            <span className="inline-flex items-center gap-1.5 bg-white border border-[var(--border)] px-3 py-1 rounded-md"><Icon name="calendar" className="h-3.5 w-3.5" /> {patientInfo.age ?? 'N/A'} yrs</span>
+                            <span className="inline-flex items-center gap-1.5 bg-white border border-[var(--border)] px-3 py-1 rounded-md"><Icon name="droplet" className="h-3.5 w-3.5" /> {patientInfo.bloodType || 'N/A'}</span>
                         </div>
                     ) : (
-                        <p className="text-sm text-slate-500 mt-2">Search and select a consented patient to begin.</p>
+                        <p className="text-sm text-[var(--text-secondary)] mt-2">Search and select a consented patient to begin.</p>
                     )}
                 </div>
 
                 {currentPatientId && (
-                    <button onClick={() => { setCurrentPatientId(null); setPatientInfo(null); window.history.pushState({}, '', '?'); }} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm shrink-0 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                    <button onClick={() => { setCurrentPatientId(null); setPatientInfo(null); window.history.pushState({}, '', '?'); }} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm shrink-0 text-sm font-semibold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] transition-colors">
                         <Icon name="search" className="h-4 w-4" /> Search Another
                     </button>
                 )}
@@ -274,39 +275,39 @@ export function ConsultationComponent() {
                 <div className="w-full pwa-dense-panel">
                     <div className="w-full">
                         <div className="relative mb-6">
-                            <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                            <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
                             <input 
                                 type="text" 
                                 placeholder="Search consented patients by name..." 
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white text-slate-800 font-medium"
+                                className="w-full pl-12 pr-4 py-3 rounded-lg border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] bg-white text-[var(--text)] font-medium"
                                 autoFocus
                             />
                         </div>
 
                         <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1 sm:pr-2 scrollbar-thin">
                             {filteredPatients.length === 0 ? (
-                                <div className="text-center py-8 text-slate-500 font-medium bg-slate-50 rounded-lg border border-slate-200">No consented patients found.</div>
+                                <div className="text-center py-8 text-[var(--text-secondary)] font-medium bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">No consented patients found.</div>
                             ) : (
                                 filteredPatients.map(p => (
                                     <div 
                                         key={p.id}
                                         onClick={() => handleSelectPatient(p.id)}
-                                        className="grid grid-cols-[3rem_minmax(0,1fr)_2.25rem] items-center gap-4 p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg cursor-pointer transition-colors shadow-sm group"
+                                        className="grid grid-cols-[3rem_minmax(0,1fr)_2.25rem] items-center gap-4 p-4 bg-white hover:bg-[var(--surface-subtle)] border border-[var(--border)] hover:border-[var(--border)] rounded-lg cursor-pointer transition-colors shadow-sm group"
                                     >
-                                        <div className="w-12 h-12 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center font-semibold text-lg shrink-0 group-hover:bg-slate-700 group-hover:text-white transition-colors">
+                                        <div className="w-12 h-12 rounded-md bg-[var(--surface-subtle)] text-[var(--text-2)] flex items-center justify-center font-semibold text-lg shrink-0 group-hover:bg-[var(--brand-active)] group-hover:text-white transition-colors">
                                             {(p.firstName?.[0] || '').toUpperCase()}
                                         </div>
                                         <div className="min-w-0">
-                                            <div className="font-semibold text-slate-800 truncate">{p.lastName}, {p.firstName} {p.middleName || ''}</div>
-                                            <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-500 sm:grid-cols-[minmax(4.5rem,0.8fr)_minmax(4.5rem,0.8fr)_minmax(5rem,1fr)]">
+                                            <div className="font-semibold text-[var(--text)] truncate">{p.lastName}, {p.firstName} {p.middleName || ''}</div>
+                                            <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)] sm:grid-cols-[minmax(4.5rem,0.8fr)_minmax(4.5rem,0.8fr)_minmax(5rem,1fr)]">
                                                 <span className="inline-flex min-w-0 items-center gap-1.5"><Icon name="user" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{p.sex || '—'}</span></span>
                                                 <span className="inline-flex min-w-0 items-center gap-1.5"><Icon name="calendar" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{p.age ?? '—'} yrs</span></span>
                                                 <span className="inline-flex min-w-0 items-center gap-1.5 col-span-2 sm:col-span-1"><Icon name="droplet" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{p.bloodType || '—'}</span></span>
                                             </div>
                                         </div>
-                                        <span className="flex h-9 w-9 items-center justify-center rounded-full text-slate-300 group-hover:bg-slate-50 group-hover:text-slate-600 group- transition-all">
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] group-hover:bg-[var(--surface-subtle)] group-hover:text-[var(--text-2)] group- transition-all">
                                             <Icon name="clipboard" className="h-4 w-4" />
                                         </span>
                                     </div>
@@ -318,7 +319,7 @@ export function ConsultationComponent() {
             ) : (
                 <form onSubmit={handleSubmit} className="w-full ">
                     <fieldset className={fieldsetClasses}>
-                        <div className={legendClasses}><span className="text-slate-700">①</span> General Information</div>
+                        <div className={legendClasses}><span className="text-[var(--text-2)]">①</span> General Information</div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                                 <div><label className={labelClasses}>Date of Consultation</label><input type="date" name="dateOfConsultation" value={formData.dateOfConsultation} onChange={handleChange} className={inputClasses} required /></div>
@@ -330,7 +331,7 @@ export function ConsultationComponent() {
                                     <label className={labelClasses}>Mode of Transaction</label>
                                     <div className="flex flex-wrap gap-3 mt-2">
                                         {['Walk in', 'Referral'].map(v => (
-                                            <label key={v} className={`cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransaction === v ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                                            <label key={v} className={`cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransaction === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
                                                 <input type="radio" name="modeOfTransaction" value={v} onChange={handleRadioChange} checked={formData.modeOfTransaction === v} className="hidden" />{v}
                                             </label>
                                         ))}
@@ -340,7 +341,7 @@ export function ConsultationComponent() {
                                     <label className={labelClasses}>Mode of Transfer</label>
                                     <div className="flex flex-wrap gap-3 mt-2">
                                         {['Ambulatory', 'Via Wheelchair'].map(v => (
-                                            <label key={v} className={`cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransfer === v ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                                            <label key={v} className={`cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransfer === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
                                                 <input type="radio" name="modeOfTransfer" value={v} onChange={handleRadioChange} checked={formData.modeOfTransfer === v} className="hidden" />{v}
                                             </label>
                                         ))}
@@ -351,7 +352,7 @@ export function ConsultationComponent() {
                     </fieldset>
 
                     <fieldset className={fieldsetClasses}>
-                        <div className={legendClasses}><Icon name="file-text" className="h-4 w-4 text-slate-700" /> Clinical Notes</div>
+                        <div className={legendClasses}><Icon name="file-text" className="h-4 w-4 text-[var(--text-2)]" /> Clinical Notes</div>
                         <div className="p-6 flex flex-col gap-5">
                             <div>
                                 <label className={labelClasses}>Chief Complaints</label>
@@ -375,27 +376,27 @@ export function ConsultationComponent() {
                     </fieldset>
 
                     <fieldset className={fieldsetClasses}>
-                        <div className={legendClasses}><Icon name="heart-pulse" className="h-4 w-4 text-slate-700" /> Physical Examination & Vital Signs</div>
-                        <div className="p-6 bg-slate-50/10">
+                        <div className={legendClasses}><Icon name="heart-pulse" className="h-4 w-4 text-[var(--text-2)]" /> Physical Examination & Vital Signs</div>
+                        <div className="p-6 bg-[var(--surface-subtle)]/10">
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                                 {VITAL_FIELDS.map(f => (
-                                    <div key={f.name} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">{f.label}</label>
+                                    <div key={f.name} className="bg-white p-3 rounded-lg border border-[var(--border)] shadow-sm">
+                                        <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">{f.label}</label>
                                         <input
                                             type={f.type} name={f.name} value={formData[f.name]} onChange={handleChange} readOnly={f.readOnly || false} step={f.step} placeholder={f.placeholder || ''}
                                             onKeyDown={f.type === 'number' ? (e) => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); } : undefined}
                                             onBeforeInput={f.allowedPattern ? (e: any) => { if (e.data && !f.allowedPattern!.test(e.data)) e.preventDefault(); } : undefined}
                                             onPaste={f.allowedPattern ? (e) => { const pasted = e.clipboardData.getData('text'); if (!f.allowedPattern!.test(pasted)) e.preventDefault(); } : undefined}
-                                            className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 outline-none transition-colors ${f.readOnly ? 'bg-slate-100 border-slate-300 text-slate-500 font-semibold cursor-not-allowed shadow-none' : 'bg-white text-slate-800'}`}
+                                            className={`w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none transition-colors ${f.readOnly ? 'bg-[var(--surface-subtle)] border-[var(--border)] text-[var(--text-secondary)] font-semibold cursor-not-allowed shadow-none' : 'bg-white text-[var(--text)]'}`}
                                         />
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-8 pt-6 border-t border-slate-200">
+                            <div className="mt-8 pt-6 border-t border-[var(--border)]">
                                 <label className={labelClasses}>General Survey Status</label>
                                 <div className="flex flex-wrap gap-3 mt-3">
                                     {['Awake and Alert', 'Altered Sensorium'].map(v => (
-                                        <label key={v} className={`cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors ${formData.generalSurvey === v ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                                        <label key={v} className={`cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors ${formData.generalSurvey === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
                                             <input type="radio" name="generalSurvey" value={v} onChange={handleRadioChange} checked={formData.generalSurvey === v} className="hidden" />{v}
                                         </label>
                                     ))}
@@ -404,8 +405,8 @@ export function ConsultationComponent() {
                         </div>
                     </fieldset>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-end gap-4 mt-6 mb-12 border-t border-slate-200 pt-6">
-                        <button type="submit" disabled={isSubmitting} className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${isSubmitting ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-slate-700 hover:bg-slate-800'}`}>
+                    <div className="flex flex-col sm:flex-row items-center justify-end gap-4 mt-6 mb-12 border-t border-[var(--border)] pt-6">
+                        <button type="submit" disabled={isSubmitting} className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${isSubmitting ? 'bg-[var(--text-muted)] cursor-not-allowed shadow-none' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)]'}`}>
                             {isSubmitting ? 'Recording Initial Intake...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Record Initial Intake</>}
                         </button>
                     </div>
