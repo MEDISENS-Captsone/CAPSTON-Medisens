@@ -4,8 +4,8 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { Icon } from '../../components/shared/Icon';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import malvarBarangaysGeoJsonRaw from '../../assets/geo/malvar-barangays.geojson?raw';
-import { fetchBarangayDrilldown, fetchDoctorAnalytics, fetchStaffOperationsAnalytics } from './doctorAnalyticsService';
-import type { AnalyticsBucket, AnalyticsPeriod, AnalyticsRow, BarangayHeatmapRow, DoctorAnalyticsData, StaffOperationsAnalyticsRow, StaffOperationsRole } from './doctorAnalyticsService';
+import { fetchBarangayDrilldown, fetchDoctorAnalytics, fetchStaffOperationsAnalytics, mergeDoctorAnalytics } from './doctorAnalyticsService';
+import type { AnalyticsBucket, AnalyticsErrorCode, AnalyticsPeriod, AnalyticsResult, AnalyticsRow, BarangayHeatmapRow, DoctorAnalyticsData, StaffOperationsAnalyticsRow, StaffOperationsRole } from './doctorAnalyticsService';
 
 type PresetKey = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 export type AnalyticsWorkspaceRole = 'doctor' | 'midwives';
@@ -33,12 +33,43 @@ const PRESETS: Array<{ key: PresetKey; label: string; bucket: AnalyticsBucket }>
     { key: 'year', label: 'This Year', bucket: 'month' },
 ];
 
-const BARANGAY_HEATMAP_METRICS: Array<{ key: BarangayHeatmapMetric; label: string; field: keyof Pick<BarangayHeatmapRow, 'registered_patients' | 'consultations' | 'pending_follow_ups' | 'vaccinations'>; valueLabel: string }> = [
-    { key: 'registered', label: 'Registered Patients', field: 'registered_patients', valueLabel: 'registered patients' },
-    { key: 'consultations', label: 'Consultations', field: 'consultations', valueLabel: 'consultations' },
-    { key: 'pendingFollowUps', label: 'Pending Follow-ups', field: 'pending_follow_ups', valueLabel: 'pending follow-ups' },
-    { key: 'vaccinations', label: 'Vaccinations', field: 'vaccinations', valueLabel: 'vaccinations' },
+// Registered Patients is an all-time active-patient metric by definition and is sourced
+// from analytics_barangay_distribution. The activity metrics are scoped to the selected
+// period and come from analytics_barangay_heatmap. The two sources are never mixed.
+type BarangayMetricScope = 'all-time' | 'period';
+
+const BARANGAY_HEATMAP_METRICS: Array<{
+    key: BarangayHeatmapMetric;
+    label: string;
+    field: keyof Pick<BarangayHeatmapRow, 'registered_patients' | 'consultations' | 'pending_follow_ups' | 'vaccinations'>;
+    valueLabel: string;
+    scope: BarangayMetricScope;
+    scopeLabel: string;
+    scopeDescription: string;
+}> = [
+    {
+        key: 'registered', label: 'Registered Patients', field: 'registered_patients', valueLabel: 'registered patients',
+        scope: 'all-time', scopeLabel: 'All-time',
+        scopeDescription: 'All-time active patient distribution by barangay.',
+    },
+    {
+        key: 'consultations', label: 'Consultations', field: 'consultations', valueLabel: 'consultations',
+        scope: 'period', scopeLabel: 'Selected period',
+        scopeDescription: 'Consultations recorded in the selected period, by barangay.',
+    },
+    {
+        key: 'pendingFollowUps', label: 'Pending Follow-ups', field: 'pending_follow_ups', valueLabel: 'pending follow-ups',
+        scope: 'period', scopeLabel: 'Selected period',
+        scopeDescription: 'Pending follow-ups recorded in the selected period, by barangay.',
+    },
+    {
+        key: 'vaccinations', label: 'Vaccinations', field: 'vaccinations', valueLabel: 'vaccinations',
+        scope: 'period', scopeLabel: 'Selected period',
+        scopeDescription: 'Vaccinations recorded in the selected period, by barangay.',
+    },
 ];
+
+const EMPTY_PERIOD_METRIC_MESSAGE = 'No activity recorded for the selected period.';
 
 const ANALYTICS_VIEWS: Array<{ key: AnalyticsView; label: string; roles: readonly AnalyticsWorkspaceRole[] }> = [
     { key: 'clinical', label: 'Clinical Analytics', roles: ['doctor', 'midwives'] },
@@ -75,6 +106,69 @@ function writeViewToLocation(view: AnalyticsView, mode: 'push' | 'replace') {
 
 function isoDate(date: Date): string {
     return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+}
+
+const DEFAULT_PRESET: PresetKey = 'month';
+const PRESET_KEYS: readonly PresetKey[] = ['today', 'week', 'month', 'quarter', 'year', 'custom'];
+
+interface PeriodSelection {
+    preset: PresetKey;
+    customFrom: string;
+    customTo: string;
+}
+
+// The date inputs and the ?to= parameter are both inclusive; only the RPC boundary is
+// exclusive. This converts the internal exclusive bound back for display and URL use.
+function inclusiveEndDate(toExclusive: string): string {
+    const parsed = parseLocalDate(toExclusive);
+    return parsed ? isoDate(addDays(parsed, -1)) : toExclusive;
+}
+
+function defaultPeriodSelection(): PeriodSelection {
+    const fallback = getPresetPeriod(DEFAULT_PRESET);
+    return {
+        preset: DEFAULT_PRESET,
+        customFrom: fallback.from,
+        customTo: inclusiveEndDate(fallback.toExclusive),
+    };
+}
+
+// Unknown presets, malformed or reversed dates, and ranges beyond 366 days all normalize
+// to the default Month period. getCustomPeriod already rejects the last two cases.
+function resolvePeriodSelection(
+    presetValue: string | null,
+    fromValue: string | null,
+    toValue: string | null,
+): PeriodSelection {
+    const fallback = defaultPeriodSelection();
+    const candidate = (presetValue ?? '').trim().toLowerCase() as PresetKey;
+    if (!PRESET_KEYS.includes(candidate)) return fallback;
+    if (candidate !== 'custom') return { ...fallback, preset: candidate };
+    if (!fromValue || !toValue) return fallback;
+    if (!getCustomPeriod(fromValue, toValue)) return fallback;
+    return { preset: 'custom', customFrom: fromValue, customTo: toValue };
+}
+
+function readPeriodSelectionFromLocation(): PeriodSelection {
+    if (typeof window === 'undefined') return defaultPeriodSelection();
+    const params = new URLSearchParams(window.location.search);
+    return resolvePeriodSelection(params.get('preset'), params.get('from'), params.get('to'));
+}
+
+// Period changes always replaceState. Pushing them would bury the previous tab under one
+// history entry per preset click, so back/forward stays reserved for tab navigation.
+function writePeriodToLocation(selection: PeriodSelection) {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('preset', selection.preset);
+    if (selection.preset === 'custom') {
+        params.set('from', selection.customFrom);
+        params.set('to', selection.customTo);
+    } else {
+        params.delete('from');
+        params.delete('to');
+    }
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -180,15 +274,74 @@ function deltaTone(current: number, previous: number): 'up' | 'down' | 'flat' {
     return 'flat';
 }
 
-function MetricCard({ label, value, note, comparison, tone = 'flat' }: { label: string; value: number; note: string; comparison?: string; tone?: 'up' | 'down' | 'flat' }) {
+function analyticsErrorText(code: AnalyticsErrorCode): string {
+    return code === 'permission_denied'
+        ? 'Analytics access is limited to authorized clinical analytics accounts.'
+        : healthcareErrorMessage('load analytics');
+}
+
+// Localized failure notice for a single panel. Distinct from EmptyState: this means the
+// request failed, not that there are no records.
+function DataUnavailable({ code, onRetry, isRetrying }: { code: AnalyticsErrorCode; onRetry?: () => void; isRetrying?: boolean }) {
+    return (
+        <div className="doctor-analytics-inline-alert m-4" role="alert">
+            <Icon name="alert-triangle" className="h-4 w-4" />
+            <span>{analyticsErrorText(code)}</span>
+            {onRetry && code !== 'permission_denied' && (
+                <button type="button" className="clinical-filter-button" onClick={onRetry} disabled={isRetrying}>
+                    {isRetrying ? 'Retrying' : 'Retry'}
+                </button>
+            )}
+        </div>
+    );
+}
+
+// Shown when a refresh failed but the previous rows are still on screen, so retained
+// content is never mistaken for a fresh reading.
+function StaleNotice() {
+    return (
+        <p className="doctor-stale-notice" role="status">
+            Last refresh failed. Showing previously loaded data.
+        </p>
+    );
+}
+
+// Panels that read several requests fail as a unit: if any source failed, the panel
+// cannot show a truthful total, so it reports the failure instead of a partial sum.
+function combineResults<T>(...results: Array<AnalyticsResult<T[]>>): AnalyticsResult<T[]> {
+    const failed = results.find(result => result.status === 'error');
+    if (failed && failed.status === 'error') return failed;
+    const rows = results.flatMap(result => (result.status === 'ok' ? result.rows : []));
+    const stale = results.some(result => result.status === 'ok' && result.stale);
+    return stale ? { status: 'ok', rows, stale } : { status: 'ok', rows };
+}
+
+function renderResult<T>(
+    result: AnalyticsResult<T>,
+    render: (rows: T) => React.ReactNode,
+    onRetry?: () => void,
+    isRetrying?: boolean,
+): React.ReactNode {
+    if (result.status === 'error') {
+        return <DataUnavailable code={result.message} onRetry={onRetry} isRetrying={isRetrying} />;
+    }
+    return (
+        <>
+            {result.stale && <StaleNotice />}
+            {render(result.rows)}
+        </>
+    );
+}
+
+function MetricCard({ label, value, note, comparison, tone = 'flat' }: { label: string; value: number | null; note: string; comparison?: string; tone?: 'up' | 'down' | 'flat' }) {
     return (
         <div className="doctor-insight-card">
             <div className="doctor-insight-topline">
                 <div className="doctor-insight-label">{label}</div>
                 {comparison && <span className={`doctor-comparison-badge is-${tone}`}>{comparison}</span>}
             </div>
-            <div className="doctor-insight-value tabular-nums">{value.toLocaleString()}</div>
-            <div className="doctor-insight-note">{note}</div>
+            <div className="doctor-insight-value tabular-nums">{value === null ? 'Unavailable' : value.toLocaleString()}</div>
+            <div className="doctor-insight-note">{value === null ? 'This metric could not be loaded' : note}</div>
         </div>
     );
 }
@@ -216,9 +369,29 @@ function SectionPanel({ title, subtitle, children, className = '' }: { title: st
     );
 }
 
-function AnalyticsSkeleton() {
+// Mirrors the completed-vs-pending status bar: head, bar, two legend items.
+function StatusBarSkeleton() {
     return (
-        <div className="doctor-analytics-content-shell" aria-live="polite" aria-busy="true">
+        <div className="doctor-status-bar-chart" aria-hidden="true">
+            <div className="doctor-status-bar-head">
+                <div>
+                    <Skeleton className="clinical-skeleton-line w-24" />
+                    <Skeleton className="mt-2 h-6 w-16" />
+                </div>
+                <Skeleton className="h-6 w-12" />
+            </div>
+            <Skeleton className="h-2.5 w-full rounded-full" />
+            <div className="doctor-status-bar-legend">
+                <Skeleton className="clinical-skeleton-line w-full" />
+                <Skeleton className="clinical-skeleton-line w-full" />
+            </div>
+        </div>
+    );
+}
+
+function ClinicalAnalyticsSkeleton() {
+    return (
+        <>
             <section aria-label="Loading analytics summary" className="doctor-kpi-strip">
                 {[0, 1, 2, 3].map(item => (
                     <div className="doctor-insight-card" key={item} aria-hidden="true">
@@ -232,109 +405,122 @@ function AnalyticsSkeleton() {
             <section aria-label="Loading primary analytics insights" className="doctor-analytics-section">
                 <SectionHeading title="Primary Insight" subtitle="Preparing service activity and current workload." />
                 <div className="doctor-primary-grid">
-                <div className="doctor-primary-chart">
-                    <SectionPanel title="Consultation Activity" subtitle="Preparing consultation trend.">
-                        <div className="doctor-analytics-chart-skeleton" aria-hidden="true">
-                            <Skeleton className="h-full w-full" />
-                        </div>
-                    </SectionPanel>
-                </div>
-                <div className="doctor-primary-side">
-                    <SectionPanel title="Pending Work" subtitle="Preparing pending work.">
-                        <div className="doctor-pending-list">
-                            {[0, 1, 2].map(item => (
-                                <div className="doctor-analytics-summary-row" key={item} aria-hidden="true">
-                                    <div className="min-w-0 flex-1">
-                                        <Skeleton className="clinical-skeleton-line w-24" />
-                                        <Skeleton className="clinical-skeleton-line mt-2 w-32" />
-                                    </div>
-                                    <Skeleton className="h-5 w-10" />
-                                </div>
-                            ))}
-                        </div>
-                    </SectionPanel>
-                    <SectionPanel title="Current Signals" subtitle="Preparing signals.">
-                        <div className="doctor-signal-stack">
-                            {[0, 1].map(item => <Skeleton className="h-16 w-full" key={item} />)}
-                        </div>
-                    </SectionPanel>
-                </div>
-                </div>
-            </section>
-
-            <div className="doctor-operational-grid">
-                <SectionPanel title="Service Workload Distribution" subtitle="Preparing workload distribution.">
-                    <div className="doctor-chart-skeleton is-radar">
-                        <Skeleton className="doctor-skeleton-radar" />
-                        <div className="doctor-skeleton-lines">
-                            <Skeleton className="clinical-skeleton-line w-full" />
-                            <Skeleton className="clinical-skeleton-line w-10/12" />
-                        </div>
-                    </div>
-                </SectionPanel>
-                <SectionPanel title="Follow-up Completion" subtitle="Preparing follow-up status.">
-                    <div className="doctor-chart-skeleton is-radial">
-                        <Skeleton className="doctor-skeleton-semi" />
-                        <div className="doctor-skeleton-lines">
-                            <Skeleton className="clinical-skeleton-line w-full" />
-                            <Skeleton className="clinical-skeleton-line w-10/12" />
-                        </div>
-                    </div>
-                </SectionPanel>
-                <SectionPanel title="Lab Request Status" subtitle="Preparing lab status.">
-                    <div className="doctor-chart-skeleton is-stacked">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="clinical-skeleton-line w-10/12" />
-                    </div>
-                </SectionPanel>
-                <SectionPanel title="Prescription Status" subtitle="Preparing prescription status.">
-                    <div className="doctor-chart-skeleton is-donut">
-                        <Skeleton className="doctor-skeleton-donut" />
-                        <div className="doctor-skeleton-lines">
-                            <Skeleton className="clinical-skeleton-line w-full" />
-                            <Skeleton className="clinical-skeleton-line w-10/12" />
-                        </div>
-                    </div>
-                </SectionPanel>
-            </div>
-
-            <section aria-label="Loading geographic insights" className="doctor-analytics-section">
-                <SectionHeading title="Geographic Insights" subtitle="All registered active patient reach by stored barangay." />
-                <div className="doctor-geographic-command">
-                    <div className="doctor-geographic-panel doctor-geographic-ranking-panel">
-                        <Skeleton className="clinical-skeleton-line w-32" />
-                        <div className="doctor-geographic-skeleton">
-                            {[0, 1, 2, 3, 4].map(item => (
-                                <div className="doctor-barangay-skeleton-row" key={item}>
-                                    <Skeleton className="h-7 w-7 rounded-full" />
-                                    <div className="min-w-0 flex-1">
-                                        <Skeleton className="clinical-skeleton-line w-32" />
-                                        <Skeleton className="clinical-skeleton-line mt-2 w-full" />
-                                    </div>
-                                    <Skeleton className="clinical-skeleton-line w-10" />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="doctor-geographic-panel doctor-geographic-map-panel">
-                        <Skeleton className="clinical-skeleton-line w-40" />
-                        <div className="doctor-chart-skeleton is-radar">
-                            <Skeleton className="doctor-skeleton-radar" />
-                            <div className="doctor-skeleton-lines">
-                                <Skeleton className="clinical-skeleton-line w-full" />
-                                <Skeleton className="clinical-skeleton-line w-10/12" />
+                    <div className="doctor-primary-chart">
+                        <SectionPanel title="Service Trend" subtitle="Preparing consultation trend.">
+                            <div className="doctor-analytics-chart-skeleton" aria-hidden="true">
+                                <Skeleton className="h-full w-full" />
                             </div>
-                        </div>
+                        </SectionPanel>
                     </div>
-                    <div className="doctor-geographic-panel doctor-geographic-summary-panel">
-                        <Skeleton className="clinical-skeleton-line w-36" />
-                        <div className="doctor-coverage-summary">
-                            {[0, 1, 2, 3].map(item => <Skeleton className="h-16 w-full" key={item} />)}
-                        </div>
+                    <div className="doctor-primary-side">
+                        <SectionPanel title="Most Frequent Concern" subtitle="Preparing concern summary.">
+                            <div className="doctor-signal-stack">
+                                <Skeleton className="h-16 w-full" />
+                            </div>
+                        </SectionPanel>
                     </div>
                 </div>
             </section>
+
+            <section aria-label="Loading operational workload" className="doctor-analytics-section">
+                <SectionHeading title="Operational Workload" subtitle="Preparing service status mixes." />
+                <div className="doctor-operational-grid">
+                    <SectionPanel title="Follow-up Completion" subtitle="Preparing follow-up status.">
+                        <StatusBarSkeleton />
+                    </SectionPanel>
+                    <SectionPanel title="Lab Request Status" subtitle="Preparing lab status.">
+                        <StatusBarSkeleton />
+                    </SectionPanel>
+                    <SectionPanel title="Prescription Status" subtitle="Preparing prescription status.">
+                        <StatusBarSkeleton />
+                    </SectionPanel>
+                </div>
+            </section>
+
+            <section aria-label="Loading clinical insights" className="doctor-analytics-section">
+                <SectionHeading title="Clinical Insights" subtitle="Preparing recorded diagnoses and complaints." />
+                <div className="doctor-clinical-grid">
+                    {['diagnoses', 'complaints'].map(key => (
+                        <SectionPanel key={key} title={key === 'diagnoses' ? 'Top Diagnoses' : 'Top Complaints'} subtitle="Preparing ranking.">
+                            <div className="doctor-ranking-list" aria-hidden="true">
+                                {[0, 1, 2, 3, 4].map(row => (
+                                    <div className="doctor-ranking-row" key={row}>
+                                        <Skeleton className="h-7 w-7 rounded-full" />
+                                        <div className="min-w-0 flex-1">
+                                            <Skeleton className="clinical-skeleton-line w-32" />
+                                            <Skeleton className="clinical-skeleton-line mt-2 w-full" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </SectionPanel>
+                    ))}
+                </div>
+            </section>
+
+            <section aria-label="Loading detailed records" className="doctor-analytics-section">
+                <SectionHeading title="Detailed Records" subtitle="Preparing aggregate tables." />
+                <SectionPanel title="Details" subtitle="Preparing supporting tables.">
+                    <div className="doctor-analytics-tabs" aria-hidden="true">
+                        {[0, 1, 2].map(item => <Skeleton className="h-8 w-32" key={item} />)}
+                    </div>
+                    <div className="doctor-detail-panel" aria-hidden="true">
+                        {[0, 1, 2, 3, 4].map(row => (
+                            <Skeleton className="clinical-skeleton-line mt-3 w-full" key={row} />
+                        ))}
+                    </div>
+                </SectionPanel>
+            </section>
+        </>
+    );
+}
+
+function GeographicAnalyticsSkeleton() {
+    return (
+        <section aria-label="Loading geographic insights" className="doctor-analytics-section">
+            <SectionHeading title="Geographic Insights" subtitle="Preparing barangay distribution." />
+            <div className="doctor-geographic-command">
+                <div className="doctor-geographic-panel doctor-geographic-ranking-panel">
+                    <Skeleton className="clinical-skeleton-line w-32" />
+                    <div className="doctor-geographic-skeleton">
+                        {[0, 1, 2, 3, 4].map(item => (
+                            <div className="doctor-barangay-skeleton-row" key={item}>
+                                <Skeleton className="h-7 w-7 rounded-full" />
+                                <div className="min-w-0 flex-1">
+                                    <Skeleton className="clinical-skeleton-line w-32" />
+                                    <Skeleton className="clinical-skeleton-line mt-2 w-full" />
+                                </div>
+                                <Skeleton className="clinical-skeleton-line w-10" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="doctor-geographic-panel doctor-geographic-map-panel">
+                    <Skeleton className="clinical-skeleton-line w-40" />
+                    <div className="doctor-map-metric-selector" aria-hidden="true">
+                        {[0, 1, 2, 3].map(item => <Skeleton className="h-7 w-24" key={item} />)}
+                    </div>
+                    <div className="doctor-map-skeleton-stage" aria-hidden="true">
+                        <Skeleton className="h-full w-full" />
+                    </div>
+                    <Skeleton className="doctor-map-skeleton-legend" />
+                </div>
+                <div className="doctor-geographic-panel doctor-geographic-summary-panel">
+                    <Skeleton className="clinical-skeleton-line w-36" />
+                    <Skeleton className="mt-3 h-20 w-full" />
+                    <div className="doctor-coverage-summary">
+                        {[0, 1, 2, 3].map(item => <Skeleton className="h-16 w-full" key={item} />)}
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function AnalyticsSkeleton({ view }: { view: AnalyticsView }) {
+    return (
+        <div className="doctor-analytics-content-shell" aria-live="polite" aria-busy="true">
+            {view === 'geographic' ? <GeographicAnalyticsSkeleton /> : <ClinicalAnalyticsSkeleton />}
         </div>
     );
 }
@@ -364,14 +550,6 @@ function safePercent(value: number, total: number): number {
     return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
-function polarPoint(cx: number, cy: number, radius: number, index: number, total: number) {
-    const angle = -Math.PI / 2 + (index / total) * Math.PI * 2;
-    return {
-        x: cx + Math.cos(angle) * radius,
-        y: cy + Math.sin(angle) * radius,
-    };
-}
-
 function chartPoint(index: number, value: number, count: number, axisMax: number) {
     const width = 100;
     const height = 100;
@@ -399,10 +577,10 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
     const labelStride = rows.length > 12 ? Math.ceil(rows.length / 6) : rows.length > 7 ? 2 : 1;
 
     return (
-        <div className="doctor-line-chart" role="img" aria-label="Current and previous consultation trend">
+        <div className="doctor-line-chart" role="img" aria-label="Consultations per bucket, current period compared with the same bucket in the previous period">
             <div className="doctor-line-legend">
                 <span><i className="is-current" />Current period</span>
-                <span><i className="is-previous" />Previous equivalent</span>
+                <span><i className="is-previous" />Previous period, same bucket</span>
             </div>
             <div className="doctor-line-frame">
                 <div className="doctor-line-y-axis" aria-hidden="true">
@@ -425,7 +603,10 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
                                     key={`${row.bucket_start ?? 'period'}-${index}`}
                                     className="doctor-line-point"
                                     style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                                    title={`${formatBucketDate(row.bucket_start, bucket)}: ${current.toLocaleString()} current, ${previous.toLocaleString()} previous`}
+                                    tabIndex={0}
+                                    role="img"
+                                    data-value={`${formatBucketDate(row.bucket_start, bucket)}: ${current.toLocaleString()} current, ${previous.toLocaleString()} previous period`}
+                                    aria-label={`${formatBucketDate(row.bucket_start, bucket)}: ${current.toLocaleString()} current, ${previous.toLocaleString()} previous period`}
                                 />
                             );
                         })}
@@ -438,62 +619,6 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
                         ))}
                     </div>
                 </div>
-            </div>
-        </div>
-    );
-}
-
-function WorkloadRadarChart({ counts }: { counts: Array<{ label: string; value: number }> }) {
-    const total = counts.reduce((sum, item) => sum + item.value, 0);
-    if (total === 0) {
-        return <EmptyState title="No workload distribution" description="No current workload counts were returned for this period." className="m-4" />;
-    }
-
-    const maxValue = Math.max(...counts.map(item => item.value), 1);
-    const cx = 80;
-    const cy = 78;
-    const radius = 52;
-    const levels = [0.25, 0.5, 0.75, 1];
-    const shapePoints = counts.map((item, index) => {
-        const point = polarPoint(cx, cy, radius * (item.value / maxValue), index, counts.length);
-        return `${point.x},${point.y}`;
-    }).join(' ');
-
-    return (
-        <div className="doctor-radar-chart">
-            <svg viewBox="0 0 160 150" className="doctor-radar-svg" role="img" aria-label="Current workload distribution">
-                {levels.map(level => (
-                    <polygon
-                        key={level}
-                        className="doctor-radar-ring"
-                        points={counts.map((_, index) => {
-                            const point = polarPoint(cx, cy, radius * level, index, counts.length);
-                            return `${point.x},${point.y}`;
-                        }).join(' ')}
-                    />
-                ))}
-                {counts.map((item, index) => {
-                    const outer = polarPoint(cx, cy, radius, index, counts.length);
-                    const label = polarPoint(cx, cy, radius + 18, index, counts.length);
-                    return (
-                        <g key={item.label}>
-                            <line className="doctor-radar-axis" x1={cx} y1={cy} x2={outer.x} y2={outer.y} />
-                            <text className="doctor-radar-label" x={label.x} y={label.y} textAnchor={label.x < cx - 8 ? 'end' : label.x > cx + 8 ? 'start' : 'middle'}>
-                                {item.label}
-                            </text>
-                        </g>
-                    );
-                })}
-                <polygon className="doctor-radar-shape" points={shapePoints} />
-                {counts.map((item, index) => {
-                    const point = polarPoint(cx, cy, radius * (item.value / maxValue), index, counts.length);
-                    return <circle key={item.label} className="doctor-radar-dot" cx={point.x} cy={point.y} r="3"><title>{`${item.label}: ${item.value.toLocaleString()}`}</title></circle>;
-                })}
-            </svg>
-            <div className="doctor-radar-legend">
-                {counts.map(item => (
-                    <span key={item.label}>{item.label}<strong className="tabular-nums">{item.value.toLocaleString()}</strong></span>
-                ))}
             </div>
         </div>
     );
@@ -519,7 +644,7 @@ function RankingList({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle: s
                                 <strong className="doctor-ranking-value tabular-nums">{value.toLocaleString()}</strong>
                             </div>
                             <div className="doctor-ranking-track" aria-hidden="true">
-                                <span style={{ width: `${value ? Math.min(88, Math.max((value / maxValue) * 82, 10)) : 0}%` }} />
+                                <span className={value > 0 ? 'is-nonzero' : ''} style={{ width: `${safePercent(value, maxValue)}%` }} />
                             </div>
                         </div>
                     </li>
@@ -685,6 +810,9 @@ function MalvarBarangayMap({
     metricTotal,
     metricLabel,
     valueLabel,
+    scopeLabel,
+    emptyMessage,
+    hasValues,
     selectedBarangay,
     onSelectBarangay,
 }: {
@@ -693,6 +821,9 @@ function MalvarBarangayMap({
     metricTotal: number;
     metricLabel: string;
     valueLabel: string;
+    scopeLabel: string;
+    emptyMessage: string;
+    hasValues: boolean;
     selectedBarangay: string | null;
     onSelectBarangay: (barangay: string) => void;
 }) {
@@ -740,7 +871,7 @@ function MalvarBarangayMap({
                     viewBox={`0 0 ${MALVAR_MAP_VIEWBOX.width} ${MALVAR_MAP_VIEWBOX.height}`}
                     className="doctor-malvar-map"
                     role="img"
-                    aria-label={`Interactive Malvar barangay ${metricLabel.toLowerCase()} heatmap`}
+                    aria-label={`Interactive Malvar barangay ${metricLabel.toLowerCase()} heatmap, ${scopeLabel.toLowerCase()}`}
                 >
                     {boundaries.map((feature, index) => {
                         const barangay = feature.properties.adm4_en;
@@ -759,7 +890,7 @@ function MalvarBarangayMap({
                                 tabIndex={0}
                                 className={`doctor-map-barangay ${mapFillClass(count, maxCount)} ${isSelected ? 'is-selected' : ''}`}
                                 style={mapStyle}
-                                aria-label={`${barangay}: ${count.toLocaleString()} ${valueLabel}, ${percent}% of ${metricLabel.toLowerCase()}`}
+                                aria-label={`${barangay}: ${count.toLocaleString()} ${valueLabel}, ${percent}% of ${metricLabel.toLowerCase()}, ${scopeLabel.toLowerCase()}`}
                                 onPointerEnter={(event) => {
                                     setHoveredBarangay(current => current === barangay ? current : barangay);
                                     updateTooltipPosition(event);
@@ -786,10 +917,10 @@ function MalvarBarangayMap({
                     <div className={`doctor-map-tooltip ${tooltipPosition ? 'is-floating' : ''}`} style={tooltipStyle} role="status" aria-live="polite">
                         <span>{activeBarangay}</span>
                         <strong className="tabular-nums">{activeCount.toLocaleString()}</strong>
-                        <small className="tabular-nums">{activePercent}% of {metricLabel.toLowerCase()}</small>
+                        <small className="tabular-nums">{activePercent}% of {metricLabel.toLowerCase()} &middot; {scopeLabel}</small>
                     </div>
                 )}
-                <div className="doctor-map-legend" aria-label="Map color legend">
+                <div className="doctor-map-legend" aria-label={`Map color legend for ${metricLabel.toLowerCase()}, ${scopeLabel.toLowerCase()}`}>
                     <span>Low</span>
                     <i className="is-empty" />
                     <i className="is-low" />
@@ -797,7 +928,11 @@ function MalvarBarangayMap({
                     <i className="is-high" />
                     <i className="is-highest" />
                     <span>High</span>
+                    <span className="doctor-map-legend-scope">{scopeLabel}</span>
                 </div>
+                {!hasValues && (
+                    <p className="doctor-map-empty-note" role="status">{emptyMessage}</p>
+                )}
             </div>
         </div>
     );
@@ -962,15 +1097,15 @@ function ClinicalSignalList({ title, rows, maxValue, suppressedCount }: { title:
                 })
             )}
             {suppressedCount > 0 && (
-                <small className="doctor-geo-suppression-note">{suppressedCount.toLocaleString()} low-count categor{suppressedCount === 1 ? 'y' : 'ies'} suppressed.</small>
+                <small className="doctor-geo-suppression-note">{suppressedCount.toLocaleString()} low-count categor{suppressedCount === 1 ? 'y' : 'ies'} hidden to protect patient privacy.</small>
             )}
         </div>
     );
 }
 
 function GeographicInsightsSection({
-    rows,
-    heatmapRows,
+    distributionResult,
+    heatmapResult,
     selectedHeatmapMetric,
     onSelectHeatmapMetric,
     drilldownRows,
@@ -978,9 +1113,13 @@ function GeographicInsightsSection({
     drilldownError,
     selectedBarangay,
     onSelectBarangay,
+    onRetry,
+    isRetrying,
 }: {
-    rows: AnalyticsRow[];
-    heatmapRows: BarangayHeatmapRow[];
+    distributionResult: AnalyticsResult<AnalyticsRow[]>;
+    heatmapResult: AnalyticsResult<BarangayHeatmapRow[]>;
+    onRetry: () => void;
+    isRetrying: boolean;
     selectedHeatmapMetric: BarangayHeatmapMetric;
     onSelectHeatmapMetric: (metric: BarangayHeatmapMetric) => void;
     drilldownRows: AnalyticsRow[];
@@ -990,6 +1129,11 @@ function GeographicInsightsSection({
     onSelectBarangay: (barangay: string) => void;
 }) {
     const selectedMetric = BARANGAY_HEATMAP_METRICS.find(metric => metric.key === selectedHeatmapMetric) ?? BARANGAY_HEATMAP_METRICS[0];
+    // Each metric names the one source it reads, so a failure in the other source does
+    // not suppress a metric that loaded fine.
+    const activeSourceResult = selectedMetric.scope === 'all-time' ? distributionResult : heatmapResult;
+    const rows = distributionResult.status === 'ok' ? distributionResult.rows : [];
+    const heatmapRows = heatmapResult.status === 'ok' ? heatmapResult.rows : [];
     const coverageDistribution = rows
         .filter(row => row.dimension_key && row.dimension_key !== 'Unspecified' && row.dimension_key !== 'Outside Malvar')
         .map(row => ({ label: titleCase(row.dimension_key), value: row.current_count ?? 0 }))
@@ -998,7 +1142,10 @@ function GeographicInsightsSection({
         .filter(row => row.barangay)
         .map(row => ({ label: titleCase(row.barangay), value: row[selectedMetric.field] ?? 0 }))
         .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
-    const distribution = metricDistribution.length > 0 ? metricDistribution : coverageDistribution;
+    // Each metric reads from exactly one source. An empty period metric must never fall
+    // back to the all-time distribution: that silently changes what the ranking means.
+    const distribution = selectedMetric.scope === 'all-time' ? coverageDistribution : metricDistribution;
+    const hasMetricValues = distribution.some(row => row.value > 0);
     const topRows = distribution.slice(0, 8);
     const metricTotal = distribution.reduce((sum, row) => sum + row.value, 0);
     const recognizedPatients = coverageDistribution.reduce((sum, row) => sum + row.value, 0);
@@ -1024,19 +1171,26 @@ function GeographicInsightsSection({
 
     return (
         <section aria-label="Geographic insights" className="doctor-analytics-section">
-            <SectionHeading title="Geographic Insights" subtitle="All registered active patient reach by stored barangay." />
+            <SectionHeading title="Geographic Insights" subtitle={selectedMetric.scopeDescription} />
             <div className="doctor-geographic-command">
                 <div className="doctor-geographic-panel doctor-geographic-ranking-panel">
                     <div className="doctor-geographic-panel-heading">
                         <div>
                             <h3>{selectedMetric.label} by Barangay</h3>
-                            <p>Selected metric ranking</p>
+                            <p>{selectedMetric.scopeLabel} ranking</p>
                         </div>
                     </div>
-                    {topRows.length === 0 ? (
-                        <EmptyState title="No barangay heatmap data" description="No barangay metric rows were returned for this period." className="m-4" />
+                    {activeSourceResult.status === 'error' ? (
+                        <DataUnavailable code={activeSourceResult.message} onRetry={onRetry} isRetrying={isRetrying} />
+                    ) : !hasMetricValues ? (
+                        selectedMetric.scope === 'period' ? (
+                            <EmptyState title="No activity in this period" description={EMPTY_PERIOD_METRIC_MESSAGE} className="m-4" />
+                        ) : (
+                            <EmptyState title="No barangay distribution" description="No all-time active patient distribution was returned." className="m-4" />
+                        )
                     ) : (
                         <div className="doctor-barangay-chart">
+                            {activeSourceResult.status === 'ok' && activeSourceResult.stale && <StaleNotice />}
                             <ol className="doctor-barangay-list">
                                 {topRows.map((row, index) => {
                                     const percent = safePercent(row.value, metricTotal);
@@ -1056,7 +1210,7 @@ function GeographicInsightsSection({
                                                         <strong className="tabular-nums">{row.value.toLocaleString()}</strong>
                                                     </span>
                                                     <span className="doctor-barangay-track" aria-hidden="true">
-                                                        <span style={{ width: `${row.value ? Math.max((row.value / maxValue) * 100, 6) : 0}%` }} />
+                                                        <span className={row.value > 0 ? 'is-nonzero' : ''} style={{ width: `${safePercent(row.value, maxValue)}%` }} />
                                                     </span>
                                                 </span>
                                                 <span className="doctor-barangay-percent tabular-nums">{percent}%</span>
@@ -1073,7 +1227,7 @@ function GeographicInsightsSection({
                     <div className="doctor-geographic-panel-heading">
                         <div>
                             <h3>Malvar Barangay Map</h3>
-                            <p>Selected metric distribution across Malvar barangays</p>
+                            <p>{selectedMetric.label} across Malvar barangays &middot; {selectedMetric.scopeLabel}</p>
                         </div>
                     </div>
                     <div className="doctor-map-placeholder">
@@ -1096,6 +1250,9 @@ function GeographicInsightsSection({
                             metricTotal={metricTotal}
                             metricLabel={selectedMetric.label}
                             valueLabel={selectedMetric.valueLabel}
+                            scopeLabel={selectedMetric.scopeLabel}
+                            emptyMessage={selectedMetric.scope === 'period' ? EMPTY_PERIOD_METRIC_MESSAGE : 'No all-time distribution available.'}
+                            hasValues={hasMetricValues}
                             selectedBarangay={selectedBarangay}
                             onSelectBarangay={onSelectBarangay}
                         />
@@ -1106,17 +1263,23 @@ function GeographicInsightsSection({
                     <div className="doctor-geographic-panel-heading">
                         <div>
                             <h3>Geographic Summary</h3>
-                            <p>Coverage and selected barangay</p>
+                            <p>All-time coverage and selected barangay</p>
                         </div>
                     </div>
                     {selected && (
                         <div className="doctor-barangay-selection" aria-live="polite">
-                            <span>Selected barangay</span>
+                            <span>Selected barangay &middot; {selectedMetric.scopeLabel}</span>
                             <strong>{selected.label}</strong>
-                            <div>
-                                <span><b className="tabular-nums">{selected.value.toLocaleString()}</b> {selectedMetric.valueLabel}</span>
-                                <span><b className="tabular-nums">{safePercent(selected.value, metricTotal)}%</b> of {selectedMetric.label.toLowerCase()}</span>
-                            </div>
+                            {hasMetricValues ? (
+                                <div>
+                                    <span><b className="tabular-nums">{selected.value.toLocaleString()}</b> {selectedMetric.valueLabel}</span>
+                                    <span><b className="tabular-nums">{safePercent(selected.value, metricTotal)}%</b> of {selectedMetric.label.toLowerCase()}</span>
+                                </div>
+                            ) : (
+                                <div>
+                                    <span>{selectedMetric.scope === 'period' ? EMPTY_PERIOD_METRIC_MESSAGE : 'No all-time distribution available.'}</span>
+                                </div>
+                            )}
                         </div>
                     )}
                     <div className="doctor-coverage-summary">
@@ -1130,12 +1293,12 @@ function GeographicInsightsSection({
                             <div className="doctor-coverage-rate-copy">
                                 <span>Mapped Coverage Rate</span>
                                 <strong className="tabular-nums">{recognizedPatients.toLocaleString()} / {totalActivePatients.toLocaleString()}</strong>
-                                <small>recognized barangay patients of total active registered patients</small>
+                                <small>recognized barangay patients of total active registered patients (all-time)</small>
                             </div>
                         </div>
                         <div className="doctor-coverage-metric-grid">
                             <div className="doctor-coverage-metric">
-                                <span>Barangays Represented</span>
+                                <span>Barangays Represented (all-time)</span>
                                 <strong className="tabular-nums">{coverageDistribution.filter(row => row.value > 0).length.toLocaleString()}</strong>
                             </div>
                             <div className="doctor-coverage-metric">
@@ -1194,34 +1357,52 @@ function summarizeWorkloadStatus(rows: AnalyticsRow[], variant: WorkloadChartVar
     return { visibleRows, total, completed, pending, other, completedPercent, pendingPercent };
 }
 
-function PrescriptionStatusChart({ pending, dispensed }: { pending: number; dispensed: number }) {
-    const total = pending + dispensed;
-    if (total === 0) {
-        return <EmptyState title="No prescription status" description="No prescription status counts were returned for this period." className="m-4" />;
-    }
-
-    const dispensedPercent = safePercent(dispensed, total);
-    const pendingPercent = safePercent(pending, total);
-    const donutStyle = {
-        '--doctor-donut-primary': `${dispensedPercent}%`,
-        '--doctor-donut-secondary': `${dispensedPercent + pendingPercent}%`,
-    } as React.CSSProperties;
-
+// One encoding for every completed-vs-pending status mix. Segment widths are the exact
+// percentages, with no minimum-width padding, so the bar cannot overstate a small share.
+function ServiceStatusBar({
+    totalLabel,
+    total,
+    completedLabel,
+    completed,
+    completedPercent,
+    pending,
+    pendingPercent,
+}: {
+    totalLabel: string;
+    total: number;
+    completedLabel: string;
+    completed: number;
+    completedPercent: number;
+    pending: number;
+    pendingPercent: number;
+}) {
     return (
-        <div className="doctor-prescription-chart">
-            <div className="doctor-donut-chart is-prescription" style={donutStyle} role="img" aria-label={`${total.toLocaleString()} prescriptions, ${dispensed.toLocaleString()} dispensed and ${pending.toLocaleString()} pending`}>
+        <div className="doctor-status-bar-chart">
+            <div className="doctor-status-bar-head">
                 <div>
+                    <span>{totalLabel}</span>
                     <strong className="tabular-nums">{total.toLocaleString()}</strong>
-                    <span>Total</span>
+                </div>
+                <div className="doctor-status-bar-key">
+                    <span>{completedLabel}</span>
+                    <strong className="tabular-nums">{completedPercent}%</strong>
                 </div>
             </div>
-            <div className="doctor-chart-legend">
-                <div className="doctor-status-chip-row is-completed">
-                    <span>Dispensed</span>
-                    <strong className="tabular-nums">{dispensed.toLocaleString()}</strong>
-                    <small className="tabular-nums">{dispensedPercent}%</small>
+            <div
+                className="doctor-status-bar"
+                role="img"
+                aria-label={`${total.toLocaleString()} total, ${completed.toLocaleString()} ${completedLabel.toLowerCase()} (${completedPercent}%), ${pending.toLocaleString()} pending (${pendingPercent}%)`}
+            >
+                <span className="is-completed" style={{ width: `${completedPercent}%` }} />
+                <span className="is-pending" style={{ width: `${pendingPercent}%` }} />
+            </div>
+            <div className="doctor-status-bar-legend">
+                <div className="doctor-status-bar-item is-completed">
+                    <span>{completedLabel}</span>
+                    <strong className="tabular-nums">{completed.toLocaleString()}</strong>
+                    <small className="tabular-nums">{completedPercent}%</small>
                 </div>
-                <div className="doctor-status-chip-row is-pending">
+                <div className="doctor-status-bar-item is-pending">
                     <span>Pending</span>
                     <strong className="tabular-nums">{pending.toLocaleString()}</strong>
                     <small className="tabular-nums">{pendingPercent}%</small>
@@ -1231,28 +1412,41 @@ function PrescriptionStatusChart({ pending, dispensed }: { pending: number; disp
     );
 }
 
+function PrescriptionStatusChart({ pending, dispensed }: { pending: number; dispensed: number }) {
+    const total = pending + dispensed;
+    if (total === 0) {
+        return <EmptyState title="No prescription status" description="No prescription status counts were returned for this period." className="m-4" />;
+    }
+
+    return (
+        <ServiceStatusBar
+            totalLabel="Total Prescriptions"
+            total={total}
+            completedLabel="Dispensed"
+            completed={dispensed}
+            completedPercent={safePercent(dispensed, total)}
+            pending={pending}
+            pendingPercent={safePercent(pending, total)}
+        />
+    );
+}
+
 function FollowUpGauge({ rows }: { rows: AnalyticsRow[] }) {
-    const { visibleRows, total, completed, pending } = summarizeWorkloadStatus(rows, 'followup');
+    const { visibleRows, total, completed, pending, completedPercent, pendingPercent } = summarizeWorkloadStatus(rows, 'followup');
     if (visibleRows.length === 0 || total === 0) {
         return <EmptyState title="No follow-ups yet" description="No follow-up activity was returned for this period." className="m-4" />;
     }
 
-    const completedPercent = safePercent(completed, total);
-    const gaugeStyle = { '--doctor-gauge-angle': `${completedPercent * 1.8}deg` } as React.CSSProperties;
-
     return (
-        <div className="doctor-gauge-chart">
-            <div className="doctor-gauge-arc" style={gaugeStyle} role="img" aria-label={`${completedPercent}% follow-up completion`}>
-                <div>
-                    <strong className="tabular-nums">{completedPercent}%</strong>
-                    <span>Completed</span>
-                </div>
-            </div>
-            <div className="doctor-gauge-counts">
-                <span><strong className="tabular-nums">{completed.toLocaleString()}</strong> completed</span>
-                <span><strong className="tabular-nums">{pending.toLocaleString()}</strong> pending</span>
-            </div>
-        </div>
+        <ServiceStatusBar
+            totalLabel="Total Follow-ups"
+            total={total}
+            completedLabel="Completed"
+            completed={completed}
+            completedPercent={completedPercent}
+            pending={pending}
+            pendingPercent={pendingPercent}
+        />
     );
 }
 
@@ -1264,37 +1458,15 @@ function LabStatusChart({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
     }
 
     return (
-        <div className="doctor-lab-status-chart">
-            <div className="doctor-workload-summary doctor-lab-summary">
-                <div className="doctor-lab-total">
-                    <span>Total Requests</span>
-                    <strong className="tabular-nums">{total.toLocaleString()}</strong>
-                    <small>{pending.toLocaleString()} pending</small>
-                </div>
-                <div className="doctor-lab-key-metric">
-                    <span>Completed</span>
-                    <strong className="tabular-nums">{completedPercent}%</strong>
-                </div>
-            </div>
-            <div className="doctor-lab-segmented-bar" aria-hidden="true">
-                <span className="is-pending" style={{ width: `${Math.max(pendingPercent, pending ? 4 : 0)}%` }} />
-                <span className="is-completed" style={{ width: `${Math.max(completedPercent, completed ? 4 : 0)}%` }} />
-            </div>
-            <div className="doctor-lab-status-list">
-                {[
-                    { label: 'Pending', count: pending, percent: pendingPercent },
-                    { label: 'Completed', count: completed, percent: completedPercent },
-                ].map(row => (
-                    <div className="doctor-lab-status-row" key={row.label}>
-                        <span>{row.label}</span>
-                        <div>
-                            <strong className="tabular-nums">{row.count.toLocaleString()}</strong>
-                            <small className="tabular-nums">{row.percent}%</small>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
+        <ServiceStatusBar
+            totalLabel="Total Requests"
+            total={total}
+            completedLabel="Completed"
+            completed={completed}
+            completedPercent={completedPercent}
+            pending={pending}
+            pendingPercent={pendingPercent}
+        />
     );
 }
 
@@ -1327,20 +1499,18 @@ const STAFF_COUNT_METRICS: Record<StaffOperationsRole, Array<{ key: StaffCountMe
 
 const STAFF_TURNAROUND_METRICS: Record<
     StaffOperationsRole,
-    { key: StaffTurnaroundMetricKey; label: string; medianLabel: string; averageLabel: string } | null
+    { key: StaffTurnaroundMetricKey; label: string; medianLabel: string } | null
 > = {
     doctor: null,
     laboratory: {
         key: 'lab_turnaround_minutes',
         label: 'Lab Turnaround',
         medianLabel: 'Median turnaround from recorded request date',
-        averageLabel: 'Average turnaround from recorded request date',
     },
     pharmacist: {
         key: 'prescription_turnaround_minutes',
         label: 'Prescription Turnaround',
         medianLabel: 'Median turnaround from recorded prescription date',
-        averageLabel: 'Average turnaround from recorded prescription date',
     },
 };
 
@@ -1352,13 +1522,22 @@ const TURNAROUND_APPROXIMATION_NOTE =
 // role_total rows are grouped per bucket, so a single period-level median is still not
 // available from the RPC. Per-bucket medians must never be combined into one figure;
 // only an explicit period-level rollup row can supply it.
-const TURNAROUND_PERIOD_MEDIAN_NOTE =
-    'An exact median for the whole period is not available yet: medians are returned per bucket and cannot be validly combined. Per-bucket medians are plotted in the turnaround trend.';
-
-// Staff-scoped rows are never rendered and never counted. Every displayed figure comes
-// from role_total rows, so staff and role_total totals cannot be double-counted.
+// Staff-scoped rows are never rendered and never counted. Bucket-level figures come from
+// role_total rows and selected-period turnaround comes from period_total rows, so the
+// scopes are never mixed or double-counted.
 function roleTotalRows(rows: StaffOperationsAnalyticsRow[]): StaffOperationsAnalyticsRow[] {
     return rows.filter(row => row.aggregation_scope === 'role_total');
+}
+
+function findPeriodTotalRow(
+    rows: StaffOperationsAnalyticsRow[],
+    role: StaffOperationsRole,
+    metricKey: StaffTurnaroundMetricKey,
+): StaffOperationsAnalyticsRow | null {
+    return rows.find(row =>
+        row.aggregation_scope === 'period_total'
+        && row.role_key === role
+        && row.metric_key === metricKey) ?? null;
 }
 
 function staffRowsForMetric(
@@ -1367,6 +1546,22 @@ function staffRowsForMetric(
     metricKey: string,
 ): StaffOperationsAnalyticsRow[] {
     return rows.filter(row => row.role_key === role && row.metric_key === metricKey);
+}
+
+// Durations do not read on a count axis, where ticks land on arbitrary minute values.
+// The axis is rounded up to four steps drawn from real time intervals instead.
+const DURATION_AXIS_STEPS_MINUTES = [
+    5, 10, 15, 30,
+    60, 120, 180, 360, 720,
+    1440, 2880, 4320, 10080, 20160, 43200,
+];
+
+function durationAxisMax(maxMinutes: number): number {
+    const step = DURATION_AXIS_STEPS_MINUTES.find(candidate => candidate * 4 >= maxMinutes);
+    if (step) return step * 4;
+    // Beyond the ladder, round up to whole 30-day steps.
+    const monthly = 43200;
+    return Math.ceil(maxMinutes / (monthly * 4)) * monthly * 4;
 }
 
 function formatDurationMinutes(minutes: number): string {
@@ -1378,20 +1573,6 @@ function formatDurationMinutes(minutes: number): string {
     return `${days.toFixed(days < 10 ? 1 : 0)} days`;
 }
 
-// Averages re-aggregate exactly when weighted by the number of intervals in each bucket.
-// On role_total turnaround rows that interval count is attributed_count + unattributed_count.
-function weightedAverageMinutes(rows: StaffOperationsAnalyticsRow[]): number | null {
-    let weightedTotal = 0;
-    let weight = 0;
-    rows.forEach(row => {
-        const value = row.duration_minutes_avg;
-        const rowWeight = (row.attributed_count ?? 0) + (row.unattributed_count ?? 0);
-        if (value === null || rowWeight <= 0) return;
-        weightedTotal += value * rowWeight;
-        weight += rowWeight;
-    });
-    return weight === 0 ? null : weightedTotal / weight;
-}
 
 function sumStaffCount(rows: StaffOperationsAnalyticsRow[]): number {
     return rows.reduce((total, row) => total + (row.count_value ?? 0), 0);
@@ -1419,13 +1600,14 @@ function staffCountSeries(rows: StaffOperationsAnalyticsRow[], buckets: string[]
     return buckets.map(bucket => totals.get(bucket) ?? 0);
 }
 
-function StaffMetricTile({ label, value, note }: { label: string; value: string; note: string }) {
+function StaffMetricTile({ label, value, note, meta }: { label: string; value: string; note: string; meta?: string }) {
     return (
         <div className="doctor-insight-card">
             <div className="doctor-insight-topline">
                 <div className="doctor-insight-label">{label}</div>
             </div>
             <div className="doctor-insight-value tabular-nums">{value}</div>
+            {meta && <div className="doctor-staff-tile-meta tabular-nums">{meta}</div>}
             <div className="doctor-insight-note">{note}</div>
         </div>
     );
@@ -1438,6 +1620,7 @@ function StaffOperationsTrendChart({
     emptyTitle,
     emptyDescription,
     formatValue = (value: number) => value.toLocaleString(),
+    axisMode = 'count',
 }: {
     buckets: string[];
     bucket: AnalyticsBucket;
@@ -1445,13 +1628,14 @@ function StaffOperationsTrendChart({
     emptyTitle: string;
     emptyDescription: string;
     formatValue?: (value: number) => string;
+    axisMode?: 'count' | 'duration';
 }) {
     if (buckets.length === 0) {
         return <EmptyState title={emptyTitle} description={emptyDescription} className="m-4" />;
     }
 
     const maxValue = Math.max(...series.flatMap(item => item.values), 1);
-    const axisMax = Math.max(4, Math.ceil(maxValue / 4) * 4);
+    const axisMax = axisMode === 'duration' ? durationAxisMax(maxValue) : Math.max(4, Math.ceil(maxValue / 4) * 4);
     const ticks = [axisMax, axisMax * 0.75, axisMax * 0.5, axisMax * 0.25, 0];
     const labelStride = buckets.length > 12 ? Math.ceil(buckets.length / 6) : buckets.length > 7 ? 2 : 1;
     const plotted = series.map(item => ({
@@ -1483,7 +1667,10 @@ function StaffOperationsTrendChart({
                                 key={bucketStart}
                                 className="doctor-line-point"
                                 style={{ left: `${plotted[0].points[index].x}%`, top: `${plotted[0].points[index].y}%` }}
-                                title={`${formatBucketDate(bucketStart, bucket)}: ${plotted.map(item => `${formatValue(item.values[index])} ${item.label.toLowerCase()}`).join(', ')}`}
+                                tabIndex={0}
+                                role="img"
+                                data-value={`${formatBucketDate(bucketStart, bucket)}: ${plotted.map(item => `${formatValue(item.values[index])} ${item.label.toLowerCase()}`).join(', ')}`}
+                                aria-label={`${formatBucketDate(bucketStart, bucket)}: ${plotted.map(item => `${formatValue(item.values[index])} ${item.label.toLowerCase()}`).join(', ')}`}
                             />
                         ))}
                     </div>
@@ -1503,20 +1690,45 @@ function StaffOperationsTrendChart({
 function StaffOperationsSkeleton() {
     return (
         <div className="doctor-staff-shell" aria-live="polite" aria-busy="true">
+            <div className="doctor-staff-toolbar" aria-hidden="true">
+                <div className="clinical-filter-group">
+                    {[0, 1, 2].map(item => <Skeleton className="h-8 w-24" key={item} />)}
+                </div>
+            </div>
             <div className="doctor-staff-metrics">
                 {[0, 1, 2].map(item => (
-                    <div className="doctor-insight-card" key={item}>
+                    <div className="doctor-insight-card" key={item} aria-hidden="true">
                         <Skeleton className="clinical-skeleton-line w-28" />
-                        <Skeleton className="clinical-skeleton-line mt-3 w-16" />
+                        <Skeleton className="mt-3 h-8 w-16" />
                         <Skeleton className="clinical-skeleton-line mt-2 w-32" />
                     </div>
                 ))}
             </div>
             <SectionPanel title="Completed Activity Trend" subtitle="Preparing operational trend.">
-                <div className="doctor-chart-skeleton">
-                    <Skeleton className="h-56 w-full" />
+                <div className="doctor-analytics-chart-skeleton" aria-hidden="true">
+                    <Skeleton className="h-full w-full" />
                 </div>
             </SectionPanel>
+            <SectionPanel title="Attribution" subtitle="Preparing attribution summary.">
+                <div className="doctor-staff-attribution" aria-hidden="true">
+                    {[0, 1].map(item => (
+                        <div className="doctor-analytics-summary-row" key={item}>
+                            <div className="min-w-0 flex-1">
+                                <Skeleton className="clinical-skeleton-line w-28" />
+                                <Skeleton className="clinical-skeleton-line mt-2 w-40" />
+                            </div>
+                            <Skeleton className="h-5 w-10" />
+                        </div>
+                    ))}
+                </div>
+            </SectionPanel>
+            <section className="doctor-analytics-note" aria-hidden="true">
+                <Skeleton className="h-4 w-4 rounded-full" />
+                <div className="min-w-0 flex-1">
+                    <Skeleton className="clinical-skeleton-line w-48" />
+                    <Skeleton className="clinical-skeleton-line mt-2 w-full" />
+                </div>
+            </section>
         </div>
     );
 }
@@ -1526,14 +1738,20 @@ function StaffOperationsSection({
     rows,
     isLoading,
     error,
+    category,
+    onSelectCategory,
+    chartMetric,
+    onSelectChartMetric,
 }: {
     period: AnalyticsPeriod;
     rows: StaffOperationsAnalyticsRow[] | null;
     isLoading: boolean;
     error: string | null;
+    category: StaffOperationsRole;
+    onSelectCategory: (category: StaffOperationsRole) => void;
+    chartMetric: StaffChartMetric;
+    onSelectChartMetric: (metric: StaffChartMetric) => void;
 }) {
-    const [category, setCategory] = useState<StaffOperationsRole>('doctor');
-    const [chartMetric, setChartMetric] = useState<StaffChartMetric>('count');
 
     const countMetrics = STAFF_COUNT_METRICS[category];
     const turnaroundMetric = STAFF_TURNAROUND_METRICS[category];
@@ -1558,7 +1776,14 @@ function StaffOperationsSection({
         [categoryRows, category, turnaroundMetric],
     );
 
-    const turnaroundAverageMinutes = useMemo(() => weightedAverageMinutes(turnaroundRows), [turnaroundRows]);
+    // Exact selected-period statistics, computed by the RPC from raw workflow intervals.
+    // Never derive these from the bucket-level role_total rows.
+    const periodTurnaround = useMemo(
+        () => (turnaroundMetric ? findPeriodTotalRow(rows ?? [], category, turnaroundMetric.key) : null),
+        [rows, category, turnaroundMetric],
+    );
+    const periodMedianMinutes = periodTurnaround?.duration_minutes_median ?? null;
+    const periodAverageMinutes = periodTurnaround?.duration_minutes_avg ?? null;
 
     const countRows = useMemo(
         () => countMetrics.flatMap(metric => staffRowsForMetric(categoryRows, category, metric.key)),
@@ -1605,7 +1830,7 @@ function StaffOperationsSection({
                             type="button"
                             className={`clinical-filter-button ${category === item.key ? 'is-active' : ''}`}
                             aria-pressed={category === item.key}
-                            onClick={() => setCategory(item.key)}
+                            onClick={() => onSelectCategory(item.key)}
                         >
                             {item.label}
                         </button>
@@ -1647,10 +1872,13 @@ function StaffOperationsSection({
                         {turnaroundMetric && (
                             <StaffMetricTile
                                 label={turnaroundMetric.label}
-                                value={turnaroundAverageMinutes === null ? 'No data' : formatDurationMinutes(turnaroundAverageMinutes)}
-                                note={turnaroundAverageMinutes === null
+                                value={periodMedianMinutes === null ? 'No data' : formatDurationMinutes(periodMedianMinutes)}
+                                note={periodMedianMinutes === null
                                     ? 'No valid turnaround intervals recorded in this period'
-                                    : `${turnaroundMetric.averageLabel}. Median per bucket is plotted in the trend.`}
+                                    : turnaroundMetric.medianLabel}
+                                meta={periodMedianMinutes !== null && periodAverageMinutes !== null
+                                    ? `Average ${formatDurationMinutes(periodAverageMinutes)}`
+                                    : undefined}
                             />
                         )}
                     </div>
@@ -1667,7 +1895,7 @@ function StaffOperationsSection({
                                     type="button"
                                     className={`clinical-filter-button ${effectiveChartMetric === 'count' ? 'is-active' : ''}`}
                                     aria-pressed={effectiveChartMetric === 'count'}
-                                    onClick={() => setChartMetric('count')}
+                                    onClick={() => onSelectChartMetric('count')}
                                 >
                                     Completed count
                                 </button>
@@ -1675,7 +1903,7 @@ function StaffOperationsSection({
                                     type="button"
                                     className={`clinical-filter-button ${effectiveChartMetric === 'turnaround' ? 'is-active' : ''}`}
                                     aria-pressed={effectiveChartMetric === 'turnaround'}
-                                    onClick={() => setChartMetric('turnaround')}
+                                    onClick={() => onSelectChartMetric('turnaround')}
                                 >
                                     Turnaround
                                 </button>
@@ -1691,6 +1919,7 @@ function StaffOperationsSection({
                                     values: turnaroundRows.map(row => row.duration_minutes_median ?? 0),
                                 }]}
                                 formatValue={formatDurationMinutes}
+                                axisMode="duration"
                                 emptyTitle="No turnaround intervals"
                                 emptyDescription="No valid turnaround intervals were recorded for this category in the selected period."
                             />
@@ -1726,7 +1955,7 @@ function StaffOperationsSection({
                             <p>
                                 Attribution is derived from deduplicated audit logs and is incomplete, so unattributed activity is shown rather than hidden.
                                 {reliabilityLevels.length > 0 && ` Backend reliability for the displayed counts: ${reliabilityLevels.join(', ')}.`}
-                                {turnaroundMetric && hasTurnaroundRows && ` ${TURNAROUND_APPROXIMATION_NOTE} ${TURNAROUND_PERIOD_MEDIAN_NOTE}`}
+                                {turnaroundMetric && (hasTurnaroundRows || periodMedianMinutes !== null) && ` ${TURNAROUND_APPROXIMATION_NOTE}`}
                                 {' '}These figures describe recorded workflow activity, not individual staff performance, and are not comparable across service areas.
                             </p>
                         </div>
@@ -1792,6 +2021,106 @@ function AggregateTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
     );
 }
 
+interface DetailFilterState {
+    service: string | null;
+    status: string | null;
+}
+
+const EMPTY_DETAIL_FILTERS: DetailFilterState = { service: null, status: null };
+
+// Options come from the rows actually returned for the active period, so a filter can
+// never offer a value the backend did not produce.
+function distinctRowValues(rows: AnalyticsRow[], pick: (row: AnalyticsRow) => string | null): string[] {
+    const values = rows.map(pick).filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+}
+
+// Filters scope the Detailed Records table only. Clinical KPI cards and every chart stay
+// bound to the unfiltered fetch, so a table filter can never restate a period total.
+function FilterableAggregateTable({
+    rows,
+    emptyTitle,
+    emptyDescription,
+    filters,
+    onChangeFilters,
+}: {
+    rows: AnalyticsRow[];
+    emptyTitle: string;
+    emptyDescription: string;
+    filters: DetailFilterState;
+    onChangeFilters: (filters: DetailFilterState) => void;
+}) {
+    const serviceOptions = useMemo(() => distinctRowValues(rows, row => row.metric_key), [rows]);
+    const statusOptions = useMemo(() => distinctRowValues(rows, row => row.dimension_key), [rows]);
+
+    const filteredRows = useMemo(() => rows.filter(row =>
+        (!filters.service || row.metric_key === filters.service)
+        && (!filters.status || row.dimension_key === filters.status)), [rows, filters]);
+
+    if (rows.length === 0) {
+        return <EmptyState title={emptyTitle} description={emptyDescription} className="m-4" />;
+    }
+
+    const isFiltered = Boolean(filters.service || filters.status);
+    // A filter with a single option offers no choice, so it is not rendered.
+    const showService = serviceOptions.length > 1;
+    const showStatus = statusOptions.length > 1;
+
+    return (
+        <>
+            {(showService || showStatus) && (
+                <div className="doctor-detail-filters">
+                    {showService && (
+                        <label className="doctor-detail-filter">
+                            <span>Service</span>
+                            <select
+                                className="clinical-input min-h-9"
+                                value={filters.service ?? ''}
+                                onChange={event => onChangeFilters({ ...filters, service: event.target.value || null })}
+                            >
+                                <option value="">All services</option>
+                                {serviceOptions.map(option => (
+                                    <option key={option} value={option}>{titleCase(option)}</option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
+                    {showStatus && (
+                        <label className="doctor-detail-filter">
+                            <span>Status</span>
+                            <select
+                                className="clinical-input min-h-9"
+                                value={filters.status ?? ''}
+                                onChange={event => onChangeFilters({ ...filters, status: event.target.value || null })}
+                            >
+                                <option value="">All statuses</option>
+                                {statusOptions.map(option => (
+                                    <option key={option} value={option}>{titleCase(option)}</option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
+                    {/* Clearing is handled by the single shared Reset filters control. */}
+                    {isFiltered && (
+                        <span className="doctor-detail-filter-count tabular-nums" role="status" aria-live="polite">
+                            Showing {filteredRows.length.toLocaleString()} of {rows.length.toLocaleString()} rows
+                        </span>
+                    )}
+                </div>
+            )}
+            {filteredRows.length === 0 ? (
+                <EmptyState
+                    title="No records match these filters"
+                    description="Records exist for this period, but none match the active Service and Status selection."
+                    className="m-4"
+                />
+            ) : (
+                <AggregateTable rows={filteredRows} emptyTitle={emptyTitle} />
+            )}
+        </>
+    );
+}
+
 function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle: string }) {
     if (rows.length === 0) {
         return <EmptyState title={emptyTitle} description="No free-text aggregate rows were returned for this period." className="m-4" />;
@@ -1836,22 +2165,31 @@ function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
 
 export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: boolean; role?: AnalyticsWorkspaceRole }) {
     const [detailTab, setDetailTab] = useState<'clinical' | 'laboratory' | 'prescriptions'>('clinical');
+    const [detailFilters, setDetailFilters] = useState<DetailFilterState>(EMPTY_DETAIL_FILTERS);
     const availableViews = useMemo(() => ANALYTICS_VIEWS.filter(view => view.roles.includes(role)), [role]);
     const [activeView, setActiveView] = useState<AnalyticsView>(() => readViewFromLocation(role));
-    const [preset, setPreset] = useState<PresetKey>('month');
+    const initialPeriodSelection = useMemo(() => readPeriodSelectionFromLocation(), []);
+    const [preset, setPreset] = useState<PresetKey>(initialPeriodSelection.preset);
     const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
     const [selectedHeatmapMetric, setSelectedHeatmapMetric] = useState<BarangayHeatmapMetric>('registered');
-    const defaultCustomPeriod = useMemo(() => getPresetPeriod('month'), []);
-    const [customFrom, setCustomFrom] = useState(defaultCustomPeriod.from);
-    const [customTo, setCustomTo] = useState(isoDate(addDays(parseLocalDate(defaultCustomPeriod.toExclusive) ?? new Date(), -1)));
+    const defaultCustomPeriod = useMemo(() => getPresetPeriod(DEFAULT_PRESET), []);
+    const [customFrom, setCustomFrom] = useState(initialPeriodSelection.customFrom);
+    const [customTo, setCustomTo] = useState(initialPeriodSelection.customTo);
+    // Staff selectors live here so they survive the tab switches that unmount the section.
+    const [staffCategory, setStaffCategory] = useState<StaffOperationsRole>('doctor');
+    const [staffChartMetric, setStaffChartMetric] = useState<StaffChartMetric>('count');
     const [data, setData] = useState<DoctorAnalyticsData | null>(null);
     const [barangayDrilldown, setBarangayDrilldown] = useState<AnalyticsRow[]>([]);
     const [isBarangayDrilldownLoading, setIsBarangayDrilldownLoading] = useState(false);
     const [drilldownError, setDrilldownError] = useState<string | null>(null);
     const lastDrilldownRequestKey = useRef<string | null>(null);
+    const [drilldownRetryToken, setDrilldownRetryToken] = useState(0);
+    const defaultBarangayRef = useRef<string | null>(null);
     const [activePeriod, setActivePeriod] = useState<AnalyticsPeriod>(defaultCustomPeriod);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const clinicalRequestKeyRef = useRef<string | null>(null);
+    const [clinicalRetryToken, setClinicalRetryToken] = useState(0);
     const [staffRows, setStaffRows] = useState<StaffOperationsAnalyticsRow[] | null>(null);
     const [isStaffLoading, setIsStaffLoading] = useState(false);
     const [staffError, setStaffError] = useState<string | null>(null);
@@ -1865,12 +2203,25 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
         writeViewToLocation(resolved, 'replace');
     }, [role]);
 
-    // Browser back/forward between analytics tabs.
+    // Browser back/forward between analytics tabs. The period is re-read too so a history
+    // entry written before a period change cannot leave the URL and the UI disagreeing.
     useEffect(() => {
-        const handlePopState = () => setActiveView(readViewFromLocation(role));
+        const handlePopState = () => {
+            setActiveView(readViewFromLocation(role));
+            const selection = readPeriodSelectionFromLocation();
+            setPreset(selection.preset);
+            setCustomFrom(selection.customFrom);
+            setCustomTo(selection.customTo);
+        };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, [role]);
+
+    // Mirror the period into the URL so a refresh restores it. replaceState only: see
+    // writePeriodToLocation for why period changes must not create history entries.
+    useEffect(() => {
+        writePeriodToLocation({ preset, customFrom, customTo });
+    }, [preset, customFrom, customTo]);
 
     const selectView = (view: AnalyticsView) => {
         const resolved = resolveAnalyticsView(view, role);
@@ -1881,11 +2232,60 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
     const customPeriod = useMemo(() => getCustomPeriod(customFrom, customTo), [customFrom, customTo]);
     const period = useMemo(() => preset === 'custom' ? customPeriod : getPresetPeriod(preset), [customPeriod, preset]);
     const displayPeriod = period ?? activePeriod;
+    // Period validation is a shared-filter failure, not a data-fetch failure, so it is
+    // surfaced on every tab rather than alongside the Clinical fetch error.
+    const periodError = period ? null : 'Choose a valid custom range from 1 to 366 days.';
+
+
+    // Re-selecting the barangay that is already selected is a no-op state update, so after
+    // a failed drill-down it would never re-run the effect. A retry token makes that click
+    // an explicit retry without disturbing normal selection changes.
+    const handleSelectBarangay = (barangay: string) => {
+        if (normalizeBarangayKey(barangay) === normalizeBarangayKey(selectedBarangay)) {
+            if (drilldownError) setDrilldownRetryToken(token => token + 1);
+            return;
+        }
+        setSelectedBarangay(barangay);
+    };
     const isInitialLoading = isLoading && !data;
     const isRefreshing = isLoading && Boolean(data);
     // Staff Operations owns its own data, loading and error states, so a Clinical or
     // Geographic RPC failure must not blank it.
     const isStaffOnlyView = activeView === 'staff' && role === 'doctor';
+    // Midwives can only reach these two views, so their fetching is unchanged.
+    const needsClinicalData = activeView === 'clinical' || activeView === 'geographic';
+    // The shared period is dirty whenever it is not the default Month preset. Custom dates
+    // only matter while the custom preset is active, so they are not compared separately.
+    const isPeriodDirty = preset !== DEFAULT_PRESET;
+    const isActiveViewDirty = (() => {
+        if (activeView === 'clinical') return Boolean(detailFilters.service || detailFilters.status);
+        if (activeView === 'geographic') {
+            const barangayIsDefault = !selectedBarangay
+                || normalizeBarangayKey(selectedBarangay) === normalizeBarangayKey(defaultBarangayRef.current);
+            return selectedHeatmapMetric !== 'registered' || !barangayIsDefault;
+        }
+        return isStaffOnlyView && (staffCategory !== 'doctor' || staffChartMetric !== 'count');
+    })();
+    const canReset = isPeriodDirty || isActiveViewDirty;
+
+    // Resets the shared period plus the active tab's own state only. Filters belonging to
+    // tabs that are not visible are left alone so nothing changes out of sight.
+    const resetFilters = () => {
+        setPreset(DEFAULT_PRESET);
+        const fallback = defaultPeriodSelection();
+        setCustomFrom(fallback.customFrom);
+        setCustomTo(fallback.customTo);
+
+        if (activeView === 'clinical') {
+            setDetailFilters(EMPTY_DETAIL_FILTERS);
+        } else if (activeView === 'geographic') {
+            setSelectedHeatmapMetric('registered');
+            setSelectedBarangay(null);
+        } else if (isStaffOnlyView) {
+            setStaffCategory('doctor');
+            setStaffChartMetric('count');
+        }
+    };
 
     // Staff Operations is Doctor-only and lazy: the RPC is never called for other roles
     // or while another tab is active. Failures stay local to this tab.
@@ -1924,25 +2324,45 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
     }, [isStaffOnlyView, period]);
 
     useEffect(() => {
-        let isCurrent = true;
+        // Clinical and Geographic share one fetch; Staff Operations has its own. Skipping
+        // this while Staff is active avoids firing all Clinical RPCs for a hidden tab.
+        // The request key lives in a ref, so returning to a period that already succeeded
+        // is deduplicated and reuses the cached data instead of refetching.
+        if (!needsClinicalData) return;
 
-        async function loadAnalytics() {
-            if (!period) {
-                setError('Choose a valid custom range from 1 to 366 days.');
-                setIsLoading(false);
-                return;
-            }
-            setIsLoading(true);
-            setError(null);
+        if (!period) {
+            setIsLoading(false);
+            return;
+        }
+
+        // Stable key: the period memo produces a new object on every preset change, so
+        // object identity would refetch all analytics RPCs for an identical range.
+        const requestKey = `${period.from}|${period.toExclusive}|${period.bucket}`;
+        if (clinicalRequestKeyRef.current === requestKey) return;
+        clinicalRequestKeyRef.current = requestKey;
+
+        let isCurrent = true;
+        setIsLoading(true);
+        setError(null);
+
+        void (async () => {
             try {
                 const result = await fetchDoctorAnalytics(period);
-                if (isCurrent) {
-                    setData(result);
+                // Ignore a response whose request is no longer the newest one.
+                if (isCurrent && clinicalRequestKeyRef.current === requestKey) {
+                    setData(previous => mergeDoctorAnalytics(previous, result));
                     setActivePeriod(period);
+                    // A page-level error is reserved for a total failure; individual
+                    // request failures are reported by the affected panel.
+                    setError(result.succeededRequestCount === 0
+                        ? analyticsErrorText(result.requestErrors.consultationVolume ?? 'analytics_unavailable')
+                        : null);
                 }
             } catch (err) {
                 logError('Failed to load clinical analytics', err);
-                if (isCurrent) {
+                if (isCurrent && clinicalRequestKeyRef.current === requestKey) {
+                    // Clear the key so the same range can be retried.
+                    clinicalRequestKeyRef.current = null;
                     setError(err instanceof Error && err.message === 'permission_denied'
                         ? 'Analytics access is limited to authorized clinical analytics accounts.'
                         : healthcareErrorMessage('load analytics'));
@@ -1950,29 +2370,40 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
             } finally {
                 if (isCurrent) setIsLoading(false);
             }
-        }
-
-        void loadAnalytics();
+        })();
 
         return () => {
             isCurrent = false;
         };
-    }, [period]);
+    }, [needsClinicalData, period, clinicalRetryToken]);
 
     useEffect(() => {
         if (!data || selectedBarangay) return;
-        const firstBarangay = data.barangayDistribution
+        if (data.barangayDistribution.status !== 'ok') return;
+        const firstBarangay = data.barangayDistribution.rows
             .filter(row => row.dimension_key && row.dimension_key !== 'Unspecified' && row.dimension_key !== 'Outside Malvar' && (row.current_count ?? 0) > 0)
             .sort((a, b) => (b.current_count ?? 0) - (a.current_count ?? 0) || titleCase(a.dimension_key).localeCompare(titleCase(b.dimension_key)))[0];
         if (firstBarangay?.dimension_key) {
-            setSelectedBarangay(titleCase(firstBarangay.dimension_key));
+            const defaultBarangay = titleCase(firstBarangay.dimension_key);
+            // Remembered so the Reset control can tell an auto-selected default from a
+            // barangay the user actually picked.
+            defaultBarangayRef.current = defaultBarangay;
+            setSelectedBarangay(defaultBarangay);
         }
     }, [data, selectedBarangay]);
 
     useEffect(() => {
+        // The drill-down only backs the Geographic tab, so it is not requested while
+        // another tab is active. Returning to Geographic with the same barangay and
+        // period is deduplicated against the stored key and reuses the retained rows.
+        if (activeView !== 'geographic') return;
         if (!selectedBarangay || !displayPeriod) return;
+        // Captured after the guard so the request uses the values this effect run checked,
+        // rather than relying on narrowing surviving into the async closure.
+        const barangay = selectedBarangay;
+        const period = displayPeriod;
         let isCurrent = true;
-        const requestKey = `${normalizeBarangayKey(selectedBarangay)}|${displayPeriod.from}|${displayPeriod.toExclusive}`;
+        const requestKey = `${normalizeBarangayKey(barangay)}|${period.from}|${period.toExclusive}`;
         if (lastDrilldownRequestKey.current === requestKey) return;
         lastDrilldownRequestKey.current = requestKey;
 
@@ -1980,11 +2411,15 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
             setIsBarangayDrilldownLoading(true);
             setDrilldownError(null);
             try {
-                const result = await fetchBarangayDrilldown(selectedBarangay, displayPeriod);
+                const result = await fetchBarangayDrilldown(barangay, period);
                 if (isCurrent) setBarangayDrilldown(result);
             } catch (err) {
                 logError('Failed to load barangay drill-down analytics', err);
                 if (isCurrent) {
+                    // Clear the key so re-selecting the same barangay and period retries
+                    // instead of being deduplicated against the failed request. Previous
+                    // drill-down rows are kept so the panel does not blank on failure.
+                    if (lastDrilldownRequestKey.current === requestKey) lastDrilldownRequestKey.current = null;
                     setDrilldownError(err instanceof Error && err.message === 'permission_denied'
                         ? 'Barangay drill-down is limited to authorized clinical analytics accounts.'
                         : 'Unable to load barangay drill-down. Please try again.');
@@ -1999,52 +2434,79 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
         return () => {
             isCurrent = false;
         };
-    }, [displayPeriod, selectedBarangay]);
+    }, [activeView, displayPeriod, selectedBarangay, drilldownRetryToken]);
 
     const overview = useMemo(() => {
         if (!data) return null;
+        // A metric whose source request failed stays null. It is never summed to zero,
+        // so the KPI card reports "Unavailable" instead of an invented figure.
+        const pendingValue = (result: AnalyticsResult<AnalyticsRow[]>) => result.status === 'ok'
+            ? sumCurrent(result.rows, row => row.dimension_key === 'pending')
+            : null;
         const pendingItems = [
-            { label: 'Follow-ups', value: sumCurrent(data.followUpCurrentWorkload, row => row.dimension_key === 'pending'), note: 'Scheduled care' },
-            { label: 'Laboratory', value: sumCurrent(data.labCurrentWorkload, row => row.dimension_key === 'pending'), note: 'Requests pending' },
-            { label: 'Prescriptions', value: sumCurrent(data.prescriptionCurrentWorkload, row => row.dimension_key === 'pending'), note: 'Awaiting completion' },
+            { label: 'Follow-ups', value: pendingValue(data.followUpCurrentWorkload) },
+            { label: 'Laboratory', value: pendingValue(data.labCurrentWorkload) },
+            { label: 'Prescriptions', value: pendingValue(data.prescriptionCurrentWorkload) },
         ];
-        const consultationCurrent = sumCurrent(data.consultationVolume);
-        const consultationPrevious = sumPrevious(data.consultationVolume);
-        const topConcern = [...data.diagnoses, ...data.complaints]
-            .sort((a, b) => (b.current_count ?? 0) - (a.current_count ?? 0))[0] ?? null;
-        const attentionArea = pendingItems.reduce((current, item) => item.value > current.value ? item : current, pendingItems[0]);
+        const consultationCurrent = data.consultationVolume.status === 'ok' ? sumCurrent(data.consultationVolume.rows) : null;
+        const consultationPrevious = data.consultationVolume.status === 'ok' ? sumPrevious(data.consultationVolume.rows) : null;
+        const concernResult = combineResults(data.diagnoses, data.complaints);
+        const topConcern = concernResult.status === 'ok'
+            ? [...concernResult.rows].sort((a, b) => (b.current_count ?? 0) - (a.current_count ?? 0))[0] ?? null
+            : null;
+        // Only metrics that actually loaded can compete for "largest backlog".
+        const availablePending = pendingItems.filter((item): item is { label: string; value: number } => item.value !== null);
+        const attentionArea = availablePending.length > 0
+            ? availablePending.reduce((current, item) => item.value > current.value ? item : current)
+            : null;
 
         return {
             consultations: consultationCurrent,
-            consultationPrevious,
-            consultationDelta: formatDelta(consultationCurrent, consultationPrevious),
-            consultationTone: deltaTone(consultationCurrent, consultationPrevious),
-            pendingItems,
-            totalPending: pendingItems.reduce((sum, item) => sum + item.value, 0),
+            consultationDelta: consultationCurrent !== null && consultationPrevious !== null
+                ? formatDelta(consultationCurrent, consultationPrevious)
+                : undefined,
+            consultationTone: consultationCurrent !== null && consultationPrevious !== null
+                ? deltaTone(consultationCurrent, consultationPrevious)
+                : 'flat' as const,
             followUpsPending: pendingItems[0].value,
             labPending: pendingItems[1].value,
             prescriptionsPending: pendingItems[2].value,
+            concernResult,
             topConcernLabel: titleCase(topConcern?.dimension_key ?? null),
             topConcernCount: topConcern?.current_count ?? 0,
             attentionArea,
         };
     }, [data]);
 
-    const workloadCounts = useMemo(() => {
-        if (!data) return [];
-        return [
-            { label: 'Consultations', value: sumCurrent(data.consultationVolume) },
-            { label: 'Follow-ups', value: sumCurrent(data.followUpActivity) },
-            { label: 'Laboratory', value: sumCurrent(data.labCurrentWorkload) },
-            { label: 'Prescriptions', value: sumCurrent(data.prescriptionCurrentWorkload) },
-        ];
-    }, [data]);
+    // Retry reuses the existing batch fetch: it clears the request key so the current
+    // period is no longer deduplicated, then bumps a token to re-run the effect. Ignored
+    // while a load is already in flight, so repeated clicks cannot stack requests.
+    const retryClinicalAnalytics = () => {
+        if (isLoading) return;
+        clinicalRequestKeyRef.current = null;
+        setClinicalRetryToken(token => token + 1);
+    };
+
+    // Binds the shared retry affordance to every section-level result.
+    const renderSection = <T,>(result: AnalyticsResult<T>, render: (rows: T) => React.ReactNode): React.ReactNode =>
+        renderResult(result, render, retryClinicalAnalytics, isLoading);
+
+    // The largest backlog is called out on its own KPI card instead of repeating the same
+    // figure in a separate signal card.
+    const pendingNote = (area: string) => overview && overview.attentionArea && overview.attentionArea.label === area && overview.attentionArea.value > 0
+        ? 'Largest pending backlog'
+        : 'Current active workload';
 
     const prescriptionStatus = useMemo(() => {
-        if (!data) return { pending: 0, dispensed: 0 };
+        if (!data) return null;
+        const combined = combineResults(data.prescriptionCurrentWorkload, data.prescriptionDispensed);
+        if (combined.status === 'error') return combined;
         return {
-            pending: sumCurrent(data.prescriptionCurrentWorkload, row => row.dimension_key === 'pending'),
-            dispensed: sumCurrent(data.prescriptionDispensed),
+            status: 'ok' as const,
+            pending: data.prescriptionCurrentWorkload.status === 'ok'
+                ? sumCurrent(data.prescriptionCurrentWorkload.rows, row => row.dimension_key === 'pending')
+                : 0,
+            dispensed: data.prescriptionDispensed.status === 'ok' ? sumCurrent(data.prescriptionDispensed.rows) : 0,
         };
     }, [data]);
 
@@ -2085,6 +2547,11 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                             Custom
                         </button>
                     </div>
+                    {canReset && (
+                        <button type="button" className="clinical-filter-button" onClick={resetFilters}>
+                            Reset filters
+                        </button>
+                    )}
                     <div className={`doctor-analytics-updating ${isRefreshing ? 'is-visible' : ''}`} role="status" aria-live="polite">
                         <span className="doctor-analytics-spinner" aria-hidden="true" />
                         <span>Updating</span>
@@ -2105,13 +2572,15 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                 )}
             </header>
 
-            <div className="doctor-analytics-tabs" role="tablist" aria-label="Analytics workspace">
+            <div className="doctor-workspace-tabs" role="tablist" aria-label="Analytics workspace">
                 {availableViews.map(view => (
                     <button
                         key={view.key}
                         type="button"
                         role="tab"
+                        id={`analytics-tab-${view.key}`}
                         aria-selected={activeView === view.key}
+                        aria-controls={`analytics-panel-${view.key}`}
                         className={`clinical-filter-button ${activeView === view.key ? 'is-active' : ''}`}
                         onClick={() => selectView(view.key)}
                     >
@@ -2119,6 +2588,13 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                     </button>
                 ))}
             </div>
+
+            {periodError && (
+                <div className="doctor-analytics-inline-alert" role="alert">
+                    <Icon name="alert-triangle" className="h-4 w-4" />
+                    <span>{periodError}</span>
+                </div>
+            )}
 
             {error && !isStaffOnlyView && (
                 <div className="doctor-analytics-inline-alert" role="alert">
@@ -2128,24 +2604,45 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
             )}
 
             {isStaffOnlyView ? (
-                <div className="doctor-analytics-content-shell">
+                <div className="doctor-analytics-content-shell" role="tabpanel" id="analytics-panel-staff" aria-labelledby="analytics-tab-staff">
                     <StaffOperationsSection
                         period={displayPeriod}
                         rows={staffRows}
                         isLoading={isStaffLoading}
                         error={staffError}
+                        category={staffCategory}
+                        onSelectCategory={setStaffCategory}
+                        chartMetric={staffChartMetric}
+                        onSelectChartMetric={setStaffChartMetric}
                     />
                 </div>
             ) : !data || !overview ? (
                 isInitialLoading ? (
-                    <AnalyticsSkeleton />
+                    <AnalyticsSkeleton view={activeView} />
                 ) : (
                     <EmptyState title="No analytics available" description="No aggregate analytics rows were returned." />
                 )
+            ) : data.succeededRequestCount === 0 ? (
+                // Nothing loaded at all. Individual panels would each repeat the same
+                // failure, so the workspace reports it once.
+                <div className="doctor-analytics-failure">
+                    <EmptyState
+                        title="Analytics could not be loaded"
+                        description="No analytics data could be retrieved for this period. Check the connection and try again."
+                    />
+                    <button
+                        type="button"
+                        className="clinical-filter-button"
+                        onClick={retryClinicalAnalytics}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Retrying' : 'Retry'}
+                    </button>
+                </div>
             ) : (
             <div className="doctor-analytics-content-shell">
                 {activeView === 'clinical' && (
-                <>
+                <div className="doctor-analytics-view" role="tabpanel" id="analytics-panel-clinical" aria-labelledby="analytics-tab-clinical">
                 <section aria-label="Top analytics summary" className="doctor-kpi-strip">
                     <MetricCard
                         label="Consultations Completed"
@@ -2154,9 +2651,9 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                         comparison={overview.consultationDelta}
                         tone={overview.consultationTone}
                     />
-                    <MetricCard label="Pending Follow-ups" value={overview.followUpsPending} note="Current active workload" />
-                    <MetricCard label="Pending Labs" value={overview.labPending} note="Current active workload" />
-                    <MetricCard label="Pending Prescriptions" value={overview.prescriptionsPending} note="Current active workload" />
+                    <MetricCard label="Pending Follow-ups" value={overview.followUpsPending} note={pendingNote('Follow-ups')} />
+                    <MetricCard label="Pending Labs" value={overview.labPending} note={pendingNote('Laboratory')} />
+                    <MetricCard label="Pending Prescriptions" value={overview.prescriptionsPending} note={pendingNote('Prescriptions')} />
                 </section>
 
                 <section aria-label="Primary analytics insights" className="doctor-analytics-section">
@@ -2164,28 +2661,18 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                     <div className="doctor-primary-grid">
                         <div className="doctor-primary-chart">
                             <SectionPanel title="Service Trend" subtitle="Consultations over time, compared with the previous equal period." className="doctor-trend-panel">
-                                <ServiceTrendChart rows={data.consultationVolume} bucket={displayPeriod.bucket} />
+                                {renderSection(data.consultationVolume, rows => (
+                                    <ServiceTrendChart rows={rows} bucket={displayPeriod.bucket} />
+                                ))}
                             </SectionPanel>
                         </div>
                         <div className="doctor-primary-side">
-                            <SectionPanel title="Pending Work" subtitle="Open items requiring action.">
-                                <div className="doctor-pending-list">
-                                    {overview.pendingItems.map(item => (
-                                        <SummaryRow key={item.label} label={item.label} value={item.value} note={item.note} />
-                                    ))}
-                                </div>
-                            </SectionPanel>
-                            <SectionPanel title="Current Signals" subtitle="Most visible concern and backlog.">
+                            <SectionPanel title="Most Frequent Concern" subtitle="Most recorded diagnosis or complaint in this period.">
                                 <div className="doctor-signal-stack">
                                     <div className="doctor-signal-card">
                                         <span>Most Frequent Concern</span>
                                         <strong>{overview.topConcernLabel}</strong>
                                         <small className="tabular-nums">{overview.topConcernCount.toLocaleString()} record{overview.topConcernCount !== 1 ? 's' : ''}</small>
-                                    </div>
-                                    <div className="doctor-signal-card">
-                                        <span>Needs Attention</span>
-                                        <strong>{overview.attentionArea.label}</strong>
-                                        <small className="tabular-nums">{overview.attentionArea.value.toLocaleString()} pending</small>
                                     </div>
                                 </div>
                             </SectionPanel>
@@ -2196,17 +2683,18 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                 <section aria-label="Operational workload" className="doctor-analytics-section">
                     <SectionHeading title="Operational Workload" subtitle="Follow-up, laboratory, and prescription status mixes that may need coordination." />
                     <div className="doctor-operational-grid">
-                        <SectionPanel title="Service Workload Distribution" subtitle="Raw current counts across service areas.">
-                            <WorkloadRadarChart counts={workloadCounts} />
-                        </SectionPanel>
                         <SectionPanel title="Follow-up Completion" subtitle="Return-visit status for the selected period.">
-                            <FollowUpGauge rows={data.followUpActivity} />
+                            {renderSection(data.followUpActivity, rows => <FollowUpGauge rows={rows} />)}
                         </SectionPanel>
                         <SectionPanel title="Lab Request Status" subtitle="Laboratory request status mix.">
-                            <LabStatusChart rows={[...data.labCurrentWorkload, ...data.labActivity]} emptyTitle="No lab status" />
+                            {renderSection(combineResults(data.labCurrentWorkload, data.labActivity), rows => (
+                                <LabStatusChart rows={rows} emptyTitle="No lab status" />
+                            ))}
                         </SectionPanel>
                         <SectionPanel title="Prescription Status" subtitle="Prescribing and dispensing status mix.">
-                            <PrescriptionStatusChart pending={prescriptionStatus.pending} dispensed={prescriptionStatus.dispensed} />
+                            {prescriptionStatus === null || prescriptionStatus.status === 'error'
+                                ? <DataUnavailable code={prescriptionStatus?.status === 'error' ? prescriptionStatus.message : 'analytics_unavailable'} onRetry={retryClinicalAnalytics} isRetrying={isLoading} />
+                                : <PrescriptionStatusChart pending={prescriptionStatus.pending} dispensed={prescriptionStatus.dispensed} />}
                         </SectionPanel>
                     </div>
                 </section>
@@ -2215,10 +2703,10 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                     <SectionHeading title="Clinical Insights" subtitle="The most common free-text diagnoses and complaints in this period." />
                     <div className="doctor-clinical-grid">
                         <SectionPanel title="Top Diagnoses" subtitle="Most frequently recorded diagnosis text.">
-                            <RankingList rows={data.diagnoses} emptyTitle="No diagnosis aggregates" />
+                            {renderSection(data.diagnoses, rows => <RankingList rows={rows} emptyTitle="No diagnosis aggregates" />)}
                         </SectionPanel>
                         <SectionPanel title="Top Complaints" subtitle="Most frequently recorded complaint text.">
-                            <RankingList rows={data.complaints} emptyTitle="No complaint aggregates" />
+                            {renderSection(data.complaints, rows => <RankingList rows={rows} emptyTitle="No complaint aggregates" />)}
                         </SectionPanel>
                     </div>
                 </section>
@@ -2240,7 +2728,7 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                                     role="tab"
                                     aria-selected={detailTab === key}
                                     className={`clinical-filter-button ${detailTab === key ? 'is-active' : ''}`}
-                                    onClick={() => setDetailTab(key)}
+                                    onClick={() => { setDetailTab(key); setDetailFilters(EMPTY_DETAIL_FILTERS); }}
                                 >
                                     {label}
                                 </button>
@@ -2251,34 +2739,60 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                                 <div className="ops-grid">
                                     <div className="col-span-12 lg:col-span-6">
                                         <h3 className="doctor-detail-heading">Recorded Diagnoses</h3>
-                                        <FrequencyTable rows={data.diagnoses} emptyTitle="No diagnosis aggregates" />
+                                        {renderSection(data.diagnoses, rows => <FrequencyTable rows={rows} emptyTitle="No diagnosis aggregates" />)}
                                     </div>
                                     <div className="col-span-12 lg:col-span-6">
                                         <h3 className="doctor-detail-heading">Recorded Complaints</h3>
-                                        <FrequencyTable rows={data.complaints} emptyTitle="No complaint aggregates" />
+                                        {renderSection(data.complaints, rows => <FrequencyTable rows={rows} emptyTitle="No complaint aggregates" />)}
                                     </div>
                                 </div>
                             )}
-                            {detailTab === 'laboratory' && <AggregateTable rows={[...data.labCurrentWorkload, ...data.labActivity]} emptyTitle="No lab activity" />}
-                            {detailTab === 'prescriptions' && <AggregateTable rows={[...data.prescriptionCurrentWorkload, ...data.prescriptionPrescribed, ...data.prescriptionDispensed]} emptyTitle="No prescription activity" />}
+                            {detailTab === 'laboratory' && renderSection(
+                                combineResults(data.labCurrentWorkload, data.labActivity),
+                                rows => (
+                                    <FilterableAggregateTable
+                                        rows={rows}
+                                        emptyTitle="No lab activity"
+                                        emptyDescription="No laboratory aggregate rows were returned for the selected period."
+                                        filters={detailFilters}
+                                        onChangeFilters={setDetailFilters}
+                                    />
+                                ),
+                            )}
+                            {detailTab === 'prescriptions' && renderSection(
+                                combineResults(data.prescriptionCurrentWorkload, data.prescriptionPrescribed, data.prescriptionDispensed),
+                                rows => (
+                                    <FilterableAggregateTable
+                                        rows={rows}
+                                        emptyTitle="No prescription activity"
+                                        emptyDescription="No prescription aggregate rows were returned for the selected period."
+                                        filters={detailFilters}
+                                        onChangeFilters={setDetailFilters}
+                                    />
+                                ),
+                            )}
                         </div>
                     </SectionPanel>
                 </section>
-                </>
+                </div>
                 )}
 
                 {activeView === 'geographic' && (
+                    <div className="doctor-analytics-view" role="tabpanel" id="analytics-panel-geographic" aria-labelledby="analytics-tab-geographic">
                     <GeographicInsightsSection
-                        rows={data.barangayDistribution}
-                        heatmapRows={data.barangayHeatmap}
+                        distributionResult={data.barangayDistribution}
+                        heatmapResult={data.barangayHeatmap}
                         selectedHeatmapMetric={selectedHeatmapMetric}
                         onSelectHeatmapMetric={setSelectedHeatmapMetric}
                         drilldownRows={barangayDrilldown}
                         isDrilldownLoading={isBarangayDrilldownLoading}
                         drilldownError={drilldownError}
                         selectedBarangay={selectedBarangay}
-                        onSelectBarangay={setSelectedBarangay}
+                        onSelectBarangay={handleSelectBarangay}
+                        onRetry={retryClinicalAnalytics}
+                        isRetrying={isLoading}
                     />
+                    </div>
                 )}
 
             </div>
