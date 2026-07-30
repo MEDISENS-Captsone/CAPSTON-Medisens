@@ -179,10 +179,10 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
         <div className="w-full mx-auto  pb-10 px-4">
             <ToastComponent />
             {/* CONTROLS */}
-            <div className="flex flex-col gap-4 mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm print:hidden md:flex-row md:items-end">
+            <div className="flex flex-col gap-4 mb-6 rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm print:hidden md:flex-row md:items-end">
                 <div className="flex-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">FHSIS Report Type</label>
-                    <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">FHSIS Report Type</label>
+                    <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]">
                         <option value="maternal">Maternal Care Program</option>
                         <option value="child">Child Care Program</option>
                         <option value="dental">Dental Health Program</option>
@@ -192,24 +192,24 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
                     </select>
                 </div>
                 <div className="w-full md:w-48">
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Reporting Month</label>
-                    <input type="month" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"/>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">Reporting Month</label>
+                    <input type="month" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]"/>
                 </div>
                 <div className="flex">
-                    <button type="button" onClick={handleExportPDF} disabled={isExporting || isLoading} className="w-full rounded-lg bg-slate-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-70">
+                    <button type="button" onClick={handleExportPDF} disabled={isExporting || isLoading} className="w-full rounded-lg bg-[var(--brand-active)] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--brand-active-hover)] disabled:opacity-70">
                         {isExporting ? 'Preparing PDF...' : isLoading ? 'Loading FHSIS records...' : 'Export FHSIS PDF'}
                     </button>
                 </div>
             </div>
 
             {isLoading && (
-                <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 print:hidden">
+                <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-semibold text-[var(--text-2)] print:hidden">
                     Loading FHSIS records...
                 </div>
             )}
 
             {/* DOH DOCUMENT RENDER AREA */}
-                <div className="flex flex-col items-start overflow-x-auto rounded-lg border border-slate-200 bg-slate-100 p-3 print:border-0 print:bg-white print:p-0 md:p-6">  
+                <div className="flex flex-col items-start overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 print:border-0 print:bg-white print:p-0 md:p-6">
             {/* Added w-max and h-fit so the paper strictly hugs the table dimensions */}
                 <div ref={reportRef} className={`bg-white p-10 shadow-sm font-sans text-black w-max h-fit print:shadow-none ${selectedReport === 'fp' ? 'min-w-[1550px] pl-20 ml-0' : 'min-w-[1100px] mx-auto'}`}>
                     

@@ -243,7 +243,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
             
             <ToastComponent />
             <div className="mb-8">
-                <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Program Logbooks (FHSIS)</h2>
+                <h2 className="text-2xl font-extrabold text-[var(--text)] tracking-tight">Program Logbooks (FHSIS)</h2>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-5">
                     {logbooks.map(log => (
                         <button 
@@ -271,12 +271,12 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
 
             <div className={isSubmitting ? 'opacity-60 pointer-events-none' : ''}>
                 {!isAddingEntry ? (
-                    <div className="card shadow-sm border border-slate-200">
-                        <div className="card-hd border-b border-slate-100 pb-4 mb-0 bg-slate-50/50 p-6 rounded-t-2xl">
+                    <div className="card shadow-sm border border-[var(--border)]">
+                        <div className="card-hd border-b border-[var(--border-soft)] pb-4 mb-0 bg-[var(--surface-subtle)]/50 p-6 rounded-t-2xl">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">{logbooks.find(l => l.id === activeLogbook)?.label} Registry</h3>
+                                <h3 className="text-lg font-bold text-[var(--text)]">{logbooks.find(l => l.id === activeLogbook)?.label} Registry</h3>
                             </div>
-                            <button type="button" onClick={() => setIsAddingEntry(true)} className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-bold shadow-md hover:bg-slate-800">
+                            <button type="button" onClick={() => setIsAddingEntry(true)} className="px-4 py-2 bg-[var(--brand-active)] text-white rounded-lg text-sm font-bold shadow-md hover:bg-[var(--brand-active-hover)]">
                                 <Icon name="plus" className="inline h-4 w-4 mr-1" /> New Entry
                             </button>
                         </div>
@@ -293,9 +293,9 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                 <tbody>
                                     {activeRecords.length > 0 ? activeRecords.map(record => (
                                         <tr key={record.id}>
-                                            <td className="text-slate-600 font-medium">{new Date(record.created_at).toLocaleDateString()}</td>
-                                            <td className="font-bold text-slate-800 capitalize">{record.patientName}</td>
-                                            <td className="capitalize text-slate-600">{record.address || 'No Address'}</td>
+                                            <td className="text-[var(--text-2)] font-medium">{new Date(record.created_at).toLocaleDateString()}</td>
+                                            <td className="font-bold text-[var(--text)] capitalize">{record.patientName}</td>
+                                            <td className="capitalize text-[var(--text-2)]">{record.address || 'No Address'}</td>
                                             <td className="text-right"><span className="clinical-status-badge success">Saved</span></td>
                                         </tr>
                                     )) : (
@@ -306,10 +306,10 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="card shadow-sm border border-slate-200 p-8 ">
-                        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
-                            <button type="button" onClick={() => setIsAddingEntry(false)} className="px-3 py-1.5 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">← Back</button>
-                            <h3 className="text-xl font-extrabold text-slate-800">New {logbooks.find(l => l.id === activeLogbook)?.label} Entry</h3>
+                    <div className="card shadow-sm border border-[var(--border)] p-8 ">
+                        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-[var(--border-soft)]">
+                            <button type="button" onClick={() => setIsAddingEntry(false)} className="px-3 py-1.5 text-sm font-semibold text-[var(--text-2)] bg-[var(--surface-subtle)] rounded-lg hover:bg-[var(--border-soft)]">← Back</button>
+                            <h3 className="text-xl font-extrabold text-[var(--text)]">New {logbooks.find(l => l.id === activeLogbook)?.label} Entry</h3>
                         </div>
 
                         {errorMsg && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm font-semibold flex items-start gap-2" role="alert"><Icon name="alert-triangle" className="h-5 w-5 shrink-0" /> {errorMsg}</div>}
@@ -317,12 +317,12 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                         <div className="max-w-3xl">
                             {/* STEP 1: PATIENT SELECTION */}
                             <div className="mb-10">
-                                <label className="block text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">1. Select Patient</label>
+                                <label className="block text-sm font-bold text-[var(--text-2)] mb-3 uppercase tracking-wide">1. Select Patient</label>
                                 {!selectedPatient ? (
                                     <div className="relative">
-                                        <input type="text" aria-label="Search patient name for census entry" placeholder="Search patient name..." value={searchQuery} onFocus={() => setShowDropdown(true)} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-4 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none shadow-sm" />
+                                        <input type="text" aria-label="Search patient name for census entry" placeholder="Search patient name..." value={searchQuery} onFocus={() => setShowDropdown(true)} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-4 pr-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none shadow-sm" />
                                         {showDropdown && searchQuery && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-sm border border-slate-200 max-h-64 overflow-y-auto z-50">
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-sm border border-[var(--border)] max-h-64 overflow-y-auto z-50">
                                                 {filteredPatients.length > 0 ? filteredPatients.map(p => (
                                                     <button
                                                         key={p.id}
@@ -337,13 +337,13 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                             setSelectedPatient(p);
                                                             setShowDropdown(false);
                                                         }}
-                                                        className="w-full text-left px-5 py-4 hover:bg-slate-50 border-b border-slate-50 flex justify-between"
+                                                        className="w-full text-left px-5 py-4 hover:bg-[var(--surface-subtle)] border-b border-[var(--border-soft)] flex justify-between"
                                                     >
-                                                        <span className="font-bold text-slate-800 capitalize">{p.firstName} {p.lastName}</span>
-                                                        <span className="text-[0.65rem] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded uppercase">{p.address}</span>
+                                                        <span className="font-bold text-[var(--text)] capitalize">{p.firstName} {p.lastName}</span>
+                                                        <span className="text-[0.65rem] font-bold text-[var(--text-secondary)] bg-[var(--surface-subtle)] px-2 py-1 rounded uppercase">{p.address}</span>
                                                     </button>
                                                 )) : (
-                                                    <div className="px-5 py-4 text-sm font-semibold text-slate-500">
+                                                    <div className="px-5 py-4 text-sm font-semibold text-[var(--text-secondary)]">
                                                         {activeLogbook === 'maternal'
                                                             ? 'No eligible female patients match this search.'
                                                             : 'No patients match this search.'}
@@ -353,32 +353,32 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl flex justify-between items-center">
+                                    <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-5 rounded-xl flex justify-between items-center">
                                         <div>
-                                            <p className="font-bold text-slate-900 capitalize text-lg">{selectedPatient.firstName} {selectedPatient.lastName}</p>
+                                            <p className="font-bold text-[var(--text)] capitalize text-lg">{selectedPatient.firstName} {selectedPatient.lastName}</p>
                                             {/* READ-ONLY DISPLAY FOR ALL TABS */}
-                                            <p className="text-xs font-semibold text-slate-700 mt-1 uppercase">
+                                            <p className="text-xs font-semibold text-[var(--text-2)] mt-1 uppercase">
                                                 Brgy. {selectedPatient.address} • Age: {selectedPatient.age || 'N/A'} • Sex: {selectedPatient.sex || 'N/A'} 
                                                 {activeLogbook === 'child' && ` • DOB: ${selectedPatient.birthday}`}
                                             </p>
                                         </div>
-                                        <button type="button" onClick={() => { setSelectedPatient(null); setSearchQuery(''); }} className="px-3 py-1.5 text-xs font-bold text-slate-500 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-100">Change</button>
+                                        <button type="button" onClick={() => { setSelectedPatient(null); setSearchQuery(''); }} className="px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] bg-white border border-[var(--border)] rounded-lg shadow-sm hover:bg-[var(--surface-subtle)]">Change</button>
                                     </div>
                                 )}
                             </div>
 
                             {/* STEP 2: DYNAMIC FORMS */}
                             <form onSubmit={handleSubmit} className={!selectedPatient ? 'opacity-40 pointer-events-none' : ''}>
-                                <label className="block text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">2. Program Data Input</label>
+                                <label className="block text-sm font-bold text-[var(--text-2)] mb-3 uppercase tracking-wide">2. Program Data Input</label>
                                 
-                                <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-6 mb-8">
+                                <div className="bg-[var(--surface-subtle)]/70 border border-[var(--border)] rounded-xl p-6 mb-8">
                                     
                                     {/* 1. MATERNAL CARE */}
                                     {activeLogbook === 'maternal' && (
                                         <div className="space-y-6">
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Prenatal Checkup Visit</label>
-                                                <select name="prenatal_visit" onChange={handleInputChange} required className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm">
+                                                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">Prenatal Checkup Visit</label>
+                                                <select name="prenatal_visit" onChange={handleInputChange} required className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm">
                                                     <option value="">Select Visit...</option>
                                                     <option value="1st Trimester">1st Trimester</option>
                                                     <option value="2nd Trimester">2nd Trimester</option>
@@ -387,18 +387,18 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                     <option value="Extra Visit">Extra Visit (More than 4)</option>
                                                 </select>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4 p-4 bg-white border border-slate-200 rounded-lg">
-                                                <div className="col-span-2"><h4 className="text-sm font-bold text-slate-800">BMI Assessment</h4></div>
+                                            <div className="grid grid-cols-2 gap-4 p-4 bg-white border border-[var(--border)] rounded-lg">
+                                                <div className="col-span-2"><h4 className="text-sm font-bold text-[var(--text)]">BMI Assessment</h4></div>
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-500 mb-1">Height (cm)</label>
-                                                    <input type="number" name="height" onChange={handleInputChange} required className="w-full p-2 border border-slate-300 rounded-lg text-left text-slate-900 bg-white shadow-sm" />
+                                                    <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Height (cm)</label>
+                                                    <input type="number" name="height" onChange={handleInputChange} required className="w-full p-2 border border-[var(--border)] rounded-lg text-left text-[var(--text)] bg-white shadow-sm" />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-500 mb-1">Weight (kg)</label>
-                                                    <input type="number" name="weight" onChange={handleInputChange} required className="w-full p-2 border border-slate-300 rounded-lg text-left text-slate-900 bg-white shadow-sm" />
+                                                    <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Weight (kg)</label>
+                                                    <input type="number" name="weight" onChange={handleInputChange} required className="w-full p-2 border border-[var(--border)] rounded-lg text-left text-[var(--text)] bg-white shadow-sm" />
                                                 </div>
                                                 {calculatedBMI && (
-                                                    <div className="col-span-2 mt-2 p-3 bg-slate-50 rounded-lg text-sm border border-slate-200 flex justify-between">
+                                                    <div className="col-span-2 mt-2 p-3 bg-[var(--surface-subtle)] rounded-lg text-sm border border-[var(--border)] flex justify-between">
                                                         <span>Calculated BMI: <strong>{calculatedBMI.value}</strong></span>
                                                         <span>Status: <strong className={calculatedBMI.status === 'Normal' ? 'text-green-600' : 'text-amber-600'}>{calculatedBMI.status}</strong></span>
                                                     </div>
@@ -411,30 +411,30 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                     {activeLogbook === 'child' && (
                                         <div className="space-y-6">
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Child Protected at Birth (CPAB)?</label>
-                                                <select name="cpab" onChange={handleInputChange} required className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm">
+                                                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">Child Protected at Birth (CPAB)?</label>
+                                                <select name="cpab" onChange={handleInputChange} required className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm">
                                                     <option value="">Select...</option>
                                                     <option value="Yes">Yes</option>
                                                     <option value="No">No</option>
                                                 </select>
                                             </div>
-                                            <div className="p-4 bg-white border border-slate-200 rounded-lg">
+                                            <div className="p-4 bg-white border border-[var(--border)] rounded-lg">
                                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
                                                     <div>
-                                                        <label className="block text-xs font-bold text-slate-500 uppercase">Multiple Vaccine Records</label>
-                                                        <p className="mt-1 text-xs font-medium text-slate-500">Record each vaccine dose as part of this child health entry.</p>
+                                                        <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase">Multiple Vaccine Records</label>
+                                                        <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">Record each vaccine dose as part of this child health entry.</p>
                                                     </div>
-                                                    <button type="button" onClick={addVaccineRow} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100">
+                                                    <button type="button" onClick={addVaccineRow} className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2 text-xs font-bold text-[var(--text-2)] hover:bg-[var(--surface-subtle)]">
                                                         Add Vaccine
                                                     </button>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {vaccineRows.map((row, index) => (
-                                                        <div key={row.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                                        <div key={row.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
                                                             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Vaccine</label>
-                                                                    <select value={row.vaccine_name} onChange={e => updateVaccineRow(index, 'vaccine_name', e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm">
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Vaccine</label>
+                                                                    <select value={row.vaccine_name} onChange={e => updateVaccineRow(index, 'vaccine_name', e.target.value)} className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm">
                                                                         <option value="">Select vaccine...</option>
                                                                         {VACCINE_OPTIONS.map(option => (
                                                                             <option key={`${option.category}-${option.name}`} value={option.name}>{option.name}</option>
@@ -443,38 +443,38 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                                 </div>
                                                                 {row.vaccine_name === OTHER_VACCINE_NAME && (
                                                                     <div>
-                                                                        <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Specify Vaccine</label>
-                                                                        <input value={row.other_vaccine_name || ''} onChange={e => updateVaccineRow(index, 'other_vaccine_name', e.target.value)} placeholder="Enter vaccine name" className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                        <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Specify Vaccine</label>
+                                                                        <input value={row.other_vaccine_name || ''} onChange={e => updateVaccineRow(index, 'other_vaccine_name', e.target.value)} placeholder="Enter vaccine name" className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                     </div>
                                                                 )}
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Dose</label>
-                                                                    <input value={row.dose_label || ''} onChange={e => updateVaccineRow(index, 'dose_label', e.target.value)} placeholder="Birth dose, Dose 1..." className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Dose</label>
+                                                                    <input value={row.dose_label || ''} onChange={e => updateVaccineRow(index, 'dose_label', e.target.value)} placeholder="Birth dose, Dose 1..." className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Date Given</label>
-                                                                    <input type="date" value={row.date_given || ''} onChange={e => updateVaccineRow(index, 'date_given', e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Date Given</label>
+                                                                    <input type="date" value={row.date_given || ''} onChange={e => updateVaccineRow(index, 'date_given', e.target.value)} className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Next Due Date</label>
-                                                                    <input type="date" value={row.next_due_date || ''} onChange={e => updateVaccineRow(index, 'next_due_date', e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Next Due Date</label>
+                                                                    <input type="date" value={row.next_due_date || ''} onChange={e => updateVaccineRow(index, 'next_due_date', e.target.value)} className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Administered By</label>
-                                                                    <input value={row.administered_by || ''} onChange={e => updateVaccineRow(index, 'administered_by', e.target.value)} placeholder="Staff name" className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Administered By</label>
+                                                                    <input value={row.administered_by || ''} onChange={e => updateVaccineRow(index, 'administered_by', e.target.value)} placeholder="Staff name" className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Facility</label>
-                                                                    <input value={row.facility || ''} onChange={e => updateVaccineRow(index, 'facility', e.target.value)} placeholder="RHU / barangay" className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Facility</label>
+                                                                    <input value={row.facility || ''} onChange={e => updateVaccineRow(index, 'facility', e.target.value)} placeholder="RHU / barangay" className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Lot Number</label>
-                                                                    <input value={row.lot_number || ''} onChange={e => updateVaccineRow(index, 'lot_number', e.target.value)} placeholder="Optional" className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                    <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Lot Number</label>
+                                                                    <input value={row.lot_number || ''} onChange={e => updateVaccineRow(index, 'lot_number', e.target.value)} placeholder="Optional" className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                 </div>
                                                                 <div className="flex items-end gap-2">
                                                                     <div className="flex-1">
-                                                                        <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Remarks</label>
-                                                                        <input value={row.remarks || ''} onChange={e => updateVaccineRow(index, 'remarks', e.target.value)} placeholder="Optional" className="w-full p-2.5 border border-slate-300 rounded-lg text-left text-sm text-slate-900 bg-white shadow-sm" />
+                                                                        <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Remarks</label>
+                                                                        <input value={row.remarks || ''} onChange={e => updateVaccineRow(index, 'remarks', e.target.value)} placeholder="Optional" className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                     </div>
                                                                     {vaccineRows.length > 1 && (
                                                                         <button type="button" onClick={() => removeVaccineRow(index)} className="mb-0.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
@@ -487,7 +487,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                     ))}
                                                 </div>
                                                 {calculatedBCGAge && (
-                                                    <div className="mt-3 p-3 bg-slate-50 rounded-lg text-sm border border-slate-200 font-semibold text-slate-800">
+                                                    <div className="mt-3 p-3 bg-[var(--surface-subtle)] rounded-lg text-sm border border-[var(--border)] font-semibold text-[var(--text)]">
                                                         Auto-tagged Category: {calculatedBCGAge}
                                                     </div>
                                                 )}
@@ -499,8 +499,8 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                     {activeLogbook === 'family_planning' && (
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Method Used</label>
-                                                <select name="fp_method" onChange={handleInputChange} required className="w-full p-2.5 border border-slate-300 rounded-lg text-sm">
+                                                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">Method Used</label>
+                                                <select name="fp_method" onChange={handleInputChange} required className="w-full p-2.5 border border-[var(--border)] rounded-lg text-sm">
                                                     <option value="">Select...</option>
                                                     <option value="BTL">BTL</option>
                                                     <option value="NSV">NSV</option>
@@ -512,8 +512,8 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Client Status</label>
-                                                <select name="fp_status" onChange={handleInputChange} required className="w-full p-2.5 border border-slate-300 rounded-lg text-sm">
+                                                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">Client Status</label>
+                                                <select name="fp_status" onChange={handleInputChange} required className="w-full p-2.5 border border-[var(--border)] rounded-lg text-sm">
                                                     <option value="">Select...</option>
                                                     <option value="Current User">Current User</option>
                                                     <option value="New Acceptor">New Acceptor</option>
@@ -526,9 +526,9 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                     {/* 4. DENTAL HEALTH */}
                                     {activeLogbook === 'dental' && (
                                         <div>
-                                            <label className="flex items-center gap-3 p-4 bg-white border border-slate-300 rounded-xl cursor-pointer">
-                                                <input type="checkbox" name="received_bohc" onChange={handleInputChange} className="w-5 h-5 text-slate-700 rounded focus:ring-slate-500" />
-                                                <span className="text-sm font-bold text-slate-800">Received Basic Oral Health Care (BOHC)</span>
+                                            <label className="flex items-center gap-3 p-4 bg-white border border-[var(--border)] rounded-xl cursor-pointer">
+                                                <input type="checkbox" name="received_bohc" onChange={handleInputChange} className="w-5 h-5 text-[var(--text-2)] rounded focus:ring-[var(--focus-ring)]" />
+                                                <span className="text-sm font-bold text-[var(--text)]">Received Basic Oral Health Care (BOHC)</span>
                                             </label>
                                             {formData.received_bohc && selectedPatient && (
                                                 <p className="text-xs text-emerald-600 mt-2 font-bold px-2">Patient auto-tagged to age bracket based on age {selectedPatient.age}.</p>
@@ -540,26 +540,26 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                     {activeLogbook === 'ncd' && (
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                                                <label className="flex items-center gap-3 p-3 bg-white border border-[var(--border)] rounded-lg">
                                                     <input type="checkbox" name="philpen" onChange={handleInputChange} />
                                                     <span className="text-sm font-medium">Risk-assessed (PhilPEN)</span>
                                                 </label>
-                                                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                                                <label className="flex items-center gap-3 p-3 bg-white border border-[var(--border)] rounded-lg">
                                                     <input type="checkbox" name="visual_acuity" onChange={handleInputChange} />
                                                     <span className="text-sm font-medium">Screened for Visual Acuity</span>
                                                 </label>
-                                                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                                                <label className="flex items-center gap-3 p-3 bg-white border border-[var(--border)] rounded-lg">
                                                     <input type="checkbox" name="ppv" onChange={handleInputChange} />
                                                     <span className="text-sm font-medium">Received PPV Dose</span>
                                                 </label>
-                                                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                                                <label className="flex items-center gap-3 p-3 bg-white border border-[var(--border)] rounded-lg">
                                                     <input type="checkbox" name="influenza" onChange={handleInputChange} />
                                                     <span className="text-sm font-medium">Received Influenza Dose</span>
                                                 </label>
                                             </div>
                                             <div className="mt-4">
-                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Diagnosed with eye disease/s?</label>
-                                                <select name="eye_disease" onChange={handleInputChange} className="w-full md:w-1/2 p-2.5 border border-slate-300 rounded-lg text-sm">
+                                                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">Diagnosed with eye disease/s?</label>
+                                                <select name="eye_disease" onChange={handleInputChange} className="w-full md:w-1/2 p-2.5 border border-[var(--border)] rounded-lg text-sm">
                                                     <option value="">Select...</option>
                                                     <option value="Yes">Yes</option>
                                                     <option value="No">No</option>
@@ -574,24 +574,24 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                     {/* 6. RABIES & LEPROSY */}
                                     {activeLogbook === 'rabies_leprosy' && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="p-4 bg-white border border-slate-200 rounded-lg">
-                                                <h4 className="font-bold text-sm text-slate-800 mb-3 border-b pb-2">Leprosy Status</h4>
-                                                <select name="leprosy_status" onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm">
+                                            <div className="p-4 bg-white border border-[var(--border)] rounded-lg">
+                                                <h4 className="font-bold text-sm text-[var(--text)] mb-3 border-b pb-2">Leprosy Status</h4>
+                                                <select name="leprosy_status" onChange={handleInputChange} className="w-full p-2.5 border border-[var(--border)] rounded-lg text-sm">
                                                     <option value="None / N/A">None / N/A</option>
                                                     <option value="Newly Detected Case">Newly Detected Case</option>
                                                     <option value="On Treatment">On Treatment</option>
                                                 </select>
                                             </div>
-                                            <div className="p-4 bg-white border border-slate-200 rounded-lg">
-                                                <h4 className="font-bold text-sm text-slate-800 mb-3 border-b pb-2">Rabies / Animal Bite</h4>
+                                            <div className="p-4 bg-white border border-[var(--border)] rounded-lg">
+                                                <h4 className="font-bold text-sm text-[var(--text)] mb-3 border-b pb-2">Rabies / Animal Bite</h4>
                                                 <label className="flex items-center gap-3 mb-3 cursor-pointer">
-                                                    <input type="checkbox" name="animal_bite" onChange={handleInputChange} className="w-4 h-4 text-slate-700 rounded" />
+                                                    <input type="checkbox" name="animal_bite" onChange={handleInputChange} className="w-4 h-4 text-[var(--text-2)] rounded" />
                                                     <span className="text-sm font-medium">Patient had an animal bite</span>
                                                 </label>
                                                 {formData.animal_bite && (
                                                     <div>
-                                                        <label className="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Outcome</label>
-                                                        <select name="rabies_outcome" onChange={handleInputChange} required className="w-full p-2 border border-slate-300 rounded-lg text-sm">
+                                                        <label className="block text-[0.65rem] font-bold text-[var(--text-secondary)] mb-1 uppercase">Outcome</label>
+                                                        <select name="rabies_outcome" onChange={handleInputChange} required className="w-full p-2 border border-[var(--border)] rounded-lg text-sm">
                                                             <option value="">Select Outcome...</option>
                                                             <option value="Alive/Recovered">Alive/Recovered</option>
                                                             <option value="Death due to Rabies">Death due to Rabies</option>
@@ -604,7 +604,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                 </div>
                                 
                                 <div className="flex justify-end pt-4">
-                                    <button type="submit" disabled={isSubmitting || !selectedPatient} className="px-8 py-3 bg-slate-700 text-white text-sm font-bold rounded-xl shadow-sm hover:bg-slate-800 transition flex items-center gap-2">
+                                    <button type="submit" disabled={isSubmitting || !selectedPatient} className="px-8 py-3 bg-[var(--brand-active)] text-white text-sm font-bold rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] transition flex items-center gap-2">
                                         {isSubmitting ? <span className="animate-pulse">Recording Census Entry...</span> : 'Record FHSIS Entry'}
                                     </button>
                                 </div>

@@ -21,7 +21,7 @@ import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white">
+    <div className="rounded-xl border border-[var(--border)] bg-white">
         <SkeletonList rows={4} />
     </div>
 );
@@ -31,16 +31,16 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
     const isEmpty = value === null || value === undefined || value === '';
     return (
         <div className="flex flex-col gap-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-            <div className={`text-sm font-semibold ${isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{label}</div>
+            <div className={`text-sm font-semibold ${isEmpty ? 'text-[var(--text-muted)] italic' : 'text-[var(--text)]'}`}>
                 {isEmpty ? 'Not provided' : value}
             </div>
         </div>
     );
 }
 
-const sectionCls = "bg-white border border-slate-200 rounded-lg p-4 md:p-5 mb-4 shadow-sm";
-const headerCls  = "flex items-center gap-2 text-sm font-semibold text-slate-700 uppercase tracking-wide border-b border-slate-200 pb-3 mb-4";
+const sectionCls = "bg-white border border-[var(--border)] rounded-lg p-4 md:p-5 mb-4 shadow-sm";
+const headerCls  = "flex items-center gap-2 text-sm font-semibold text-[var(--text-2)] uppercase tracking-wide border-b border-[var(--border)] pb-3 mb-4";
 
 // ─── Patient Details Panel ────────────────────────────────────────────────────
 function PatientDetailsPanel({
@@ -62,26 +62,26 @@ function PatientDetailsPanel({
     return (
         <div className="">
             {/* Profile banner */}
-            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4 flex flex-wrap items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 rounded-md bg-slate-700 text-white flex items-center justify-center font-semibold text-lg shadow-sm shrink-0 uppercase">
+            <div className="bg-white border border-[var(--border)] rounded-lg p-4 mb-4 flex flex-wrap items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-md bg-[var(--brand-active)] text-white flex items-center justify-center font-semibold text-lg shadow-sm shrink-0 uppercase">
                     {patient.firstName?.[0]}{patient.lastName?.[0]}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-900 text-lg leading-tight truncate">
+                    <div className="font-semibold text-[var(--text)] text-lg leading-tight truncate">
                         {patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="droplet" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.bloodType || '—'}</span></span>
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="user" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.sex || '—'}</span></span>
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="calendar" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.age ?? '—'}</span> yrs</span>
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="map-pin" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.address || '—'}</span></span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="droplet" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.bloodType || '—'}</span></span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="user" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.sex || '—'}</span></span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="calendar" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.age ?? '—'}</span> yrs</span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="map-pin" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.address || '—'}</span></span>
                     </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button
                         type="button"
                         onClick={onViewHistory}
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[0.65rem] font-extrabold text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1.5 text-[0.65rem] font-extrabold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
                     >
                         <Icon name="clock" className="mr-1 inline h-3.5 w-3.5" /> History
                     </button>
@@ -140,7 +140,7 @@ function PatientDetailsPanel({
                 <button
                     type="button"
                     onClick={onProceedToConsent}
-                    className="w-full bg-slate-700 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-sm hover:bg-slate-800 transition-all  flex items-center justify-center gap-3 mt-2"
+                    className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] transition-all  flex items-center justify-center gap-3 mt-2"
                 >
                     <Icon name="clipboard" className="h-5 w-5" /> Proceed to Patient Consent →
                 </button>
@@ -179,13 +179,13 @@ function PatientModal({
             <div className="bg-[var(--bg)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-sm flex flex-col max-h-[92vh] sm:max-h-[88vh]">
 
                 {/* Modal Header */}
-                <div className="px-5 py-4 border-b border-slate-200 bg-white rounded-t-2xl flex items-center justify-between shrink-0">
+                <div className="px-5 py-4 border-b border-[var(--border)] bg-white rounded-t-2xl flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
                         {step !== 'details' && (
                             <button
                                 type="button"
                                 onClick={() => setStep('details')}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] font-bold text-sm transition-colors"
                             >
                                 ←
                             </button>
@@ -195,12 +195,12 @@ function PatientModal({
                             <button
                                 type="button"
                                 onClick={() => setStep('details')}
-                                className={`px-2.5 py-1 rounded-md transition-colors ${step === 'details' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                className={`px-2.5 py-1 rounded-md transition-colors ${step === 'details' ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:bg-[var(--border-soft)]'}`}
                             >
                                 1 · Details
                             </button>
-                            <span className="text-slate-300">›</span>
-                            <span className={`px-2.5 py-1 rounded-md ${step === 'consent' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                            <span className="text-[var(--text-muted)]">›</span>
+                            <span className={`px-2.5 py-1 rounded-md ${step === 'consent' ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
                                 2 · Consent
                             </span>
                         </div>
@@ -208,7 +208,7 @@ function PatientModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-secondary)] font-bold transition-colors"
                     >
                         <Icon name="close" className="h-4 w-4" label="Close patient details" />
                     </button>
