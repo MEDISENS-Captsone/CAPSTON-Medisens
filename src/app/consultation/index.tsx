@@ -172,9 +172,9 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
     const sectionBtn = (label: string, key: typeof activeSection, count: number) => (
         <button
             onClick={() => setActiveSection(key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeSection === key ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeSection === key ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:bg-[var(--border-soft)]'}`}
         >
-            {label} <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${activeSection === key ? 'bg-slate-600' : 'bg-slate-200 text-slate-600'}`}>{count}</span>
+            {label} <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${activeSection === key ? 'bg-[var(--brand-active)]' : 'bg-[var(--border-soft)] text-[var(--text-2)]'}`}>{count}</span>
         </button>
     );
 
@@ -182,21 +182,21 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
         id: string; badge: string; badgeColor: string;
         date: string; title: string; subtitle?: string; children: React.ReactNode;
     }) => (
-        <div className="border border-slate-200 rounded-xl overflow-hidden mb-2">
+        <div className="border border-[var(--border)] rounded-xl overflow-hidden mb-2">
             <button
                 onClick={() => toggle(id)}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-white hover:bg-slate-50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-white hover:bg-[var(--surface-subtle)] transition-colors text-left"
             >
                 <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide ${badgeColor}`}>{badge}</span>
                 <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-800 truncate">{title}</div>
-                    {subtitle && <div className="text-xs text-slate-400 truncate">{subtitle}</div>}
+                    <div className="text-sm font-bold text-[var(--text)] truncate">{title}</div>
+                    {subtitle && <div className="text-xs text-[var(--text-muted)] truncate">{subtitle}</div>}
                 </div>
-                <span className="shrink-0 text-xs text-slate-400 font-medium">{date}</span>
-                <span className="shrink-0 text-slate-400 ml-1">{expandedId === id ? '?' : '?'}</span>
+                <span className="shrink-0 text-xs text-[var(--text-muted)] font-medium">{date}</span>
+                <span className="shrink-0 text-[var(--text-muted)] ml-1">{expandedId === id ? '?' : '?'}</span>
             </button>
             {expandedId === id && (
-                <div className="px-4 pb-4 pt-2 bg-slate-50 border-t border-slate-100 space-y-4">{children}</div>
+                <div className="px-4 pb-4 pt-2 bg-[var(--surface-subtle)] border-t border-[var(--border-soft)] space-y-4">{children}</div>
             )}
         </div>
     );
@@ -204,13 +204,13 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
     const Field = ({ label, value }: { label: string; value?: string | number | null }) =>
         value ? (
             <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">{label}</div>
-                <div className="text-sm text-slate-700">{value}</div>
+                <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-0.5">{label}</div>
+                <div className="text-sm text-[var(--text-2)]">{value}</div>
             </div>
         ) : null;
 
     const SectionHeader = ({ label }: { label: string }) => (
-        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest pt-2 pb-1 border-t border-slate-200">{label}</div>
+        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide pt-2 pb-1 border-t border-[var(--border)]">{label}</div>
     );
 
     const totalCount = consultations.length + initialConsults.length;
@@ -229,7 +229,7 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
         >
                     <PatientChartIdentityHeader patient={historyPatient} compact className="mb-4" subtitle={`${totalCount} record${totalCount !== 1 ? 's' : ''}`} />
                     <PatientHistoryPanel title="Consultation History">
-                    <div className="flex gap-2 border-b border-slate-100 bg-white pb-3 shrink-0 flex-wrap">
+                    <div className="flex gap-2 border-b border-[var(--border-soft)] bg-white pb-3 shrink-0 flex-wrap">
                         {sectionBtn('All', 'all', totalCount)}
                         {sectionBtn('Consultations', 'consultation', consultations.length)}
                         {sectionBtn('Initial', 'initial', initialConsults.length)}
@@ -239,8 +239,8 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                             <SkeletonList rows={3} />
                         ) : totalCount === 0 ? (
                             <div className="flex flex-col items-center justify-center h-40 gap-2">
-                                <Icon name="inbox" className="h-8 w-8 text-slate-400" />
-                                <span className="text-sm text-slate-400">No history records found.</span>
+                                <Icon name="inbox" className="h-8 w-8 text-[var(--text-muted)]" />
+                                <span className="text-sm text-[var(--text-muted)]">No history records found.</span>
                             </div>
                         ) : (
                             <>
@@ -259,12 +259,12 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                                             return (
                                                 <>
                                                     {cc.length > 0 && (
-                                                        <div><div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Chief Complaint</div>
-                                                            <ul className="space-y-0.5">{cc.map((v, i) => <li key={i} className="text-sm text-slate-700 ml-2 list-disc list-inside">{v}</li>)}</ul></div>
+                                                        <div><div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Chief Complaint</div>
+                                                            <ul className="space-y-0.5">{cc.map((v, i) => <li key={i} className="text-sm text-[var(--text-2)] ml-2 list-disc list-inside">{v}</li>)}</ul></div>
                                                     )}
                                                     {dx.length > 0 && (
-                                                        <div><div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Diagnosis</div>
-                                                            <ul className="space-y-0.5">{dx.map((v, i) => <li key={i} className="text-sm text-slate-700 ml-2 list-disc list-inside">{v}</li>)}</ul></div>
+                                                        <div><div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Diagnosis</div>
+                                                            <ul className="space-y-0.5">{dx.map((v, i) => <li key={i} className="text-sm text-[var(--text-2)] ml-2 list-disc list-inside">{v}</li>)}</ul></div>
                                                     )}
                                                 </>
                                             );
@@ -295,7 +295,7 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                                     </RecordCard>
                                 ))}
                                 {(activeSection === 'all' || activeSection === 'consultation') && consultations.map((rec) => (
-                                    <RecordCard key={`consult-${rec.consultation_id}`} id={`consult-${rec.consultation_id}`} badge="Consult" badgeColor="bg-slate-100 text-slate-700" date={`#${rec.consultation_id}`} title={rec.chief_complaints || `Consultation #${rec.consultation_id}`} subtitle={rec.diagnosis}>
+                                    <RecordCard key={`consult-${rec.consultation_id}`} id={`consult-${rec.consultation_id}`} badge="Consult" badgeColor="bg-[var(--surface-subtle)] text-[var(--text-2)]" date={`#${rec.consultation_id}`} title={rec.chief_complaints || `Consultation #${rec.consultation_id}`} subtitle={rec.diagnosis}>
                                         <SectionHeader label="Clinical" />
                                         <div className="space-y-2">
                                             {(() => {
@@ -304,12 +304,12 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                                                 return (
                                                     <>
                                                         {cc.length > 0 && (
-                                                            <div><div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Chief Complaints</div>
-                                                                <ul className="space-y-0.5">{cc.map((v, i) => <li key={i} className="text-sm text-slate-700 ml-2 list-disc list-inside">{v}</li>)}</ul></div>
+                                                            <div><div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Chief Complaints</div>
+                                                                <ul className="space-y-0.5">{cc.map((v, i) => <li key={i} className="text-sm text-[var(--text-2)] ml-2 list-disc list-inside">{v}</li>)}</ul></div>
                                                         )}
                                                         {dx.length > 0 && (
-                                                            <div><div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Diagnosis</div>
-                                                                <ul className="space-y-0.5">{dx.map((v, i) => <li key={i} className="text-sm text-slate-700 ml-2 list-disc list-inside">{v}</li>)}</ul></div>
+                                                            <div><div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Diagnosis</div>
+                                                                <ul className="space-y-0.5">{dx.map((v, i) => <li key={i} className="text-sm text-[var(--text-2)] ml-2 list-disc list-inside">{v}</li>)}</ul></div>
                                                         )}
                                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                                             <Field label="HPI" value={rec.hpi} />
@@ -334,9 +334,9 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                                                         if (rec.past_med_surge_history) items.push({ label: 'Past Medical / Surgical History', values: itemizeText(rec.past_med_surge_history) });
                                                         return items.map(group => (
                                                             <div key={group.label}>
-                                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">{group.label}</div>
+                                                                <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-1">{group.label}</div>
                                                                 <ul className="space-y-0.5">
-                                                                    {group.values.map((v, i) => <li key={i} className="text-sm text-slate-700 ml-2 list-disc list-inside">{v}</li>)}
+                                                                    {group.values.map((v, i) => <li key={i} className="text-sm text-[var(--text-2)] ml-2 list-disc list-inside">{v}</li>)}
                                                                 </ul>
                                                             </div>
                                                         ));
@@ -383,8 +383,8 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                         )}
                     </div>
                     </PatientHistoryPanel>
-                    <div className="mt-4 border-t border-slate-100 shrink-0 bg-white pt-4">
-                        <button onClick={onClose} className="w-full py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Close</button>
+                    <div className="mt-4 border-t border-[var(--border-soft)] shrink-0 bg-white pt-4">
+                        <button onClick={onClose} className="w-full py-2.5 text-sm font-bold text-[var(--text-2)] bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] rounded-xl transition-colors">Close</button>
                     </div>
         </ClinicalDrawer>
     );
@@ -458,7 +458,7 @@ export function ConsultationPage({
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
 
     const { isOnline } = useNetworkSync();
-    const primaryBtnBg = isOnline ? 'bg-slate-700 hover:bg-slate-800 shadow-none' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20';
+    const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20';
 
     const { showToast, ToastComponent } = useToast();
 
@@ -1026,7 +1026,7 @@ export function ConsultationPage({
     const RadioGroup = ({ name, options, value }: { name: string; options: string[]; value: string }) => (
         <div className="flex gap-3 flex-wrap">
             {options.map(opt => (
-                <label key={opt} className={`cursor-pointer px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${value === opt ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
+                <label key={opt} className={`cursor-pointer px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${value === opt ? 'bg-[var(--brand-active)] text-white border-[var(--brand-active)]' : 'bg-white text-[var(--text-2)] border-[var(--border)] hover:border-[var(--border)]'}`}>
                     <input type="radio" name={name} value={opt} checked={value === opt} onChange={handleRadioChange} className="hidden" />{opt}
                 </label>
             ))}
@@ -1035,17 +1035,17 @@ export function ConsultationPage({
 
     const renderCheckbox = (key: keyof typeof formData.labTests, label: string) => (
         <label key={key} className="flex items-center gap-3 cursor-pointer group min-h-[40px]">
-            <div className="relative flex items-center justify-center w-5 h-5 border-2 border-slate-300 rounded bg-white shrink-0 transition-colors group-hover:border-slate-400">
+            <div className="relative flex items-center justify-center w-5 h-5 border-2 border-[var(--border)] rounded bg-white shrink-0 transition-colors group-hover:border-[var(--border-strong)]">
                 <input type="checkbox" checked={formData.labTests[key]} onChange={() => handleLabTestChange(key)} className="absolute opacity-0 w-0 h-0" />
-                {formData.labTests[key] && <svg className="w-3.5 h-3.5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                {formData.labTests[key] && <svg className="w-3.5 h-3.5 text-[var(--text-2)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
             </div>
-            <span className="text-sm font-medium text-slate-700">{label}</span>
+            <span className="text-sm font-medium text-[var(--text-2)]">{label}</span>
         </label>
     );
 
     if (patientLoading) {
         return (
-            <div className="rounded-xl border border-slate-200 bg-white p-5" role="status" aria-live="polite" aria-busy="true">
+            <div className="rounded-xl border border-[var(--border)] bg-white p-5" role="status" aria-live="polite" aria-busy="true">
                 <div className="mb-5 flex items-center gap-4">
                     <Skeleton className="h-14 w-14 rounded-full" />
                     <div className="min-w-0 flex-1">
@@ -1064,20 +1064,20 @@ export function ConsultationPage({
                 <Icon name="stethoscope" className="h-10 w-10 mb-4" />
                 <h2 className="text-xl font-bold mb-2">No patient selected</h2>
                 <p className="text-sm font-semibold mb-6">Select a patient from the clinical work queue to begin consultation.</p>
-                <button onClick={goBack} className="px-6 py-2.5 bg-slate-700 text-white rounded-lg font-semibold shadow-sm hover:bg-slate-800 transition-colors">Return to Work Queue</button>
+                <button onClick={goBack} className="px-6 py-2.5 bg-[var(--brand-active)] text-white rounded-lg font-semibold shadow-sm hover:bg-[var(--brand-active-hover)] transition-colors">Return to Work Queue</button>
             </div>
         );
     }
 
     const renderTab1 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">I. Histories</h3>
+            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">I. Histories</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div><label className={labelCls}>Family History</label><textarea name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
                     <div><label className={labelCls}>Immunization History</label><textarea name="immunizationHistory" value={formData.immunizationHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
                 </div>
-                <div className="bg-slate-50/70 rounded-xl border border-slate-200 p-5 space-y-6 shadow-sm">
+                <div className="bg-[var(--surface-subtle)]/70 rounded-xl border border-[var(--border)] p-5 space-y-6 shadow-sm">
                     <div>
                         <label className={labelCls}>Smoking History</label>
                         <RadioGroup name="smoking" options={['Yes', 'No']} value={formData.smoking} />
@@ -1106,10 +1106,10 @@ export function ConsultationPage({
 
     const renderTab2 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">II. OBGyne &amp; Pregnancy History</h3>
+            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">II. OBGyne &amp; Pregnancy History</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">OBGyne</p>
+                    <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide">OBGyne</p>
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className={labelCls}>Menarche (y/o)</label><input type="number" name="menarche" value={formData.menarche} onChange={handleChange} className={inputCls} /></div>
                         <div><label className={labelCls}>Onset Sexual Intercourse</label><input type="number" name="onsetSexualIntercourse" value={formData.onsetSexualIntercourse} onChange={handleChange} className={inputCls} /></div>
@@ -1128,7 +1128,7 @@ export function ConsultationPage({
                     <div><label className={labelCls}>Birth Control Method</label><input type="text" name="birthControlMethod" value={formData.birthControlMethod} onChange={handleChange} className={inputCls} /></div>
                 </div>
                 <div className="space-y-4">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pregnancy History</p>
+                    <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide">Pregnancy History</p>
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className={labelCls}>Gravidity</label><input type="number" name="gravidity" value={formData.gravidity} onChange={handleChange} className={inputCls} /></div>
                         <div><label className={labelCls}>Parity</label><input type="number" name="parity" value={formData.parity} onChange={handleChange} className={inputCls} /></div>
@@ -1146,31 +1146,31 @@ export function ConsultationPage({
                     <div><label className={labelCls}>Pre-eclampsia</label><RadioGroup name="preEclampsia" options={['Yes', 'No']} value={formData.preEclampsia} /></div>
                 </div>
             </div>
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-slate-100 py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(3)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Clinical Assessment</button></div>
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(3)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Clinical Assessment</button></div>
         </div>
     );
 
     const renderTab3 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">III. Clinical Assessment</h3>
+            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">III. Clinical Assessment</h3>
             <div><label className={labelCls}>Medication and Treatment</label><textarea name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} rows={7} className={textareaCls} /></div>
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(isMale ? 1 : 2)} className="bg-slate-100 py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(4)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Follow-up</button></div>
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(isMale ? 1 : 2)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(4)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Follow-up</button></div>
         </div>
     );
 
     const renderTab4 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-bold text-slate-900">IV. Follow-up Visit</h3>
+            <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-3">
+                <h3 className="text-lg font-bold text-[var(--text)]">IV. Follow-up Visit</h3>
             </div>
             {!consultationSaved && (
-                <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800">
+                <div className="flex items-start gap-3 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]">
                     <Icon name="file-text" className="h-5 w-5 shrink-0" />
                     <span>Follow-up details will be recorded when the consultation is finalized.</span>
                 </div>
             )}
             <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Visit Information</p>
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Visit Information</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div><label className={labelCls}>Visit Date</label><input type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className={inputCls} /></div>
                     <div><label className={labelCls}>Visit Time</label><input type="time" name="followUpTime" value={formData.followUpTime} onChange={handleChange} className={inputCls} /></div>
@@ -1191,15 +1191,15 @@ export function ConsultationPage({
                 </div>
             </div>
             <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Clinical</p>
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Clinical</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label className={labelCls}>Chief Complaint</label><textarea name="followUpChiefComplaint" value={formData.followUpChiefComplaint} onChange={handleChange} rows={3} className={textareaCls} placeholder="Primary reason for visit..." /></div>
                     <div><label className={labelCls}>Diagnosis</label><textarea name="followUpDiagnosis" value={formData.followUpDiagnosis} onChange={handleChange} rows={3} className={textareaCls} /></div>
-                    <div className="md:col-span-2"><label className={labelCls}>History of Present Illness <span className="text-slate-400 font-normal normal-case ml-1">(Optional)</span></label><textarea name="followUpHpi" value={formData.followUpHpi} onChange={handleChange} rows={3} className={textareaCls} /></div>
+                    <div className="md:col-span-2"><label className={labelCls}>History of Present Illness <span className="text-[var(--text-muted)] font-normal normal-case ml-1">(Optional)</span></label><textarea name="followUpHpi" value={formData.followUpHpi} onChange={handleChange} rows={3} className={textareaCls} /></div>
                 </div>
             </div>
             <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Vitals</p>
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Vitals</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div><label className={labelCls}>BP (mmHg)</label><input type="text" name="followUpBp" value={formData.followUpBp} onChange={handleChange} className={inputCls} placeholder="120/80" /></div>
                     <div><label className={labelCls}>Heart Rate (bpm)</label><input type="text" name="followUpHr" value={formData.followUpHr} onChange={handleChange} className={inputCls} placeholder="72" /></div>
@@ -1210,57 +1210,57 @@ export function ConsultationPage({
                 </div>
             </div>
             <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Anthropometrics</p>
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Anthropometrics</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div><label className={labelCls}>Weight (kg)</label><input type="text" name="followUpWeight" value={formData.followUpWeight} onChange={handleChange} className={inputCls} placeholder="65" /></div>
                     <div><label className={labelCls}>Height (cm)</label><input type="text" name="followUpHeight" value={formData.followUpHeight} onChange={handleChange} className={inputCls} placeholder="165" /></div>
                     <div>
-                        <label className={labelCls}>BMI <span className="text-slate-400 font-normal normal-case">(auto)</span></label>
-                        <input type="text" readOnly value={followUpBmiInfo ? followUpBmiInfo.value : ''} className={`${inputCls} bg-slate-100 text-slate-500 font-semibold cursor-default`} placeholder="?" />
+                        <label className={labelCls}>BMI <span className="text-[var(--text-muted)] font-normal normal-case">(auto)</span></label>
+                        <input type="text" readOnly value={followUpBmiInfo ? followUpBmiInfo.value : ''} className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-secondary)] font-semibold cursor-default`} placeholder="?" />
                         {followUpBmiInfo && <p className={`text-xs mt-1.5 font-semibold ${followUpBmiInfo.color}`}>{followUpBmiInfo.status}</p>}
                     </div>
                     <div><label className={labelCls}>Visual Acuity ? Left</label><input type="text" name="followUpVaL" value={formData.followUpVaL} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
                     <div><label className={labelCls}>Visual Acuity ? Right</label><input type="text" name="followUpVaR" value={formData.followUpVaR} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
                 </div>
             </div>
-            <div className="border-t border-slate-100 pt-6">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Treatment &amp; Results</p>
+            <div className="border-t border-[var(--border-soft)] pt-6">
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Treatment &amp; Results</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className={labelCls}>Medication / Treatment <span className="text-slate-300 italic font-normal normal-case">(Doctor Only)</span></label>
+                        <label className={labelCls}>Medication / Treatment <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span></label>
                         <textarea rows={5} name="managementTreatment" value={formData.managementTreatment} onChange={handleChange} className={textareaCls} placeholder="Medications prescribed, treatment plan..." />
                     </div>
                     <div>
                         <label className={labelCls}>
-                            Lab Results <span className="text-slate-300 italic font-normal normal-case">(Doctor Only)</span>
+                            Lab Results <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span>
                         </label>
                         <textarea rows={5} name="followUpLabResults" value={formData.followUpLabResults} onChange={handleChange} className={textareaCls} placeholder="Auto-fetched when lab submits results..." />
                         {formData.followUpLabResults && <p className="text-[10px] text-green-600 font-bold uppercase mt-2 inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Results Synced from Laboratory</p>}
                     </div>
                 </div>
             </div>
-            <div className="border-t border-slate-100 pt-6">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Certification & Verification</p>
+            <div className="border-t border-[var(--border-soft)] pt-6">
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-4">Certification & Verification</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="bg-[var(--surface-subtle)]/70 p-5 rounded-2xl border border-[var(--border)] shadow-sm">
                         <label className={labelCls}>Provider Signature</label>
-                        <div className="border-2 border-dashed border-slate-300 bg-white rounded-xl h-32 mb-2 relative overflow-hidden cursor-crosshair">
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-200 font-bold text-[10px] pointer-events-none select-none uppercase tracking-widest">Sign Here</div>
+                        <div className="border-2 border-dashed border-[var(--border)] bg-white rounded-xl h-32 mb-2 relative overflow-hidden cursor-crosshair">
+                            <div className="absolute inset-0 flex items-center justify-center text-[var(--border)] font-bold text-[10px] pointer-events-none select-none uppercase tracking-wide">Sign Here</div>
                             <SignatureCanvas ref={followUpSigCanvas} canvasProps={{ className: 'w-full h-full relative z-10' }} />
                         </div>
-                        <button type="button" onClick={() => followUpSigCanvas.current?.clear()} className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest">Clear Signature</button>
+                        <button type="button" onClick={() => followUpSigCanvas.current?.clear()} className="text-[10px] font-bold text-[var(--text-muted)] hover:text-red-500 transition-colors uppercase tracking-wide">Clear Signature</button>
                     </div>
                     <div className="hidden md:block py-6">
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium bg-slate-50/50 p-4 rounded-xl border border-slate-100 border-dashed">
+                        <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-medium bg-[var(--surface-subtle)]/50 p-4 rounded-xl border border-[var(--border-soft)] border-dashed">
                             I hereby certify that the patient mentioned above has been examined and that the clinical findings and treatment plan recorded are accurate and based on professional medical assessment.
                         </p>
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-slate-100">
-                <button onClick={() => setActiveTab(3)} className="order-2 sm:order-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
-                <div className="order-1 sm:order-2 flex flex-col gap-3 w-full sm:w-auto bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-sm">
-                    <p className="text-[0.65rem] font-bold text-slate-400 uppercase tracking-widest text-center mb-1">Follow-up Actions</p>
+            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-[var(--border-soft)]">
+                <button onClick={() => setActiveTab(3)} className="order-2 sm:order-1 bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
+                <div className="order-1 sm:order-2 flex flex-col gap-3 w-full sm:w-auto bg-[var(--surface-subtle)] border border-[var(--border)] p-4 rounded-2xl shadow-sm">
+                    <p className="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wide text-center mb-1">Follow-up Actions</p>
                     {!followUpDone ? (
                         <button onClick={handleMarkFollowUpDone} disabled={loading || !patient?.id} className="w-full bg-white hover:bg-green-50 text-green-700 py-3 px-6 rounded-xl font-bold transition-colors border border-green-200 flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
                             {loading ? 'Processing...' : <><Icon name="check" className="h-4 w-4" /> Mark Follow-up as Done</>}
@@ -1276,8 +1276,8 @@ export function ConsultationPage({
 
     const renderTab5 = () => (
         <div className={cardCls}>
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">V. Clinical Notes &amp; Certification</h3>
+            <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-soft)] pb-4">
+                <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">V. Clinical Notes &amp; Certification</h3>
             </div>
             <div className="space-y-6">
                 <div>
@@ -1289,16 +1289,16 @@ export function ConsultationPage({
                     <textarea name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} className={`${textareaCls} min-h-[120px]`} placeholder="Enter instructions, rest period, or follow-up recommendations..." />
                 </div>
             </div>
-            <div className="pt-6 mt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="pt-6 mt-6 border-t border-[var(--border-soft)] grid grid-cols-1 sm:grid-cols-2 gap-6">
             </div>
-            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-slate-100">
-                <button onClick={() => setActiveTab(4)} className="order-2 sm:order-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
+            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-[var(--border-soft)]">
+                <button onClick={() => setActiveTab(4)} className="order-2 sm:order-1 bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
                 <div className="order-1 sm:order-2 flex flex-col gap-3 w-full sm:w-auto">
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
-                        <button onClick={handlePrintMedCert} className="w-full bg-white hover:bg-slate-100 text-slate-700 py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-slate-100"><Icon name="file-text" className="h-4 w-4" /> Print Medical Certificate</button>
+                    <div className="bg-[var(--surface-subtle)] p-2 rounded-xl border border-[var(--border)] shadow-sm w-full sm:w-auto">
+                        <button onClick={handlePrintMedCert} className="w-full bg-white hover:bg-[var(--surface-subtle)] text-[var(--text-2)] py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-[var(--border-soft)]"><Icon name="file-text" className="h-4 w-4" /> Print Medical Certificate</button>
                     </div>
                     <div className="flex gap-3 w-full sm:w-auto">
-                        <button onClick={handleSaveConsultation} className="flex-1 bg-white border-2 border-slate-500 text-slate-700 py-3 px-6 rounded-xl font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"><Icon name="save" className="h-4 w-4" /> Record Consultation</button>
+                        <button onClick={handleSaveConsultation} className="flex-1 bg-white border-2 border-[var(--border-strong)] text-[var(--text-2)] py-3 px-6 rounded-xl font-bold hover:bg-[var(--surface-subtle)] transition-colors flex items-center justify-center gap-2"><Icon name="save" className="h-4 w-4" /> Record Consultation</button>
                         <button onClick={() => setActiveTab(7)} className={`flex-1 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Lab Request</button>
                     </div>
                 </div>
@@ -1308,13 +1308,13 @@ export function ConsultationPage({
 
     const renderTab6 = () => (
         <div className={cardCls}>
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">VI. Laboratory Request</h3>
+            <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-soft)] pb-4">
+                <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">VI. Laboratory Request</h3>
             </div>
             <div className="space-y-2">
-                <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-6 space-y-6">
+                <div className="bg-[var(--surface-subtle)]/50 rounded-2xl border border-[var(--border-soft)] p-6 space-y-6">
                     <div>
-                        <div className="inline-block px-3 py-1 bg-white border border-slate-200 shadow-sm text-slate-600 text-xs font-black uppercase tracking-widest rounded-md mb-4">Routine Tests</div>
+                        <div className="inline-block px-3 py-1 bg-white border border-[var(--border)] shadow-sm text-[var(--text-2)] text-xs font-semibold uppercase tracking-wide rounded-md mb-4">Routine Tests</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
                             {renderCheckbox('cbc', 'Complete Blood Count (CBC)')}
                             {renderCheckbox('urinalysis', 'Urinalysis')}
@@ -1328,10 +1328,10 @@ export function ConsultationPage({
                             {renderCheckbox('ecg', 'ECG')}
                         </div>
                     </div>
-                    <div className="pt-6 border-t border-slate-200">
+                    <div className="pt-6 border-t border-[var(--border)]">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="inline-block px-3 py-1 bg-white border border-slate-200 shadow-sm text-slate-600 text-xs font-black uppercase tracking-widest rounded-md">Fasting Tests</div>
-                            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide bg-slate-100 px-2 py-1 rounded-md">8-10 hrs required</span>
+                            <div className="inline-block px-3 py-1 bg-white border border-[var(--border)] shadow-sm text-[var(--text-2)] text-xs font-semibold uppercase tracking-wide rounded-md">Fasting Tests</div>
+                            <span className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wide bg-[var(--surface-subtle)] px-2 py-1 rounded-md">8-10 hrs required</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
                             {renderCheckbox('rbs', 'Random Blood Sugar (RBS)')}
@@ -1344,19 +1344,19 @@ export function ConsultationPage({
                             {renderCheckbox('sgpt', 'SGPT')}
                         </div>
                     </div>
-                    <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center gap-3">
                         <div className="shrink-0">{renderCheckbox('others', 'Others:')}</div>
                         <input type="text" name="labTestsOther" value={formData.labTestsOther} onChange={handleChange} disabled={!formData.labTests.others}
-                            className={`flex-1 bg-white border-2 ${formData.labTests.others ? 'border-slate-400 focus:border-slate-500 shadow-sm' : 'border-slate-100'} rounded-xl outline-none px-4 py-2.5 text-sm font-medium text-slate-800 disabled:opacity-50 disabled:bg-slate-50 transition-all`}
+                            className={`flex-1 bg-white border-2 ${formData.labTests.others ? 'border-[var(--border-strong)] focus:border-[var(--focus-color)] shadow-sm' : 'border-[var(--border-soft)]'} rounded-xl outline-none px-4 py-2.5 text-sm font-medium text-[var(--text)] disabled:opacity-50 disabled:bg-[var(--surface-subtle)] transition-all`}
                             placeholder={formData.labTests.others ? 'Specify other tests here...' : ''} />
                     </div>
                 </div>
                 <div><label className={labelCls}>Requested By</label><input type="text" name="labRequestedBy" value={formData.labRequestedBy} onChange={handleChange} className={inputCls} /></div>
             </div>
-            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-8 mt-6 border-t border-slate-100">
-                <button onClick={() => setActiveTab(5)} className="order-2 sm:order-1 w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 px-6 rounded-lg font-semibold transition-colors">Back</button>
+            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-8 mt-6 border-t border-[var(--border-soft)]">
+                <button onClick={() => setActiveTab(5)} className="order-2 sm:order-1 w-full sm:w-auto bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors">Back</button>
                 <div className="flex flex-col sm:flex-row gap-4 order-1 sm:order-2">
-                    <button onClick={handleSaveLabRequest} disabled={loading || !patient?.id} className={`w-full sm:w-auto py-3.5 px-6 rounded-xl font-extrabold transition-colors shadow-sm border-2 disabled:opacity-50 ${isOnline ? 'bg-white border-slate-500 text-slate-700 hover:bg-slate-50' : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'}`}>
+                    <button onClick={handleSaveLabRequest} disabled={loading || !patient?.id} className={`w-full sm:w-auto py-3.5 px-6 rounded-xl font-extrabold transition-colors shadow-sm border-2 disabled:opacity-50 ${isOnline ? 'bg-white border-[var(--border-strong)] text-[var(--text-2)] hover:bg-[var(--surface-subtle)]' : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'}`}>
                         {loading ? 'Sending...' : <><Icon name="clipboard" className="inline h-4 w-4 mr-2" />Send to Laboratory</>}
                     </button>
                     <button onClick={() => setActiveTab(8)} className={`w-full sm:w-auto text-white py-2.5 px-6 rounded-lg font-semibold transition-colors ${primaryBtnBg}`}>Next: E-Prescription</button>
@@ -1367,16 +1367,16 @@ export function ConsultationPage({
 
     const renderTab7 = () => (
         <div className={cardCls}>
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">VII. E-Prescription</h3>
+            <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-soft)] pb-4">
+                <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">VII. E-Prescription</h3>
             </div>
             <div className="space-y-4 mb-6">
                 {medications.map((med, i) => (
-                    <div key={i} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm relative group transition-all hover:border-slate-200">
+                    <div key={i} className="bg-[var(--surface-subtle)] border border-[var(--border)] rounded-2xl p-5 shadow-sm relative group transition-all hover:border-[var(--border)]">
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             {medications.length > 1 && <button onClick={() => handleRemoveMed(i)} className="text-xs bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg font-bold transition-colors">Remove</button>}
                         </div>
-                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Medication {i + 1}</h4>
+                        <h4 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wide mb-4">Medication {i + 1}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="sm:col-span-2 md:col-span-2">
                                 <label className={labelCls}>Medication Name</label>
@@ -1388,34 +1388,34 @@ export function ConsultationPage({
                     </div>
                 ))}
             </div>
-            <button onClick={handleAddMed} className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-sm font-bold text-slate-500 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all mb-8">
+            <button onClick={handleAddMed} className="w-full py-4 border-2 border-dashed border-[var(--border)] rounded-2xl text-sm font-bold text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-2)] hover:bg-[var(--surface-subtle)] transition-all mb-8">
                 + Add Another Medication
             </button>
 
 
-            <div className="mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Doctor's Authorization</p>
+            <div className="mt-6 bg-[var(--surface-subtle)] p-5 rounded-2xl border border-[var(--border)] shadow-sm">
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-4">Doctor's Authorization</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div>
                         <label className={labelCls}>E-Signature</label>
-                        <div className="border-2 border-dashed border-slate-300 bg-white rounded-xl h-32 mb-2 relative overflow-hidden cursor-crosshair">
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-200 font-bold text-[10px] pointer-events-none select-none uppercase tracking-widest">Sign Here</div>
+                        <div className="border-2 border-dashed border-[var(--border)] bg-white rounded-xl h-32 mb-2 relative overflow-hidden cursor-crosshair">
+                            <div className="absolute inset-0 flex items-center justify-center text-[var(--border)] font-bold text-[10px] pointer-events-none select-none uppercase tracking-wide">Sign Here</div>
                             <SignatureCanvas ref={sigCanvas} canvasProps={{ className: 'w-full h-full relative z-10' }} />
                         </div>
-                        <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest">Clear Signature</button>
+                        <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-[10px] font-bold text-[var(--text-muted)] hover:text-red-500 transition-colors uppercase tracking-wide">Clear Signature</button>
                     </div>
                     <div className="hidden md:block">
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium bg-white/50 p-4 rounded-xl border border-slate-100 border-dashed">
+                        <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-medium bg-white/50 p-4 rounded-xl border border-[var(--border-soft)] border-dashed">
                             By signing this electronic prescription, you authorize the dispensing of the medications listed above to the patient. This electronic signature carries the same legal weight as a physical signature.
                         </p>
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-slate-100">
-                <button onClick={() => setActiveTab(7)} className="order-2 sm:order-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto">Back</button>
+            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-[var(--border-soft)]">
+                <button onClick={() => setActiveTab(7)} className="order-2 sm:order-1 bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto">Back</button>
                 <div className="order-1 sm:order-2 flex flex-col items-end gap-3 w-full sm:w-auto">
-                    <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
-                        <button onClick={handlePrintPrescription} className="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-700 py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-slate-100"><Icon name="printer" className="h-4 w-4" /> Print Prescription Copy</button>
+                    <div className="bg-[var(--surface-subtle)] p-1.5 rounded-xl border border-[var(--border)] shadow-sm w-full sm:w-auto">
+                        <button onClick={handlePrintPrescription} className="w-full sm:w-auto bg-white hover:bg-[var(--surface-subtle)] text-[var(--text-2)] py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-[var(--border-soft)]"><Icon name="printer" className="h-4 w-4" /> Print Prescription Copy</button>
                     </div>
                     <button onClick={handleSavePrescription} className={`w-full sm:w-auto text-white py-3.5 px-8 rounded-xl font-bold shadow-md transition-all  flex items-center justify-center gap-2 ${primaryBtnBg}`}><Icon name="pill" className="h-4 w-4" /> Authorize &amp; Send to Pharmacy</button>
                 </div>
@@ -1439,31 +1439,31 @@ export function ConsultationPage({
             <div className="w-full">
 
                 {/* Patient Info Card */}
-                <div className="w-full bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-md">{patientInitials}</div>
+                <div className="w-full bg-white border border-[var(--border)] rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-md">{patientInitials}</div>
                     <div className="flex-1 min-w-0">
-                        <div className="font-bold text-slate-900 text-base leading-tight truncate">{patientFullName}</div>
+                        <div className="font-bold text-[var(--text)] text-base leading-tight truncate">{patientFullName}</div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                            <span className="text-xs text-slate-500"><span className="font-semibold text-slate-700">{patient?.age ?? '—'}</span> yrs old</span>
-                            <span className="text-xs text-slate-500"><span className="font-semibold text-slate-700">{patient?.sex || '—'}</span></span>
-                            <span className="text-xs text-slate-500">Blood Type: <span className="font-semibold text-slate-700">{patient?.bloodType || '—'}</span></span>
+                            <span className="text-xs text-[var(--text-secondary)]"><span className="font-semibold text-[var(--text-2)]">{patient?.age ?? '—'}</span> yrs old</span>
+                            <span className="text-xs text-[var(--text-secondary)]"><span className="font-semibold text-[var(--text-2)]">{patient?.sex || '—'}</span></span>
+                            <span className="text-xs text-[var(--text-secondary)]">Blood Type: <span className="font-semibold text-[var(--text-2)]">{patient?.bloodType || '—'}</span></span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                         {/* -- realtime pill in patient header -- */}
-                        <button onClick={() => setShowHistory(true)} className="text-xs font-semibold text-slate-700 hover:text-slate-800 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg transition-all flex items-center gap-1.5"><Icon name="clock" className="h-3.5 w-3.5" /> View Patient History</button>
-                        <button onClick={goBack} className="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-all">Return to Work Queue</button>
+                        <button onClick={() => setShowHistory(true)} className="text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5"><Icon name="clock" className="h-3.5 w-3.5" /> View Patient History</button>
+                        <button onClick={goBack} className="shrink-0 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)] bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all">Return to Work Queue</button>
                     </div>
                 </div>
 
                 {/* Tabs Row */}
-                <div className="flex gap-1 mb-8 border-b border-slate-200 overflow-x-auto whitespace-nowrap w-full scrollbar-hide">
+                <div className="flex gap-1 mb-8 border-b border-[var(--border)] overflow-x-auto whitespace-nowrap w-full scrollbar-hide">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => !tab.disabled && setActiveTab(tab.id)}
                             disabled={tab.disabled}
-                            className={`px-4 py-3 text-sm font-bold rounded-t-xl transition-all border-b-2 flex-shrink-0 ${tab.disabled ? 'text-slate-300 border-transparent cursor-not-allowed bg-slate-50 line-through' : activeTab === tab.id ? 'text-slate-700 bg-white border-slate-700 shadow-[0_-4px_15px_rgba(0,0,0,0.03)]' : 'text-slate-400 border-transparent hover:bg-white hover:text-slate-600'}`}
+                            className={`px-4 py-3 text-sm font-bold rounded-t-xl transition-all border-b-2 flex-shrink-0 ${tab.disabled ? 'text-[var(--text-muted)] border-transparent cursor-not-allowed bg-[var(--surface-subtle)] line-through' : activeTab === tab.id ? 'text-[var(--text-2)] bg-white border-[var(--brand-primary)] shadow-[var(--shadow-sm)]' : 'text-[var(--text-muted)] border-transparent hover:bg-white hover:text-[var(--text-2)]'}`}
                         >
                             {tab.label}
                         </button>

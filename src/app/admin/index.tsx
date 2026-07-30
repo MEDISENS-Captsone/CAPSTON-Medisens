@@ -80,13 +80,13 @@ async function getFunctionErrorMessage(error: unknown, data?: { error?: string }
 // ─── Utility Components ───────────────────────────────────────────────────────
 const RoleBadge = ({ role }: { role: string }) => {
     const roleColors: Record<string, string> = {
-        doctor: 'bg-slate-50 text-slate-700',
+        doctor: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
         nurse: 'bg-green-50 text-green-600',
         BHW: 'bg-orange-50 text-orange-600',
         midwives: 'bg-pink-50 text-pink-700',
         pharmacist: 'bg-emerald-50 text-emerald-700',
         laboratory: 'bg-indigo-50 text-indigo-700',
-        admin: 'bg-slate-100 text-slate-700'
+        admin: 'bg-[var(--surface-subtle)] text-[var(--text-2)]'
     };
 
     const roleLabels: Record<string, string> = {
@@ -113,15 +113,15 @@ const RoleBadge = ({ role }: { role: string }) => {
 const getAvatarColor = (role: string): string => {
     const normalizedRole = role === 'labaratory' ? 'laboratory' : role;
     const map: Record<string, string> = {
-        doctor: 'bg-slate-700',
+        doctor: 'bg-[var(--brand-active)]',
         nurse: 'bg-green-600',
         BHW: 'bg-orange-600',
         midwives: 'bg-pink-700',
         pharmacist: 'bg-emerald-700',
         laboratory: 'bg-indigo-600',
-        admin: 'bg-slate-700'
+        admin: 'bg-[var(--brand-active)]'
     };
-    return map[normalizedRole] || 'bg-slate-700';
+    return map[normalizedRole] || 'bg-[var(--brand-active)]';
 };
 
 // ─── Main Application Component ───────────────────────────────────────────────
@@ -398,7 +398,7 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden w-full font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="flex h-screen bg-[var(--surface-subtle)] overflow-hidden w-full font-['Plus_Jakarta_Sans',sans-serif]">
             <ToastComponent />
 
             <Sidebar
@@ -461,13 +461,13 @@ const AdminDashboard = () => {
                     {/* Main Content Card */}
                     <div className="ops-panel flex flex-col">
                         {/* Card Header */}
-                        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-subtle)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-base font-semibold text-slate-800 tracking-tight">Staff Accounts</h2>
-                                <p className="text-sm text-slate-500">Maintain authorized MEDISENS access and role assignments.</p>
+                                <h2 className="text-base font-semibold text-[var(--text)] tracking-tight">Staff Accounts</h2>
+                                <p className="text-sm text-[var(--text-secondary)]">Maintain authorized MEDISENS access and role assignments.</p>
                             </div>
                             <div className="flex items-center gap-3">
-                                {isRefreshingUsers && <span className="text-xs font-semibold text-slate-400" role="status">Updating...</span>}
+                                {isRefreshingUsers && <span className="text-xs font-semibold text-[var(--text-muted)]" role="status">Updating...</span>}
                                 <button
                                     type="button"
                                     onClick={() => void loadUsers(true)}
@@ -480,16 +480,16 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Filter Bar */}
-                        <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col sm:flex-row gap-3">
+                        <div className="p-4 bg-[var(--surface-subtle)]/50 border-b border-[var(--border-soft)] flex flex-col sm:flex-row gap-3">
                             <div className="relative flex-1">
-                                <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     aria-label="Search users by name or email"
                                     placeholder="Search by name or email..."
-                                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all"
+                                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-[var(--border)] rounded-xl text-sm font-medium focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all"
                                 />
                             </div>
                             <div className="flex gap-3 w-full sm:w-auto">
@@ -497,7 +497,7 @@ const AdminDashboard = () => {
                                     aria-label="Filter staff accounts by role"
                                     value={roleFilter}
                                     onChange={(e) => setRoleFilter(e.target.value)}
-                                    className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 hover:border-slate-300 transition-all min-w-[140px] cursor-pointer"
+                                    className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-2)] focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] hover:border-[var(--border)] transition-all min-w-[140px] cursor-pointer"
                                 >
                                     <option value="">All Roles</option>
                                     <option value="doctor">Doctor</option>
@@ -508,14 +508,14 @@ const AdminDashboard = () => {
                                     <option value="labaratory">Laboratory</option>
                                     <option value="admin">Admin</option>
                                 </select>
-                                <button type="button" onClick={openAddModal} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md shadow-none transition-all  shrink-0 justify-center">
+                                <button type="button" onClick={openAddModal} className="flex items-center gap-2 bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md shadow-none transition-all  shrink-0 justify-center">
                                     <Icon name="user-plus" className="h-4 w-4" /> Add User
                                 </button>
                             </div>
                         </div>
 
                         {/* Table Header */}
-                        <div className="hidden md:grid grid-cols-[minmax(0,2fr)_160px_200px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <div className="hidden md:grid grid-cols-[minmax(0,2fr)_160px_200px] gap-4 px-5 py-3 bg-[var(--surface-subtle)] border-b border-[var(--border)] text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                             <div>User</div>
                             <div>Role</div>
                             <div className="text-right">Actions</div>
@@ -527,25 +527,25 @@ const AdminDashboard = () => {
                                 <SkeletonList rows={5} />
                             ) : filteredUsers.length === 0 ? (
                                 <div className="clinical-table-state flex-col p-12">
-                                    <div className="w-16 h-16 bg-slate-100 text-slate-300 rounded-2xl flex items-center justify-center mb-4"><Icon name="users" className="h-8 w-8" /></div>
-                                    <h3 className="text-lg font-bold text-slate-700">No staff accounts found</h3>
-                                    <p className="text-sm text-slate-500 mt-1">Adjust the role filter or search by staff name or email.</p>
+                                    <div className="w-16 h-16 bg-[var(--surface-subtle)] text-[var(--text-muted)] rounded-2xl flex items-center justify-center mb-4"><Icon name="users" className="h-8 w-8" /></div>
+                                    <h3 className="text-lg font-bold text-[var(--text-2)]">No staff accounts found</h3>
+                                    <p className="text-sm text-[var(--text-secondary)] mt-1">Adjust the role filter or search by staff name or email.</p>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div className="divide-y divide-[var(--border-soft)]">
                                     {filteredUsers.map(u => {
                                         const av = (u.full_name?.[0] || '?').toUpperCase();
                                         const colorClass = getAvatarColor(u.role);
                                         return (
-                                            <div key={u.id} className="flex flex-col md:grid md:grid-cols-[minmax(0,2fr)_160px_200px] md:items-center gap-4 px-5 py-3.5 hover:bg-slate-50/80 group">
+                                            <div key={u.id} className="flex flex-col md:grid md:grid-cols-[minmax(0,2fr)_160px_200px] md:items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-subtle)]/80 group">
                                                 {/* User Info */}
                                                 <div className="flex items-center gap-3.5 min-w-0">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm ${colorClass}`}>
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm ${colorClass}`}>
                                                         {av}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <div className="font-bold text-slate-800 truncate">{u.full_name || '—'}</div>
-                                                        <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{u.email || '—'}</div>
+                                                        <div className="font-bold text-[var(--text)] truncate">{u.full_name || '—'}</div>
+                                                        <div className="text-[11px] text-[var(--text-secondary)] font-medium truncate mt-0.5">{u.email || '—'}</div>
                                                     </div>
                                                 </div>
 
@@ -580,37 +580,37 @@ const AdminDashboard = () => {
             {isUserModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget) closeUserModal(); }}>
                     <div role="dialog" aria-modal="true" aria-labelledby="user-dialog-title" className="bg-white w-full max-w-md rounded-2xl shadow-sm flex flex-col  overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <div className="p-6 border-b border-[var(--border-soft)] flex justify-between items-center bg-[var(--surface-subtle)]/50">
                             <div>
-                                <h3 id="user-dialog-title" className="text-xl font-black text-slate-800 tracking-tight">{isEditMode ? `Edit: ${fFullName}` : 'Add New User'}</h3>
-                                <p className="text-xs font-medium text-slate-500 mt-1">{isEditMode ? 'Update name or role assignment' : 'Create a new system account'}</p>
+                                <h3 id="user-dialog-title" className="text-xl font-bold text-[var(--text)]">{isEditMode ? `Edit: ${fFullName}` : 'Add New User'}</h3>
+                                <p className="text-xs font-medium text-[var(--text-secondary)] mt-1">{isEditMode ? 'Update name or role assignment' : 'Create a new system account'}</p>
                             </div>
-                            <button type="button" onClick={closeUserModal} aria-label="Close user dialog" className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close user dialog" /></button>
+                            <button type="button" onClick={closeUserModal} aria-label="Close user dialog" className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close user dialog" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name</label>
-                                <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} placeholder="e.g. Dr. Juan Dela Cruz" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all" />
+                                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Full Name</label>
+                                <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} placeholder="e.g. Dr. Juan Dela Cruz" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
                             </div>
 
                             {!isEditMode && (
                                 <>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
-                                        <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="e.g. user@medisens.com" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all" />
+                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Email Address</label>
+                                        <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="e.g. user@medisens.com" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
-                                            <input type="password" value={fPassword} onChange={e => setFPassword(e.target.value)} placeholder="Min. 6 chars" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all" />
+                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Password</label>
+                                            <input type="password" value={fPassword} onChange={e => setFPassword(e.target.value)} placeholder="Min. 6 chars" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Confirm Password</label>
-                                            <input type="password" value={fConfirmPassword} onChange={e => setFConfirmPassword(e.target.value)} placeholder="Repeat password" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all" />
+                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Confirm Password</label>
+                                            <input type="password" value={fConfirmPassword} onChange={e => setFConfirmPassword(e.target.value)} placeholder="Repeat password" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
                                         </div>
                                     </div>
                                     <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-2">
-                                        <div className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Authorized Account Creation</div>
+                                        <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Authorized Account Creation</div>
                                         <p className="text-[11px] text-amber-800 font-medium leading-snug">
                                             New accounts must be created only for approved RHU personnel. Assign the correct role before saving access.
                                         </p>
@@ -619,8 +619,8 @@ const AdminDashboard = () => {
                             )}
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Role Assignment</label>
-                                <select value={fRole} onChange={e => setFRole(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all cursor-pointer">
+                                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Role Assignment</label>
+                                <select value={fRole} onChange={e => setFRole(e.target.value)} className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-2)] focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all cursor-pointer">
                                     <option value="" disabled>Select a role...</option>
                                     <option value="doctor">Doctor</option>
                                     <option value="nurse">Nurse</option>
@@ -632,9 +632,9 @@ const AdminDashboard = () => {
                                 </select>
                             </div>
                         </div>
-                        <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-                            <button type="button" onClick={closeUserModal} disabled={isSaving} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={handleSaveUser} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-sm font-bold shadow-md shadow-none transition-all disabled:opacity-50 min-w-[140px] justify-center text-center">
+                        <div className="p-5 border-t border-[var(--border-soft)] flex justify-end gap-3 bg-[var(--surface-subtle)]">
+                            <button type="button" onClick={closeUserModal} disabled={isSaving} className="px-5 py-2.5 bg-white border border-[var(--border)] text-[var(--text-2)] rounded-xl text-sm font-bold hover:bg-[var(--surface-subtle)] transition-colors disabled:opacity-50">Cancel</button>
+                            <button type="button" onClick={handleSaveUser} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] text-white rounded-xl text-sm font-bold shadow-md shadow-none transition-all disabled:opacity-50 min-w-[140px] justify-center text-center">
                                 {isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create User'}
                             </button>
                         </div>
@@ -645,16 +645,16 @@ const AdminDashboard = () => {
             {/* ─── Confirm Delete Modal ─── */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget && !isSaving) closeConfirmModal(); }}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-[24px] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
+                    <div role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-lg border border-[var(--border)] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-5 shadow-inner"><Icon name="trash" className="h-8 w-8" /></div>
-                        <h3 id="delete-user-dialog-title" className="text-xl font-black text-slate-800 tracking-tight mb-2">Delete User?</h3>
-                        <p className="text-sm text-slate-500 leading-relaxed mb-8">
-                            Are you sure you want to permanently delete <strong className="text-slate-800 font-bold">{userToDelete?.name}</strong>? This action cannot be undone.
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-lg flex items-center justify-center mb-5"><Icon name="trash" className="h-8 w-8" /></div>
+                        <h3 id="delete-user-dialog-title" className="text-xl font-bold text-[var(--text)] mb-2">Delete User?</h3>
+                        <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-8">
+                            Are you sure you want to permanently delete <strong className="text-[var(--text)] font-bold">{userToDelete?.name}</strong>? This action cannot be undone.
                         </p>
                         <div className="flex w-full gap-3">
-                            <button type="button" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={handleDeleteUser} disabled={isSaving} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 shadow-md shadow-red-500/20 transition-all disabled:opacity-50">
+                            <button type="button" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 py-3 bg-[var(--surface-subtle)] text-[var(--text-2)] rounded-xl font-bold text-sm hover:bg-[var(--border-soft)] transition-colors disabled:opacity-50">Cancel</button>
+                            <button type="button" onClick={handleDeleteUser} disabled={isSaving} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 shadow-sm transition-colors disabled:opacity-50">
                                 {isSaving ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>

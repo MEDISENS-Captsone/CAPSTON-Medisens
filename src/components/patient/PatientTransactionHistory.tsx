@@ -46,10 +46,10 @@ const TYPE_MARK: Record<PatientTransaction['type'], string> = {
 };
 
 const TYPE_MARK_CLASS: Record<PatientTransaction['type'], string> = {
-    registration: 'bg-slate-50 text-slate-700 ring-slate-200',
+    registration: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border)]',
     consent: 'bg-amber-50 text-amber-800 ring-amber-200',
-    initial_consultation: 'bg-slate-50 text-slate-800 ring-slate-200',
-    doctor_consultation: 'bg-slate-50 text-slate-700 ring-slate-200',
+    initial_consultation: 'bg-[var(--surface-subtle)] text-[var(--text)] ring-[var(--border)]',
+    doctor_consultation: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border)]',
     lab_request: 'bg-violet-50 text-violet-800 ring-violet-200',
     lab_result: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
     prescription: 'bg-rose-50 text-rose-800 ring-rose-200',
@@ -77,12 +77,12 @@ function CardHeader({ type, title, date, status, summary }: PatientTransaction) 
                     <StatusBadge tone={type === 'lab_result' || type === 'pharmacy' ? 'green' : type === 'vaccine' ? 'indigo' : 'blue'}>
                         {TYPE_LABEL[type]}
                     </StatusBadge>
-                    {status && <span className="text-xs font-bold text-slate-600">{status}</span>}
+                    {status && <span className="text-xs font-bold text-[var(--text-2)]">{status}</span>}
                 </div>
-                <h4 className="mt-2 text-base font-extrabold text-slate-900">{title}</h4>
-                {summary && <p className="mt-1 text-sm font-medium leading-snug text-slate-700">{summary}</p>}
+                <h4 className="mt-2 text-base font-extrabold text-[var(--text)]">{title}</h4>
+                {summary && <p className="mt-1 text-sm font-medium leading-snug text-[var(--text-2)]">{summary}</p>}
             </div>
-            <div className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-slate-500 sm:text-right">{formatDate(date)}</div>
+            <div className="whitespace-nowrap text-xs font-semibold text-[var(--text-secondary)] sm:text-right">{formatDate(date)}</div>
         </div>
     );
 }
@@ -93,13 +93,13 @@ function ItemsGrid({ items }: { items: PatientTransaction['items'] }) {
     return (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map(group => (
-                <div key={group.label} className={`rounded-lg border border-slate-200 bg-slate-50 p-3 ${!group.values.length ? 'hidden' : ''}`}>
-                    <div className="mb-2 text-[0.68rem] font-black uppercase tracking-widest text-slate-600">{group.label}</div>
+                <div key={group.label} className={`rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 ${!group.values.length ? 'hidden' : ''}`}>
+                    <div className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--text-2)]">{group.label}</div>
                     <ul className="space-y-1.5">
                         {group.values.map((value, index) => (
                             <li
                                 key={`${group.label}-${index}`}
-                                className="rounded-md border border-slate-100 bg-white px-3 py-2 text-sm font-medium leading-relaxed text-slate-800 shadow-sm"
+                                className="rounded-md border border-[var(--border-soft)] bg-white px-3 py-2 text-sm font-medium leading-relaxed text-[var(--text)] shadow-sm"
                             >
                                 {value}
                             </li>
@@ -117,7 +117,7 @@ function RetryButton({ onRetry }: { onRetry?: () => void }) {
         <button
             type="button"
             onClick={onRetry}
-            className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="mt-3 rounded-lg bg-[var(--brand-active)] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-active-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
         >
             Retry
         </button>
@@ -244,15 +244,15 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                     key={option.id}
                     type="button"
                     onClick={() => setActiveFilter(option.id)}
-                    className={`rounded-lg border px-3 py-2 text-xs font-extrabold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 ${
+                    className={`rounded-lg border px-3 py-2 text-xs font-extrabold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${
                         activeFilter === option.id
-                            ? 'border-slate-700 bg-slate-700 text-white'
-                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700'
+                            ? 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white'
+                            : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-2)]'
                     }`}
                 >
                     {option.label}
                     <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[0.65rem] ${
-                        activeFilter === option.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        activeFilter === option.id ? 'bg-white/20 text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-2)]'
                     }`}>
                         {option.count}
                     </span>
@@ -266,7 +266,7 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
             return (
                 <div>
                     <HistoryWarning warnings={visibleWarnings} onRetry={retry} />
-                    <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-700">
+                    <div className="rounded-lg border border-[var(--border)] bg-white p-3 text-sm font-semibold text-[var(--text-2)]">
                         Some patient history sections are unavailable. Retry to refresh the record.
                     </div>
                 </div>
@@ -292,7 +292,7 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
             </div>
             <HistoryWarning warnings={visibleWarnings} onRetry={retry} />
 
-            <div className="absolute bottom-3 left-[18px] top-3 hidden w-0.5 bg-slate-200 sm:block" />
+            <div className="absolute bottom-3 left-[18px] top-3 hidden w-0.5 bg-[var(--border)] sm:block" />
 
             {filteredTransactions.length === 0 ? (
                 <EmptyState
@@ -310,16 +310,16 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                                     : transaction.type === 'vaccine'
                                         ? 'bg-indigo-500'
                                         : transaction.type === 'registration'
-                                            ? 'bg-slate-600'
+                                            ? 'bg-[var(--brand-active)]'
                                             : transaction.type === 'consent'
                                                 ? 'bg-amber-500'
                                                 : transaction.type === 'follow_up'
                                                     ? 'bg-purple-500'
-                                                    : 'bg-slate-400'
+                                                    : 'bg-[var(--text-muted)]'
                             }`} />
                         </div>
 
-                        <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+                        <div className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm transition-all hover:border-[var(--border)] hover:shadow-md">
                             <CardHeader {...transaction} />
                             <ItemsGrid items={transaction.items} />
                         </div>

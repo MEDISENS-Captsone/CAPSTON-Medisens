@@ -36,27 +36,27 @@ function HistoryModal({ patient, logs, onClose }: { patient: any; logs: any[]; o
                     {logs.length === 0 ? (
                         <div className="text-center py-10">
                             <Icon name="clipboard" className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                            <p className="text-slate-500 font-medium">No FHSIS history is recorded for this patient yet.</p>
+                            <p className="text-[var(--text-secondary)] font-medium">No FHSIS history is recorded for this patient yet.</p>
                         </div>
                     ) : (
-                        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-slate-200 before:to-transparent">
+                        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-[var(--border)] before:to-transparent">
                             {logs.map(log => (
                                 <div key={log.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-600 text-white text-xs shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-[var(--brand-active)] text-white text-xs shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
                                         <Icon name={getLogIcon(log.category)} className="h-4 w-4" />
                                     </div>
-                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-[var(--border)] bg-white shadow-sm">
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="font-bold text-slate-800 text-sm uppercase">{log.category.replace('_', ' ')}</span>
-                                            <span className="text-[0.65rem] font-bold text-slate-400">{new Date(log.created_at).toLocaleDateString()}</span>
+                                            <span className="font-bold text-[var(--text)] text-sm uppercase">{log.category.replace('_', ' ')}</span>
+                                            <span className="text-[0.65rem] font-bold text-[var(--text-muted)]">{new Date(log.created_at).toLocaleDateString()}</span>
                                         </div>
-                                        <div className="text-xs text-slate-600 space-y-1">
+                                        <div className="text-xs text-[var(--text-2)] space-y-1">
                                             {log.category === 'child' && log.data_fields?.vaccine_records && Array.isArray(log.data_fields.vaccine_records) && (
-                                                <div className="mb-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                                                    <span className="font-bold text-slate-700 uppercase text-[0.6rem] tracking-wider block mb-1">Vaccine Records</span>
+                                                <div className="mb-2 p-2 bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">
+                                                    <span className="font-semibold text-[var(--text-2)] uppercase text-[0.6rem] tracking-wide block mb-1">Vaccine Records</span>
                                                     {normalizeVaccineRecords(log.data_fields).map(vaccine => (
-                                                        <div key={vaccine.id} className="mb-2 rounded-md border border-slate-200 bg-white p-2 last:mb-0">
-                                                            <div className="font-bold text-slate-900">{getVaccineDisplayName(vaccine)}</div>
+                                                        <div key={vaccine.id} className="mb-2 rounded-md border border-[var(--border)] bg-white p-2 last:mb-0">
+                                                            <div className="font-bold text-[var(--text)]">{getVaccineDisplayName(vaccine)}</div>
                                                             <dl className="mt-1 grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
                                                                 {[
                                                                     ['Category', vaccine.vaccine_category],
@@ -68,7 +68,7 @@ function HistoryModal({ patient, logs, onClose }: { patient: any; logs: any[]; o
                                                                     ['Lot number', vaccine.lot_number],
                                                                     ['Remarks', vaccine.remarks],
                                                                 ].filter((entry): entry is [string, string] => Boolean(entry[1])).map(([label, value]) => (
-                                                                    <div key={label} className="text-[0.65rem] text-slate-800">
+                                                                    <div key={label} className="text-[0.65rem] text-[var(--text)]">
                                                                         <dt className="inline font-bold">{label}: </dt>
                                                                         <dd className="inline">{value}</dd>
                                                                     </div>
@@ -117,21 +117,21 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                 />
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden w-full">
-                <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden w-full">
+                <div className="p-6 sm:p-8 border-b border-[var(--border-soft)] bg-[var(--surface-subtle)]/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Patient Directory</h2>
-                        <p className="text-sm text-slate-500 font-medium mt-0.5">All registered patients</p>
+                        <h2 className="text-2xl font-extrabold text-[var(--text)] tracking-tight">Patient Directory</h2>
+                        <p className="text-sm text-[var(--text-secondary)] font-medium mt-0.5">All registered patients</p>
                     </div>
                     <div className="relative w-full md:max-w-sm">
-                        <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
                         <input
                             type="text"
                             aria-label="Search midwife patient records"
                             placeholder="Search patient name..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 outline-none transition-all text-sm shadow-sm"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none transition-all text-sm shadow-sm"
                         />
                     </div>
                 </div>
@@ -142,8 +142,8 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                     ) : filteredPatients.length === 0 ? (
                         <div className="clinical-table-state flex-col py-20">
                             <Icon name="inbox" className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                            <div className="font-bold text-slate-700 text-lg">No matching patients found</div>
-                            <div className="text-sm text-slate-400 mt-1">Search by patient name or review the full patient directory.</div>
+                            <div className="font-bold text-[var(--text-2)] text-lg">No matching patients found</div>
+                            <div className="text-sm text-[var(--text-muted)] mt-1">Search by patient name or review the full patient directory.</div>
                         </div>
                     ) : (
                         filteredPatients.map(patient => (
@@ -157,14 +157,14 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                     onClick={() => onPatientClick?.(patient)}
                                     className="flex items-center gap-4 flex-1 min-w-0 text-left"
                                 >
-                                    <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm uppercase shrink-0 group-hover:bg-slate-200 transition-colors">
+                                    <div className="w-11 h-11 rounded-full bg-[var(--surface-subtle)] text-[var(--text-2)] flex items-center justify-center font-bold text-sm uppercase shrink-0 group-hover:bg-[var(--border-soft)] transition-colors">
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-slate-800 text-sm truncate capitalize">
+                                        <div className="font-bold text-[var(--text)] text-sm truncate capitalize">
                                             {patient.lastName}, {patient.firstName}
                                         </div>
-                                        <div className="text-xs text-slate-500 font-medium mt-0.5">
+                                        <div className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">
                                             {patient.age ?? '—'} yrs • {patient.sex || 'N/A'}
                                         </div>
                                     </div>
@@ -173,7 +173,7 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                 {/* Right side */}
                                 <div className="shrink-0 flex items-center gap-3">
                                     <div className="flex flex-col items-end gap-1.5">
-                                        <span className="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider">
+                                        <span className="text-[0.65rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
                                             {patient.created_at
                                                 ? new Date(patient.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
                                                 : '—'}
@@ -196,7 +196,7 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                         <Icon name="clipboard" className="inline h-3.5 w-3.5 mr-1" /> History
                                     </button>
 
-                                    <div className="text-slate-300 group-hover:text-slate-500 transition-colors text-sm">›</div>
+                                    <div className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors text-sm">›</div>
                                 </div>
                             </div>
                         ))

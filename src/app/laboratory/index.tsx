@@ -202,28 +202,28 @@ function LabRequestDetail({
             <Modal labelledBy="lab-request-dialog-title" onClose={onClose} className="lab-drawer">
                 <div className="lab-drawer-header">
                     <div className="min-w-0">
-                        <div id="lab-request-dialog-title" className="font-semibold text-slate-900 text-base">Lab Request #{request.labrequest_id}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{patientName} · {formatDisplayDate(request.request_date)}</div>
+                        <div id="lab-request-dialog-title" className="font-semibold text-[var(--text)] text-base">Lab Request #{request.labrequest_id}</div>
+                        <div className="text-xs text-[var(--text-secondary)] mt-0.5">{patientName} · {formatDisplayDate(request.request_date)}</div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                         <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor(request.status)}`}>
                             {request.status || 'Pending'}
                         </span>
-                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
+                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
                     </div>
                 </div>
 
                 <div className="lab-drawer-body space-y-6">
-                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow">
+                    <div className="bg-[var(--surface-subtle)] rounded-xl border border-[var(--border)] p-4 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-lg shrink-0 shadow">
                             {request.patient_firstName?.[0]?.toUpperCase() ?? '?'}
                         </div>
                         <div>
-                            <div className="font-bold text-slate-900">{patientName}</div>
-                            <div className="text-xs text-slate-500 mt-0.5 flex gap-3 flex-wrap">
+                            <div className="font-bold text-[var(--text)]">{patientName}</div>
+                            <div className="text-xs text-[var(--text-secondary)] mt-0.5 flex gap-3 flex-wrap">
                                 {request.patient_age != null && <span>{request.patient_age} yrs old</span>}
                                 {request.patient_sex && <span>{request.patient_sex}</span>}
-                                {request.requested_by && <span>Req. by: <span className="font-semibold text-slate-700">{request.requested_by}</span></span>}
+                                {request.requested_by && <span>Req. by: <span className="font-semibold text-[var(--text-2)]">{request.requested_by}</span></span>}
                             </div>
                         </div>
                     </div>
@@ -231,14 +231,14 @@ function LabRequestDetail({
                     {request.chief_complaint && (
                         <div>
                             <div className="clinical-field-label">Chief Complaint</div>
-                            <div className="text-sm text-slate-700 bg-slate-50 rounded-lg px-4 py-3 border border-slate-200">{request.chief_complaint}</div>
+                            <div className="text-sm text-[var(--text-2)] bg-[var(--surface-subtle)] rounded-lg px-4 py-3 border border-[var(--border)]">{request.chief_complaint}</div>
                         </div>
                     )}
 
                     <div>
                         <div className="clinical-field-label">Requested Tests</div>
                         {activeTests.length === 0 && !request.others ? (
-                            <p className="text-sm text-slate-400 italic">No tests specified.</p>
+                            <p className="text-sm text-[var(--text-muted)] italic">No tests specified.</p>
                         ) : (
                             <div className="space-y-2">
                                 {(() => {
@@ -251,24 +251,24 @@ function LabRequestDetail({
                                     return (
                                         <>
                                             {routine.length > 0 && (
-                                                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                                                <div className="bg-white border border-[var(--border)] rounded-xl p-4">
                                                     <div className="clinical-field-label">Routine Tests</div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                         {routine.map(t => (
                                                             <div key={t.label} className="flex items-center gap-2.5">
-                                                                <div className="w-4 h-4 rounded bg-slate-700 flex items-center justify-center shrink-0">
+                                                                <div className="w-4 h-4 rounded bg-[var(--brand-active)] flex items-center justify-center shrink-0">
                                                                     <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                                     </svg>
                                                                 </div>
-                                                                <span className="text-sm text-slate-700">{t.label}</span>
+                                                                <span className="text-sm text-[var(--text-2)]">{t.label}</span>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
                                             {fasting.length > 0 && (
-                                                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                                                <div className="bg-white border border-[var(--border)] rounded-xl p-4">
                                                     <div className="clinical-field-label">Fasting Tests <span className="font-normal normal-case">(8-10 hrs)</span></div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                         {fasting.map(t => (
@@ -278,16 +278,16 @@ function LabRequestDetail({
                                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                                     </svg>
                                                                 </div>
-                                                                <span className="text-sm text-slate-700">{t.label}</span>
+                                                                <span className="text-sm text-[var(--text-2)]">{t.label}</span>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
                                             {request.others && (
-                                                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                                                <div className="bg-white border border-[var(--border)] rounded-xl p-4">
                                                     <div className="clinical-field-label">Others</div>
-                                                    <div className="text-sm text-slate-700">{request.others}</div>
+                                                    <div className="text-sm text-[var(--text-2)]">{request.others}</div>
                                                 </div>
                                             )}
                                         </>
@@ -304,7 +304,7 @@ function LabRequestDetail({
                                 type="text"
                                 value={currentUserName}
                                 disabled
-                                className="w-full bg-slate-100 border border-slate-300 rounded-lg p-3 text-sm font-semibold text-slate-600 cursor-not-allowed"
+                                className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-lg p-3 text-sm font-semibold text-[var(--text-2)] cursor-not-allowed"
                             />
                         </div>
                         <div>
@@ -314,7 +314,7 @@ function LabRequestDetail({
                                 value={datePerformed}
                                 onChange={e => setDatePerformed(e.target.value)}
                                 disabled={request.status === 'Completed'}
-                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-left focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none text-sm text-slate-800 disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600 disabled:font-semibold disabled:cursor-not-allowed"
+                                className="w-full bg-white border border-[var(--border)] rounded-lg p-3 text-left focus:border-[var(--focus-color)] focus:ring-1 focus:ring-[var(--focus-ring)] outline-none text-sm text-[var(--text)] disabled:bg-[var(--surface-subtle)] disabled:border-[var(--border)] disabled:text-[var(--text-2)] disabled:font-semibold disabled:cursor-not-allowed"
                             />
                         </div>
                     </div>
@@ -323,14 +323,14 @@ function LabRequestDetail({
                         <label className="clinical-field-label">
                             Lab Results / Findings
                             {request.status === 'Completed' && <span className="ml-2 text-green-600 normal-case font-semibold inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Result recorded</span>}
-                            {loadingLabResult && <span className="ml-2 text-slate-700 normal-case font-semibold">Loading recorded result...</span>}
+                            {loadingLabResult && <span className="ml-2 text-[var(--text-2)] normal-case font-semibold">Loading recorded result...</span>}
                         </label>
                         <textarea
                             rows={6}
                             value={results}
                             onChange={e => setResults(e.target.value)}
                             disabled={request.status === 'Completed'}
-                            className="w-full bg-white border border-slate-300 rounded-lg p-4 focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none text-sm leading-relaxed text-slate-800 resize-y disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600 disabled:font-medium disabled:cursor-not-allowed"
+                            className="w-full bg-white border border-[var(--border)] rounded-lg p-4 focus:border-[var(--focus-color)] focus:ring-1 focus:ring-[var(--focus-ring)] outline-none text-sm leading-relaxed text-[var(--text)] resize-y disabled:bg-[var(--surface-subtle)] disabled:border-[var(--border)] disabled:text-[var(--text-2)] disabled:font-medium disabled:cursor-not-allowed"
                             placeholder="Enter laboratory findings, interpretation, and relevant notes..."
                         />
                     </div>
@@ -573,13 +573,12 @@ const LaboratoryDashboard = () => {
                         </div>
 
                         <div className="m-3 md:m-4 xl:m-5 ops-panel overflow-hidden mb-6">
-                            <div className="px-4 py-3 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/60">
+                            <div className="px-4 py-3 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface-subtle)]">
                                 <div>
-                                    <h2 className="text-base font-semibold text-slate-800">Lab Requests</h2>
-                                    <p className="text-xs text-slate-500">Select a request to review details and record laboratory results.</p>
+                                    <h2 className="text-base font-semibold text-[var(--text)]">Lab Requests</h2>
+                                    <p className="text-xs text-[var(--text-secondary)]">Select a request to review details and record laboratory results.</p>
                                 </div>
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <span className="text-xs font-medium text-slate-500">{stats.pending} pending · {stats.completed} completed · {stats.total} total</span>
                                     {(['All', 'Pending',  'Completed'] as const).map(s => (
                                         <button
                                             type="button"
@@ -594,14 +593,14 @@ const LaboratoryDashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                            <div className="p-4 border-b border-[var(--border-soft)] bg-[var(--surface-subtle)]/50">
                                 <div className="relative w-full sm:max-w-lg">
-                                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
                                     <input
                                         type="text"
                                         aria-label="Search lab requests by patient, lab number, or complaint"
                                         placeholder="Search by patient name, lab no, complaint..."
-                                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 text-sm bg-white"
+                                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] text-sm bg-white"
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
                                     />
@@ -648,27 +647,27 @@ const LaboratoryDashboard = () => {
                                                     >
                                                         <td className="px-6 py-3">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                                                <div className="w-8 h-8 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-xs shrink-0">
                                                                     {r.patient_firstName?.[0]?.toUpperCase() ?? '?'}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="font-semibold text-slate-800">{name}</div>
+                                                                    <div className="font-semibold text-[var(--text)]">{name}</div>
                                                                     {r.patient_sex && (
-                                                                        <div className="text-xs text-slate-400">
+                                                                        <div className="text-xs text-[var(--text-muted)]">
                                                                             {r.patient_sex}{r.patient_age != null ? ` · ${r.patient_age} y/o` : ''}
                                                                         </div>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-3 text-slate-600">{formatDisplayDate(r.request_date)}</td>
+                                                        <td className="px-6 py-3 text-[var(--text-2)]">{formatDisplayDate(r.request_date)}</td>
                                                         <td className="px-6 py-3">
                                                             <span className="clinical-neutral-badge">
                                                                 {testCount} test{testCount !== 1 ? 's' : ''}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-3 text-slate-600 max-w-[180px] truncate">{r.chief_complaint || '—'}</td>
-                                                        <td className="px-6 py-3 text-slate-600">{r.requested_by || '—'}</td>
+                                                        <td className="px-6 py-3 text-[var(--text-2)] max-w-[180px] truncate">{r.chief_complaint || '—'}</td>
+                                                        <td className="px-6 py-3 text-[var(--text-2)]">{r.requested_by || '—'}</td>
                                                         <td className="px-6 py-3">
                                                             <span className={`clinical-status-badge ${statusBadge(r.status)}`}>
                                                                 {r.status || 'Pending'}

@@ -135,7 +135,7 @@ export default function FollowUp() {
 
     const inputCls = clinicalInputClass;
     const labelCls = clinicalLabelClass;
-    const sectionCls = "bg-white border border-slate-200 rounded-lg p-4 md:p-5 shadow-sm mb-4";
+    const sectionCls = "bg-white border border-[var(--border)] rounded-lg p-4 md:p-5 shadow-sm mb-4";
 
     const navItems = role === 'doctor'
         ? [
@@ -153,7 +153,7 @@ export default function FollowUp() {
     const patientInitials = patient ? `${patient.firstName?.[0] || ''}${patient.lastName?.[0] || ''}`.toUpperCase() : '?';
 
     return (
-        <div className="flex w-full min-h-screen bg-[var(--bg)] text-slate-800 overflow-x-hidden font-sans">
+        <div className="flex w-full min-h-screen bg-[var(--bg)] text-[var(--text)] overflow-x-hidden font-sans">
             
             <ToastComponent />
 
@@ -176,19 +176,19 @@ export default function FollowUp() {
 
             <div className="flex-1 flex flex-col min-h-screen w-full md:pl-[240px] print:pl-0">
                 {/* TOPBAR */}
-                <header className="h-[64px] md:h-[72px] w-full bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm md:shadow-none">
+                <header className="h-[52px] md:h-[56px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-3 md:px-5 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-[var(--text-2)] hover:bg-[var(--surface-subtle)] rounded-lg">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                         </button>
-                        <div className="font-bold text-lg text-slate-800">Follow-Up Visitation</div>
+                        <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">Follow-Up Visitation</h1>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="hidden sm:block text-right">
-                            <div className="text-sm font-bold text-slate-900 leading-tight">{userName}</div>
-                            <div className="text-[0.7rem] text-slate-500 capitalize">{role}</div>
+                            <div className="text-sm font-bold text-[var(--text)] leading-tight">{userName}</div>
+                            <div className="text-[0.7rem] text-[var(--text-secondary)] capitalize">{role}</div>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold shadow-md">{userInitials}</div>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--brand-active)] text-[length:var(--type-label-size)] font-semibold text-white shadow-sm">{userInitials}</div>
                     </div>
                 </header>
 
@@ -199,25 +199,25 @@ export default function FollowUp() {
                     <div className="w-full ">
                         
                         <div className="flex items-center gap-4 mb-6">
-                            <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-lg shadow-sm hover:bg-slate-50 transition-colors">← Back</button>
+                            <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
                             <div>
-                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Follow-Up Record</h1>
-                                <p className="text-sm text-slate-500 font-medium mt-1">RHU Form Part IV</p>
+                                <h1 className="text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)]">Follow-Up Record</h1>
+                                <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">RHU Form Part IV</p>
                             </div>
                         </div>
 
                         {/* Patient Card */}
                         {patient && (
-                            <div className="w-full bg-white border border-slate-200 rounded-xl p-5 mb-6 flex flex-wrap items-center gap-4 shadow-sm">
-                                <div className="w-14 h-14 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-md">
+                            <div className="w-full bg-white border border-[var(--border)] rounded-xl p-5 mb-6 flex flex-wrap items-center gap-4 shadow-sm">
+                                <div className="w-14 h-14 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-md">
                                     {patientInitials}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-slate-900 text-lg leading-tight truncate">{patientFullName}</div>
+                                    <div className="font-bold text-[var(--text)] text-lg leading-tight truncate">{patientFullName}</div>
                                     <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5">
-                                        <span className="text-sm text-slate-500"><span className="font-semibold text-slate-700">{patient.age ?? '—'}</span> yrs old</span>
-                                        <span className="text-sm text-slate-500"><span className="font-semibold text-slate-700">{patient.sex || '—'}</span></span>
-                                        <span className="text-sm text-slate-500">Blood Type: <span className="font-semibold text-slate-700">{patient.bloodType || '—'}</span></span>
+                                        <span className="text-sm text-[var(--text-secondary)]"><span className="font-semibold text-[var(--text-2)]">{patient.age ?? '—'}</span> yrs old</span>
+                                        <span className="text-sm text-[var(--text-secondary)]"><span className="font-semibold text-[var(--text-2)]">{patient.sex || '—'}</span></span>
+                                        <span className="text-sm text-[var(--text-secondary)]">Blood Type: <span className="font-semibold text-[var(--text-2)]">{patient.bloodType || '—'}</span></span>
                                     </div>
                                 </div>
                             </div>
@@ -253,7 +253,7 @@ export default function FollowUp() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
                                     <div><label className={labelCls}>Chief Complaints</label><textarea rows={4} value={formData.chiefComplaint} onChange={e => setFormData({...formData, chiefComplaint: e.target.value})} className={`${inputCls} resize-y`} placeholder="Describe current symptoms..." /></div>
                                     <div>
-                                        <label className={labelCls}>Diagnosis <span className="text-slate-400 font-normal normal-case">(Doctor Only)</span></label>
+                                        <label className={labelCls}>Diagnosis <span className="text-[var(--text-muted)] font-normal normal-case">(Doctor Only)</span></label>
                                         <textarea rows={4} value={formData.diagnosis} onChange={e => setFormData({...formData, diagnosis: e.target.value})} className={`${inputCls} resize-y`} disabled={role === 'nurse'} placeholder={role === 'nurse' ? 'Awaiting Doctor\'s diagnosis' : 'Enter diagnosis...'} />
                                     </div>
                                 </div>
@@ -273,7 +273,7 @@ export default function FollowUp() {
                                     <div><label className={labelCls}>Height (cm)</label><input type="number" step="0.1" value={formData.vitals.ht} onChange={e => handleVitalChange('ht', e.target.value)} className={inputCls} placeholder="165.0" /></div>
                                     <div>
                                         <label className={labelCls}>BMI</label>
-                                        <input type="text" value={computedBmi || formData.vitals.bmi} readOnly={!!computedBmi} onChange={e => handleVitalChange('bmi', e.target.value)} className={`${inputCls} ${computedBmi ? 'bg-slate-50 cursor-not-allowed text-slate-500' : ''}`} placeholder="—" />
+                                        <input type="text" value={computedBmi || formData.vitals.bmi} readOnly={!!computedBmi} onChange={e => handleVitalChange('bmi', e.target.value)} className={`${inputCls} ${computedBmi ? 'bg-[var(--surface-subtle)] cursor-not-allowed text-[var(--text-secondary)]' : ''}`} placeholder="—" />
                                     </div>
                                     <div><label className={labelCls}>MUAC (cm)</label><input type="number" step="0.1" value={formData.vitals.muac} onChange={e => handleVitalChange('muac', e.target.value)} className={inputCls} placeholder="28.5" /></div>
                                     
@@ -304,11 +304,11 @@ export default function FollowUp() {
                                 <ClinicalSectionHeader>Treatment & Authentication</ClinicalSectionHeader>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                     <div>
-                                        <label className={labelCls}>Medication and Treatment <span className="text-slate-400 font-normal normal-case">(Doctor Only)</span></label>
+                                        <label className={labelCls}>Medication and Treatment <span className="text-[var(--text-muted)] font-normal normal-case">(Doctor Only)</span></label>
                                         <textarea rows={5} value={formData.medicationTreatment} onChange={e => setFormData({...formData, medicationTreatment: e.target.value})} className={`${inputCls} resize-y`} disabled={role === 'nurse'} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Laboratory Result/s <span className="text-slate-400 font-normal normal-case">(Doctor Only)</span></label>
+                                        <label className={labelCls}>Laboratory Result/s <span className="text-[var(--text-muted)] font-normal normal-case">(Doctor Only)</span></label>
                                         <textarea rows={5} value={formData.labResults} onChange={e => setFormData({...formData, labResults: e.target.value})} className={`${inputCls} resize-y`} disabled={role === 'nurse'} />
                                     </div>
                                 </div>
@@ -316,18 +316,18 @@ export default function FollowUp() {
                                 <div className="flex justify-end">
                                     <div className="w-full md:w-96">
                                         <label className={labelCls}>Name & Signature of Provider</label>
-                                        <div className="border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl h-36 mb-2 relative overflow-hidden cursor-crosshair">
-                                            <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold text-sm pointer-events-none select-none uppercase tracking-widest">Sign Here</div>
+                                        <div className="border-2 border-dashed border-[var(--border)] bg-[var(--surface-subtle)] rounded-xl h-36 mb-2 relative overflow-hidden cursor-crosshair">
+                                            <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)] font-bold text-sm pointer-events-none select-none uppercase tracking-wide">Sign Here</div>
                                             <SignatureCanvas ref={sigCanvas} canvasProps={{ className: 'w-full h-full relative z-10' }} />
                                         </div>
-                                        <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider">Clear Signature</button>
+                                        <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-2)] transition-colors uppercase tracking-wide">Clear Signature</button>
                                     </div>
                                 </div>
                             </div>
 
                             {/* SUBMIT BUTTON */}
                             <div className="flex justify-end pb-10">
-                                <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-10 py-4 bg-slate-700 text-white font-extrabold text-sm rounded-xl shadow-sm hover:bg-slate-800 hover:shadow-none transition-all  disabled:opacity-70 flex items-center justify-center gap-2">
+                                <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-10 py-4 bg-[var(--brand-active)] text-white font-extrabold text-sm rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  disabled:opacity-70 flex items-center justify-center gap-2">
                                     {isSubmitting ? <span className="animate-pulse">Recording Follow-up...</span> : <><Icon name="save" className="h-4 w-4" /> Record Follow-up Visit</>}
                                 </button>
                             </div>

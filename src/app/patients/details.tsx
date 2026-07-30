@@ -98,8 +98,8 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
     const isEmpty = value === null || value === undefined || value === '';
     return (
         <div className="flex flex-col gap-1">
-            <div className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">{label}</div>
-            <div className={`text-sm font-semibold ${isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+            <div className="text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</div>
+            <div className={`text-sm font-semibold ${isEmpty ? 'text-[var(--text-muted)] italic' : 'text-[var(--text)]'}`}>
                 {isEmpty ? 'Not provided' : value}
             </div>
         </div>
@@ -108,10 +108,10 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
 
 function RadioOption({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }) {
     return (
-        <label className={`cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
+        <label className={`cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)] shadow-sm' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)]'}`}>
             <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="hidden" />
-            <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${checked ? 'border-slate-700' : 'border-slate-300'}`}>
-                {checked && <div className="w-1.5 h-1.5 bg-slate-700 rounded-full" />}
+            <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${checked ? 'border-[var(--brand-primary)]' : 'border-[var(--border)]'}`}>
+                {checked && <div className="w-1.5 h-1.5 bg-[var(--brand-active)] rounded-full" />}
             </div>
             {label}
         </label>
@@ -250,26 +250,26 @@ function DetailsPage() {
         else if (id === 'reports') window.location.href = '/pages/midwife.html';
     };
 
-    const sectionCls = "bg-white border border-slate-200 rounded-lg p-4 md:p-5 shadow-sm mb-4";
-    const headerCls = "flex items-center gap-3 text-sm font-semibold text-slate-700 uppercase tracking-wide border-b border-slate-200 pb-3 mb-4";
-    const inputCls = "w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 outline-none transition-colors";
-    const labelCls = "block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2";
+    const sectionCls = "bg-white border border-[var(--border)] rounded-lg p-4 md:p-5 shadow-sm mb-4";
+    const headerCls = "flex items-center gap-3 text-sm font-semibold text-[var(--text-2)] uppercase tracking-wide border-b border-[var(--border)] pb-3 mb-4";
+    const inputCls = "w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--text)] focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none transition-colors";
+    const labelCls = "block text-xs font-semibold uppercase tracking-wide text-[var(--text-2)] mb-2";
 
     return (
-        <div className="flex w-full min-h-screen bg-[var(--bg)] text-slate-800 overflow-x-hidden relative">
+        <div className="flex w-full min-h-screen bg-[var(--bg)] text-[var(--text)] overflow-x-hidden relative">
             <ToastComponent />
 
             <Sidebar activePage="records" userName={userName} userInitials={userInitials} userRole={role.toUpperCase()} navItems={navItems} onNavigate={handleNavigate} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} isOnline={isOnline} />
 
             <div className="flex-1 flex flex-col min-h-screen w-full md:pl-[240px]">
-                <header className="h-[72px] w-full bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
+                <header className="h-[52px] md:h-[56px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-3 md:px-5 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
-                        <div className="font-bold text-lg text-slate-800">{editing ? 'Edit Profile' : 'Patient Profile'}</div>
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-[var(--text-2)] hover:bg-[var(--surface-subtle)] rounded-lg"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                        <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">{editing ? 'Edit Profile' : 'Patient Profile'}</h1>
                     </div>
                     <div className="flex items-center gap-3">
 
-                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">Back</button>
+                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
                     </div>
                 </header>
 
@@ -280,7 +280,7 @@ function DetailsPage() {
                         {error ? (
                             <div className="bg-red-50 text-red-700 p-6 rounded-xl border border-red-200 font-semibold text-center">{error}</div>
                         ) : !patient ? (
-                            <div className="rounded-xl border border-slate-200 bg-white p-5" role="status" aria-live="polite" aria-busy="true">
+                            <div className="rounded-xl border border-[var(--border)] bg-white p-5" role="status" aria-live="polite" aria-busy="true">
                                 <div className="mb-5 flex items-center gap-4">
                                     <Skeleton className="h-16 w-16 rounded-full" />
                                     <div className="min-w-0 flex-1">
@@ -292,21 +292,21 @@ function DetailsPage() {
                             </div>
                         ) : showConsent ? (
                             <div className="">
-                                <button onClick={() => setShowConsent(false)} className="mb-4 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">Back to Details</button>
+                                <button onClick={() => setShowConsent(false)} className="mb-4 px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-xs font-bold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back to Details</button>
                                 <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setPatient(current => current ? { ...current, consent_signed: true } : current); setShowConsent(false); loadPatient(); }} />
                             </div>
                         ) : editing && !isArchivedPatient ? (
                             // Edit Mode Form...
                             <form onSubmit={handleEditSubmit} className="">
-                                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-slate-500/10">
-                                    <div className="w-16 h-16 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
+                                <div className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-[var(--border-soft)]">
+                                    <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-slate-900 text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
-                                        <div className="text-sm text-slate-700 mt-1 font-medium">Update the necessary fields below and save your changes.</div>
+                                        <div className="font-black text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
+                                        <div className="text-sm text-[var(--text-2)] mt-1 font-medium">Update the necessary fields below and save your changes.</div>
                                     </div>
                                     <div className="shrink-0 flex gap-2 w-full md:w-auto mt-4 md:mt-0">
-                                        <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 bg-white text-slate-600 border border-slate-300 hover:bg-slate-50 text-sm font-bold rounded-lg transition-colors flex-1 md:flex-none text-center">Cancel</button>
-                                        <button type="submit" disabled={saving} className={`px-5 py-2.5 text-white text-sm font-bold rounded-lg transition-all flex-1 md:flex-none text-center shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 ${saving ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-800 hover:shadow-none'}`}>{saving ? 'Updating Chart...' : 'Update Patient Chart'}</button>
+                                        <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 bg-white text-[var(--text-2)] border border-[var(--border)] hover:bg-[var(--surface-subtle)] text-sm font-bold rounded-lg transition-colors flex-1 md:flex-none text-center">Cancel</button>
+                                        <button type="submit" disabled={saving} className={`px-5 py-2.5 text-white text-sm font-bold rounded-lg transition-all flex-1 md:flex-none text-center shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${saving ? 'bg-[var(--text-muted)] cursor-not-allowed' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] hover:shadow-none'}`}>{saving ? 'Updating Chart...' : 'Update Patient Chart'}</button>
                                     </div>
                                 </div>
 
@@ -401,26 +401,26 @@ function DetailsPage() {
                         ) : (
                             // Read-Only Mode
                             <div className="">
-                                <div className="w-full bg-white border border-slate-200 rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative">
-                                    <div className="w-16 h-16 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
+                                <div className="w-full bg-white border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative">
+                                    <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-slate-900 text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
+                                        <div className="font-black text-[var(--text)] text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
                                         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-2">
-                                            <span className="text-sm text-slate-500 font-medium">Blood: <span className="font-bold text-slate-700">{patient.bloodType || 'Unknown'}</span></span>
-                                            <span className="text-sm text-slate-500 font-medium">Sex: <span className="font-bold text-slate-700">{patient.sex || '-'}</span></span>
-                                            <span className="text-sm text-slate-500 font-medium">Age: <span className="font-bold text-slate-700">{patient.age ?? '-'}</span> yrs</span>
-                                            <span className="text-sm text-slate-500 font-medium truncate max-w-xs">Address: <span className="font-bold text-slate-700">{patient.address || '-'}</span></span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Blood: <span className="font-bold text-[var(--text-2)]">{patient.bloodType || 'Unknown'}</span></span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Sex: <span className="font-bold text-[var(--text-2)]">{patient.sex || '-'}</span></span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Age: <span className="font-bold text-[var(--text-2)]">{patient.age ?? '-'}</span> yrs</span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium truncate max-w-xs">Address: <span className="font-bold text-[var(--text-2)]">{patient.address || '-'}</span></span>
                                         </div>
                                     </div>
 
                                     <div className="shrink-0 flex flex-col md:items-end gap-2 w-full md:w-auto mt-4 md:mt-0">
                                         {isArchivedPatient ? (
-                                            <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Archived Read-Only</span>
+                                            <span className="bg-[var(--surface-subtle)] text-[var(--text-2)] border border-[var(--border)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Archived Read-Only</span>
                                         ) : (
                                             <div className="flex gap-2 w-full md:w-auto">
-                                                <button onClick={() => setEditing(true)} className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-1 md:flex-none">
+                                                <button onClick={() => setEditing(true)} className="px-4 py-2 bg-[var(--surface-subtle)] hover:bg-[var(--surface-subtle)] text-[var(--text-2)] border border-[var(--border)] text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-1 md:flex-none">
                                                     Edit Profile
                                                 </button>
                                             </div>
@@ -477,14 +477,14 @@ function DetailsPage() {
                                 <div className="flex flex-col gap-3">
                                     {/* Midwife action */}
                                     {role === 'midwives' && !patient.consent_signed && !isArchivedPatient && (
-                                        <button onClick={() => setShowConsent(true)} className="w-full bg-slate-700 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-sm hover:bg-slate-800 hover:shadow-none transition-all  flex items-center justify-center gap-3">
+                                        <button onClick={() => setShowConsent(true)} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
                                             Proceed to Patient Consent
                                         </button>
                                     )}
 
                                     {/* Nurse / Doctor / any role action */}
                                     {(role === 'nurse' || role === 'doctor' || role === 'midwives' || role === 'BHW') && (
-                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
+                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
                                             View Complete Transaction History
                                         </button>
                                     )}

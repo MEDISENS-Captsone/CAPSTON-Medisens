@@ -28,7 +28,7 @@ const pageTitles: Record<string, string> = {
 };
 
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white">
+    <div className="rounded-xl border border-[var(--border)] bg-white">
         <SkeletonList rows={4} />
     </div>
 );
@@ -225,8 +225,8 @@ const NurseDashboard = () => {
                                     <div className="clinical-table-scroll">
                                         {filteredPatients.length === 0 ? (
                                             <div className="text-center py-12">
-                                                <Icon name="clock" className="h-8 w-8 mx-auto mb-3 text-slate-300" />
-                                                <p className="text-slate-500 font-medium">No consented patients found.</p>
+                                                <Icon name="clock" className="h-8 w-8 mx-auto mb-3 text-[var(--text-muted)]" />
+                                                <p className="text-[var(--text-secondary)] font-medium">No consented patients found.</p>
                                             </div>
                                         ) : (
                                             <table className="clinical-table nurse-consented-table min-w-[820px]">
@@ -246,7 +246,7 @@ const NurseDashboard = () => {
                                                             : '-';
 
                                                         return (
-                                                            <tr key={p.id} onClick={() => handleConsultNavigate(p.id)} className="cursor-pointer transition-colors hover:bg-slate-50">
+                                                            <tr key={p.id} onClick={() => handleConsultNavigate(p.id)} className="cursor-pointer transition-colors hover:bg-[var(--surface-subtle)]">
                                                                 <td className="nurse-col-patient">
                                                                     <div className="patient-records-primary-cell">
                                                                         <div className="clinical-primary">{p.lastName}, {p.firstName} {p.middleName || ''}</div>

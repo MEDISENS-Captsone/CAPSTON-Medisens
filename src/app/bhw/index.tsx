@@ -23,7 +23,7 @@ const PatientDetailModal = lazy(() => import('../../components/patient/PatientDe
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white">
+    <div className="rounded-xl border border-[var(--border)] bg-white">
         <SkeletonList rows={4} />
     </div>
 );
@@ -215,8 +215,8 @@ const BhwDashboard = () => {
                                                 ))
                                             )}
                                         </div>
-                                        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/60 text-right">
-                                            <button type="button" onClick={() => setActivePage('records')} className="text-slate-700 font-semibold text-sm hover:text-slate-700">View Patient Registry</button>
+                                        <div className="px-4 py-3 border-t border-[var(--border)] bg-[var(--surface-subtle)] text-right">
+                                            <button type="button" onClick={() => setActivePage('records')} className="text-[var(--brand-active)] font-semibold text-sm hover:text-[var(--brand-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">View Patient Registry</button>
                                         </div>
                                     </div>
 
@@ -227,7 +227,7 @@ const BhwDashboard = () => {
                                                 <p className="ops-panel-subtitle">Current master list counts</p>
                                             </div>
                                         </div>
-                                        <div className="divide-y divide-slate-100 text-sm">
+                                        <div className="divide-y divide-[var(--border-soft)] text-sm">
                                             {[
                                                 ['Total Patients', stats.total],
                                                 ['Male', stats.male],
@@ -235,16 +235,16 @@ const BhwDashboard = () => {
                                                 ['With Address', stats.withAddress],
                                             ].map(([label, value]) => (
                                                 <div key={label} className="flex items-center justify-between px-4 py-3">
-                                                    <span className="font-medium text-slate-600">{label}</span>
-                                                    <span className="font-semibold text-slate-900 tabular-nums">{value}</span>
+                                                    <span className="font-medium text-[var(--text-2)]">{label}</span>
+                                                    <span className="font-semibold text-[var(--text)] tabular-nums">{value}</span>
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="grid grid-cols-1 gap-2 p-4 border-t border-slate-200 bg-slate-50/60">
-                                            <button type="button" onClick={() => setActivePage('new-record')} className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                                        <div className="grid grid-cols-1 gap-2 p-4 border-t border-[var(--border)] bg-[var(--surface-subtle)]">
+                                            <button type="button" onClick={() => setActivePage('new-record')} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)]">
                                                 <Icon name="user-plus" className="h-4 w-4" /> Register Patient
                                             </button>
-                                            <button type="button" onClick={() => setActivePage('reports')} className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                                            <button type="button" onClick={() => setActivePage('reports')} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)]">
                                                 <Icon name="chart" className="h-4 w-4" /> FHSIS Reports
                                             </button>
                                         </div>
