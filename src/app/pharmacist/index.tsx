@@ -331,8 +331,7 @@ function PharmacyDashboard() {
                                     <div className="ops-summary-grid">
                                         {[
                                             ['To Dispense', prescriptions.length, 'Pending e-prescriptions'],
-                                            ['Matching Search', filteredRx.length, 'Visible worklist'],
-                                            ['Review Required', filteredRx.length, 'Open row for medication details'],
+                                            ['Showing', filteredRx.length, 'Matching the current search'],
                                         ].map(([label, value, note]) => (
                                             <div key={label} className="ops-summary-card">
                                                 <div className="ops-summary-label">{label}</div>

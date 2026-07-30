@@ -579,7 +579,6 @@ const LaboratoryDashboard = () => {
                                     <p className="text-xs text-[var(--text-secondary)]">Select a request to review details and record laboratory results.</p>
                                 </div>
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <span className="text-xs font-medium text-[var(--text-secondary)]">{stats.pending} pending · {stats.completed} completed · {stats.total} total</span>
                                     {(['All', 'Pending',  'Completed'] as const).map(s => (
                                         <button
                                             type="button"
