@@ -19,9 +19,11 @@ export function NetworkBadge({ isOnline, compact = false, className = '' }: Netw
             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${isOnline ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-600'}`}>
                 <Icon name={isOnline ? 'wifi' : 'wifi-off'} className="h-3.5 w-3.5" />
             </span>
-            {!compact && (
+            {/* Compact (mobile) keeps a visible OFFLINE word so the degraded state is not
+                communicated by a small icon alone; online stays icon-only to save width. */}
+            {(!compact || !isOnline) && (
                 <span className={`min-w-0 truncate text-xs font-semibold uppercase tracking-wide ${isOnline ? 'text-green-700' : 'text-amber-700'}`}>
-                    {statusLabel}
+                    {compact ? 'OFFLINE' : statusLabel}
                 </span>
             )}
         </div>

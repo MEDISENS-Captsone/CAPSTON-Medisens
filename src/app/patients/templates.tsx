@@ -106,8 +106,8 @@ function RadioOption({ name, value, label, checked, onChange }: {
     checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
     return (
-        <label className={`cursor-pointer px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all ${checked ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
-            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="hidden" />
+        <label className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all ${checked ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
+            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
             {label}
         </label>
     );
@@ -227,9 +227,9 @@ export function TemplatesComponent() {
 
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
                         Patient Registration
-                    </h1>
+                    </h2>
                     <p className="text-sm text-slate-500 mt-1">Register a new patient into the system for initial triage.</p>
                 </div>
             </div>

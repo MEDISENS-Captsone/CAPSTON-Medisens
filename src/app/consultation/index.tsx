@@ -5,7 +5,7 @@ import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useN
 import { useToast } from '../../components/feedback/Toast';
 import { createLabRequest, createPrescription, upsertConsultation, upsertFollowUpByConsultation, upsertLatestFollowUpByPatient } from '../../features/consultation/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
-import { isBlank, safeTrim, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
+import { isBlank, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
 import { printHtmlDocument } from '../../lib/utils/print';
 import { itemizeText } from '../../features/patients/itemization';
 import { Icon } from '../../components/shared/Icon';
@@ -454,9 +454,6 @@ export function ConsultationPage({
     const [consultationId, setConsultationId] = useState<number | null>(null);
     const [showHistory, setShowHistory] = useState(false);
 
-    // -- real-time live indicator ----------------------------------------------
-    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
-
     const { isOnline } = useNetworkSync();
     const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20';
 
@@ -709,11 +706,7 @@ export function ConsultationPage({
                 }
             )
 
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') setRealtimeStatus('live');
-                else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error');
-                else setRealtimeStatus('connecting');
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
@@ -1026,15 +1019,15 @@ export function ConsultationPage({
     const RadioGroup = ({ name, options, value }: { name: string; options: string[]; value: string }) => (
         <div className="flex gap-3 flex-wrap">
             {options.map(opt => (
-                <label key={opt} className={`cursor-pointer px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${value === opt ? 'bg-[var(--brand-active)] text-white border-[var(--brand-active)]' : 'bg-white text-[var(--text-2)] border-[var(--border)] hover:border-[var(--border)]'}`}>
-                    <input type="radio" name={name} value={opt} checked={value === opt} onChange={handleRadioChange} className="hidden" />{opt}
+                <label key={opt} className={`clinical-choice-label cursor-pointer px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${value === opt ? 'bg-[var(--brand-active)] text-white border-[var(--brand-active)]' : 'bg-white text-[var(--text-2)] border-[var(--border)] hover:border-[var(--border)]'}`}>
+                    <input type="radio" name={name} value={opt} checked={value === opt} onChange={handleRadioChange} className="sr-only" />{opt}
                 </label>
             ))}
         </div>
     );
 
     const renderCheckbox = (key: keyof typeof formData.labTests, label: string) => (
-        <label key={key} className="flex items-center gap-3 cursor-pointer group min-h-[40px]">
+        <label key={key} className="clinical-choice-label flex items-center gap-3 cursor-pointer group min-h-[40px]">
             <div className="relative flex items-center justify-center w-5 h-5 border-2 border-[var(--border)] rounded bg-white shrink-0 transition-colors group-hover:border-[var(--border-strong)]">
                 <input type="checkbox" checked={formData.labTests[key]} onChange={() => handleLabTestChange(key)} className="absolute opacity-0 w-0 h-0" />
                 {formData.labTests[key] && <svg className="w-3.5 h-3.5 text-[var(--text-2)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
@@ -1074,8 +1067,8 @@ export function ConsultationPage({
             <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">I. Histories</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                    <div><label className={labelCls}>Family History</label><textarea name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
-                    <div><label className={labelCls}>Immunization History</label><textarea name="immunizationHistory" value={formData.immunizationHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-familyHistory">Family History</label><textarea id="consult-familyHistory" name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-immunizationHistory">Immunization History</label><textarea id="consult-immunizationHistory" name="immunizationHistory" value={formData.immunizationHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
                 </div>
                 <div className="bg-[var(--surface-subtle)]/70 rounded-xl border border-[var(--border)] p-5 space-y-6 shadow-sm">
                     <div>
@@ -1083,8 +1076,8 @@ export function ConsultationPage({
                         <RadioGroup name="smoking" options={['Yes', 'No']} value={formData.smoking} />
                         {formData.smoking === 'Yes' && (
                             <div className="grid grid-cols-2 gap-3 mt-3">
-                                <div><label className={labelCls}>Sticks / Day</label><input type="number" name="smokingSticksPerDay" value={formData.smokingSticksPerDay} onChange={handleChange} className={inputCls} /></div>
-                                <div><label className={labelCls}>Years</label><input type="number" name="smokingYears" value={formData.smokingYears} onChange={handleChange} className={inputCls} /></div>
+                                <div><label className={labelCls} htmlFor="consult-smokingSticksPerDay">Sticks / Day</label><input id="consult-smokingSticksPerDay" type="number" name="smokingSticksPerDay" value={formData.smokingSticksPerDay} onChange={handleChange} className={inputCls} /></div>
+                                <div><label className={labelCls} htmlFor="consult-smokingYears">Years</label><input id="consult-smokingYears" type="number" name="smokingYears" value={formData.smokingYears} onChange={handleChange} className={inputCls} /></div>
                             </div>
                         )}
                     </div>
@@ -1093,8 +1086,8 @@ export function ConsultationPage({
                         <RadioGroup name="drinking" options={['Yes', 'No']} value={formData.drinking} />
                         {formData.drinking === 'Yes' && (
                             <div className="grid grid-cols-2 gap-3 mt-3">
-                                <div><label className={labelCls}>Frequency</label><input type="text" name="drinkingFrequency" value={formData.drinkingFrequency} onChange={handleChange} className={inputCls} /></div>
-                                <div><label className={labelCls}>Years</label><input type="number" name="drinkingYears" value={formData.drinkingYears} onChange={handleChange} className={inputCls} /></div>
+                                <div><label className={labelCls} htmlFor="consult-drinkingFrequency">Frequency</label><input id="consult-drinkingFrequency" type="text" name="drinkingFrequency" value={formData.drinkingFrequency} onChange={handleChange} className={inputCls} /></div>
+                                <div><label className={labelCls} htmlFor="consult-drinkingYears">Years</label><input id="consult-drinkingYears" type="number" name="drinkingYears" value={formData.drinkingYears} onChange={handleChange} className={inputCls} /></div>
                             </div>
                         )}
                     </div>
@@ -1111,37 +1104,37 @@ export function ConsultationPage({
                 <div className="space-y-4">
                     <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide">OBGyne</p>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className={labelCls}>Menarche (y/o)</label><input type="number" name="menarche" value={formData.menarche} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}>Onset Sexual Intercourse</label><input type="number" name="onsetSexualIntercourse" value={formData.onsetSexualIntercourse} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-menarche">Menarche (y/o)</label><input id="consult-menarche" type="number" name="menarche" value={formData.menarche} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-onsetSexualIntercourse">Onset Sexual Intercourse</label><input id="consult-onsetSexualIntercourse" type="number" name="onsetSexualIntercourse" value={formData.onsetSexualIntercourse} onChange={handleChange} className={inputCls} /></div>
                     </div>
                     <div>
                         <label className={labelCls}>Menopause</label>
                         <RadioGroup name="menopause" options={['Yes', 'No']} value={formData.menopause} />
-                        {formData.menopause === 'Yes' && <div className="mt-3"><label className={labelCls}>Age at Menopause</label><input type="number" name="menopauseAge" value={formData.menopauseAge} onChange={handleChange} className={inputCls} /></div>}
+                        {formData.menopause === 'Yes' && <div className="mt-3"><label className={labelCls} htmlFor="consult-menopauseAge">Age at Menopause</label><input id="consult-menopauseAge" type="number" name="menopauseAge" value={formData.menopauseAge} onChange={handleChange} className={inputCls} /></div>}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className={labelCls}>LMP</label><input type="date" name="lmp" value={formData.lmp} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}>Interval Cycle (Days)</label><input type="text" name="intervalCycle" value={formData.intervalCycle} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}>Period Duration (Days)</label><input type="text" name="periodDuration" value={formData.periodDuration} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}># of Pads / Day</label><input type="number" name="padsPerDay" value={formData.padsPerDay} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-lmp">LMP</label><input id="consult-lmp" type="date" name="lmp" value={formData.lmp} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-intervalCycle">Interval Cycle (Days)</label><input id="consult-intervalCycle" type="text" name="intervalCycle" value={formData.intervalCycle} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-periodDuration">Period Duration (Days)</label><input id="consult-periodDuration" type="text" name="periodDuration" value={formData.periodDuration} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-padsPerDay"># of Pads / Day</label><input id="consult-padsPerDay" type="number" name="padsPerDay" value={formData.padsPerDay} onChange={handleChange} className={inputCls} /></div>
                     </div>
-                    <div><label className={labelCls}>Birth Control Method</label><input type="text" name="birthControlMethod" value={formData.birthControlMethod} onChange={handleChange} className={inputCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-birthControlMethod">Birth Control Method</label><input id="consult-birthControlMethod" type="text" name="birthControlMethod" value={formData.birthControlMethod} onChange={handleChange} className={inputCls} /></div>
                 </div>
                 <div className="space-y-4">
                     <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide">Pregnancy History</p>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className={labelCls}>Gravidity</label><input type="number" name="gravidity" value={formData.gravidity} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}>Parity</label><input type="number" name="parity" value={formData.parity} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-gravidity">Gravidity</label><input id="consult-gravidity" type="number" name="gravidity" value={formData.gravidity} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-parity">Parity</label><input id="consult-parity" type="number" name="parity" value={formData.parity} onChange={handleChange} className={inputCls} /></div>
                     </div>
                     <div>
                         <label className={labelCls}>Type of Delivery</label>
                         <select name="typeOfDelivery" value={formData.typeOfDelivery} onChange={handleChange} className={inputCls}><option value="">Select type...</option><option value="Normal">Normal</option><option value="CS">CS</option><option value="Both">Both Normal and CS</option></select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className={labelCls}># Full Term</label><input type="number" name="fullTerm" value={formData.fullTerm} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}># Premature</label><input type="number" name="premature" value={formData.premature} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}># Abortion</label><input type="number" name="abortion" value={formData.abortion} onChange={handleChange} className={inputCls} /></div>
-                        <div><label className={labelCls}># Living Children</label><input type="number" name="livingChildren" value={formData.livingChildren} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-fullTerm"># Full Term</label><input id="consult-fullTerm" type="number" name="fullTerm" value={formData.fullTerm} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-premature"># Premature</label><input id="consult-premature" type="number" name="premature" value={formData.premature} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-abortion"># Abortion</label><input id="consult-abortion" type="number" name="abortion" value={formData.abortion} onChange={handleChange} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="consult-livingChildren"># Living Children</label><input id="consult-livingChildren" type="number" name="livingChildren" value={formData.livingChildren} onChange={handleChange} className={inputCls} /></div>
                     </div>
                     <div><label className={labelCls}>Pre-eclampsia</label><RadioGroup name="preEclampsia" options={['Yes', 'No']} value={formData.preEclampsia} /></div>
                 </div>
@@ -1153,7 +1146,7 @@ export function ConsultationPage({
     const renderTab3 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
             <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">III. Clinical Assessment</h3>
-            <div><label className={labelCls}>Medication and Treatment</label><textarea name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} rows={7} className={textareaCls} /></div>
+            <div><label className={labelCls} htmlFor="consult-medicationAndTreatment">Medication and Treatment</label><textarea id="consult-medicationAndTreatment" name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} rows={7} className={textareaCls} /></div>
             <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(isMale ? 1 : 2)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(4)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Follow-up</button></div>
         </div>
     );
@@ -1172,8 +1165,8 @@ export function ConsultationPage({
             <div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Visit Information</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div><label className={labelCls}>Visit Date</label><input type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className={inputCls} /></div>
-                    <div><label className={labelCls}>Visit Time</label><input type="time" name="followUpTime" value={formData.followUpTime} onChange={handleChange} className={inputCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpDate">Visit Date</label><input id="consult-followUpDate" type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className={inputCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpTime">Visit Time</label><input id="consult-followUpTime" type="time" name="followUpTime" value={formData.followUpTime} onChange={handleChange} className={inputCls} /></div>
                     <div>
                         <label className={labelCls}>Mode of Transaction</label>
                         <select name="followUpModeOfTx" value={formData.followUpModeOfTx} onChange={handleChange} className={inputCls}>
@@ -1186,55 +1179,55 @@ export function ConsultationPage({
                             <option value="Ambulatory">Ambulatory</option><option value="Wheelchair">Wheelchair</option><option value="Stretcher">Stretcher</option>
                         </select>
                     </div>
-                    <div><label className={labelCls}>Blood Type</label><input type="text" name="followUpBloodType" value={formData.followUpBloodType} onChange={handleChange} className={inputCls} placeholder={patient?.bloodType || '?'} /></div>
-                    <div><label className={labelCls}>General Survey</label><input type="text" name="followUpGenSurvey" value={formData.followUpGenSurvey} onChange={handleChange} className={inputCls} placeholder="e.g. Awake, conscious, coherent..." /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpBloodType">Blood Type</label><input id="consult-followUpBloodType" type="text" name="followUpBloodType" value={formData.followUpBloodType} onChange={handleChange} className={inputCls} placeholder={patient?.bloodType || '?'} /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpGenSurvey">General Survey</label><input id="consult-followUpGenSurvey" type="text" name="followUpGenSurvey" value={formData.followUpGenSurvey} onChange={handleChange} className={inputCls} placeholder="e.g. Awake, conscious, coherent..." /></div>
                 </div>
             </div>
             <div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Clinical</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className={labelCls}>Chief Complaint</label><textarea name="followUpChiefComplaint" value={formData.followUpChiefComplaint} onChange={handleChange} rows={3} className={textareaCls} placeholder="Primary reason for visit..." /></div>
-                    <div><label className={labelCls}>Diagnosis</label><textarea name="followUpDiagnosis" value={formData.followUpDiagnosis} onChange={handleChange} rows={3} className={textareaCls} /></div>
-                    <div className="md:col-span-2"><label className={labelCls}>History of Present Illness <span className="text-[var(--text-muted)] font-normal normal-case ml-1">(Optional)</span></label><textarea name="followUpHpi" value={formData.followUpHpi} onChange={handleChange} rows={3} className={textareaCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpChiefComplaint">Chief Complaint</label><textarea id="consult-followUpChiefComplaint" name="followUpChiefComplaint" value={formData.followUpChiefComplaint} onChange={handleChange} rows={3} className={textareaCls} placeholder="Primary reason for visit..." /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpDiagnosis">Diagnosis</label><textarea id="consult-followUpDiagnosis" name="followUpDiagnosis" value={formData.followUpDiagnosis} onChange={handleChange} rows={3} className={textareaCls} /></div>
+                    <div className="md:col-span-2"><label className={labelCls} htmlFor="consult-followUpHpi">History of Present Illness <span className="text-[var(--text-muted)] font-normal normal-case ml-1">(Optional)</span></label><textarea id="consult-followUpHpi" name="followUpHpi" value={formData.followUpHpi} onChange={handleChange} rows={3} className={textareaCls} /></div>
                 </div>
             </div>
             <div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Vitals</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div><label className={labelCls}>BP (mmHg)</label><input type="text" name="followUpBp" value={formData.followUpBp} onChange={handleChange} className={inputCls} placeholder="120/80" /></div>
-                    <div><label className={labelCls}>Heart Rate (bpm)</label><input type="text" name="followUpHr" value={formData.followUpHr} onChange={handleChange} className={inputCls} placeholder="72" /></div>
-                    <div><label className={labelCls}>Respiratory Rate (cpm)</label><input type="text" name="followUpRr" value={formData.followUpRr} onChange={handleChange} className={inputCls} placeholder="16" /></div>
-                    <div><label className={labelCls}>Temperature (?C)</label><input type="text" name="followUpTemp" value={formData.followUpTemp} onChange={handleChange} className={inputCls} placeholder="36.5" /></div>
-                    <div><label className={labelCls}>O2 Saturation (%)</label><input type="text" name="followUpO2" value={formData.followUpO2} onChange={handleChange} className={inputCls} placeholder="98" /></div>
-                    <div><label className={labelCls}>MUAC (cm)</label><input type="text" name="followUpMuac" value={formData.followUpMuac} onChange={handleChange} className={inputCls} placeholder="28.5" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpBp">BP (mmHg)</label><input id="consult-followUpBp" type="text" name="followUpBp" value={formData.followUpBp} onChange={handleChange} className={inputCls} placeholder="120/80" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpHr">Heart Rate (bpm)</label><input id="consult-followUpHr" type="text" name="followUpHr" value={formData.followUpHr} onChange={handleChange} className={inputCls} placeholder="72" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpRr">Respiratory Rate (cpm)</label><input id="consult-followUpRr" type="text" name="followUpRr" value={formData.followUpRr} onChange={handleChange} className={inputCls} placeholder="16" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpTemp">Temperature (?C)</label><input id="consult-followUpTemp" type="text" name="followUpTemp" value={formData.followUpTemp} onChange={handleChange} className={inputCls} placeholder="36.5" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpO2">O2 Saturation (%)</label><input id="consult-followUpO2" type="text" name="followUpO2" value={formData.followUpO2} onChange={handleChange} className={inputCls} placeholder="98" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpMuac">MUAC (cm)</label><input id="consult-followUpMuac" type="text" name="followUpMuac" value={formData.followUpMuac} onChange={handleChange} className={inputCls} placeholder="28.5" /></div>
                 </div>
             </div>
             <div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Anthropometrics</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div><label className={labelCls}>Weight (kg)</label><input type="text" name="followUpWeight" value={formData.followUpWeight} onChange={handleChange} className={inputCls} placeholder="65" /></div>
-                    <div><label className={labelCls}>Height (cm)</label><input type="text" name="followUpHeight" value={formData.followUpHeight} onChange={handleChange} className={inputCls} placeholder="165" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpWeight">Weight (kg)</label><input id="consult-followUpWeight" type="text" name="followUpWeight" value={formData.followUpWeight} onChange={handleChange} className={inputCls} placeholder="65" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpHeight">Height (cm)</label><input id="consult-followUpHeight" type="text" name="followUpHeight" value={formData.followUpHeight} onChange={handleChange} className={inputCls} placeholder="165" /></div>
                     <div>
-                        <label className={labelCls}>BMI <span className="text-[var(--text-muted)] font-normal normal-case">(auto)</span></label>
-                        <input type="text" readOnly value={followUpBmiInfo ? followUpBmiInfo.value : ''} className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-secondary)] font-semibold cursor-default`} placeholder="?" />
+                        <label className={labelCls} htmlFor="consult-followUpBmiAuto">BMI <span className="text-[var(--text-muted)] font-normal normal-case">(auto)</span></label>
+                        <input id="consult-followUpBmiAuto" type="text" readOnly value={followUpBmiInfo ? followUpBmiInfo.value : ''} className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-secondary)] font-semibold cursor-default`} placeholder="?" />
                         {followUpBmiInfo && <p className={`text-xs mt-1.5 font-semibold ${followUpBmiInfo.color}`}>{followUpBmiInfo.status}</p>}
                     </div>
-                    <div><label className={labelCls}>Visual Acuity ? Left</label><input type="text" name="followUpVaL" value={formData.followUpVaL} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
-                    <div><label className={labelCls}>Visual Acuity ? Right</label><input type="text" name="followUpVaR" value={formData.followUpVaR} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpVaL">Visual Acuity ? Left</label><input id="consult-followUpVaL" type="text" name="followUpVaL" value={formData.followUpVaL} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
+                    <div><label className={labelCls} htmlFor="consult-followUpVaR">Visual Acuity ? Right</label><input id="consult-followUpVaR" type="text" name="followUpVaR" value={formData.followUpVaR} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
                 </div>
             </div>
             <div className="border-t border-[var(--border-soft)] pt-6">
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Treatment &amp; Results</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className={labelCls}>Medication / Treatment <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span></label>
-                        <textarea rows={5} name="managementTreatment" value={formData.managementTreatment} onChange={handleChange} className={textareaCls} placeholder="Medications prescribed, treatment plan..." />
+                        <label className={labelCls} htmlFor="consult-managementTreatment">Medication / Treatment <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span></label>
+                        <textarea rows={5} id="consult-managementTreatment" name="managementTreatment" value={formData.managementTreatment} onChange={handleChange} className={textareaCls} placeholder="Medications prescribed, treatment plan..." />
                     </div>
                     <div>
-                        <label className={labelCls}>
+                        <label className={labelCls} htmlFor="consult-followUpLabResults">
                             Lab Results <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span>
                         </label>
-                        <textarea rows={5} name="followUpLabResults" value={formData.followUpLabResults} onChange={handleChange} className={textareaCls} placeholder="Auto-fetched when lab submits results..." />
+                        <textarea rows={5} id="consult-followUpLabResults" name="followUpLabResults" value={formData.followUpLabResults} onChange={handleChange} className={textareaCls} placeholder="Auto-fetched when lab submits results..." />
                         {formData.followUpLabResults && <p className="text-[10px] text-green-600 font-bold uppercase mt-2 inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Results Synced from Laboratory</p>}
                     </div>
                 </div>
@@ -1281,12 +1274,12 @@ export function ConsultationPage({
             </div>
             <div className="space-y-6">
                 <div>
-                    <label className={labelCls}>Diagnosis: <span className="text-rose-500">*</span></label>
-                    <textarea name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={`${textareaCls} min-h-[120px] border-l-4 border-l-blue-500`} placeholder="Enter final diagnosis for the Medical Certificate..." />
+                    <label className={labelCls} htmlFor="consult-diagnosis">Diagnosis: <span className="text-rose-500">*</span></label>
+                    <textarea id="consult-diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={`${textareaCls} min-h-[120px] border-l-4 border-l-blue-500`} placeholder="Enter final diagnosis for the Medical Certificate..." />
                 </div>
                 <div>
-                    <label className={labelCls}>Remarks / Recommendation:</label>
-                    <textarea name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} className={`${textareaCls} min-h-[120px]`} placeholder="Enter instructions, rest period, or follow-up recommendations..." />
+                    <label className={labelCls} htmlFor="consult-remarksRecommendation">Remarks / Recommendation:</label>
+                    <textarea id="consult-remarksRecommendation" name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} className={`${textareaCls} min-h-[120px]`} placeholder="Enter instructions, rest period, or follow-up recommendations..." />
                 </div>
             </div>
             <div className="pt-6 mt-6 border-t border-[var(--border-soft)] grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1351,7 +1344,7 @@ export function ConsultationPage({
                             placeholder={formData.labTests.others ? 'Specify other tests here...' : ''} />
                     </div>
                 </div>
-                <div><label className={labelCls}>Requested By</label><input type="text" name="labRequestedBy" value={formData.labRequestedBy} onChange={handleChange} className={inputCls} /></div>
+                <div><label className={labelCls} htmlFor="consult-labRequestedBy">Requested By</label><input id="consult-labRequestedBy" type="text" name="labRequestedBy" value={formData.labRequestedBy} onChange={handleChange} className={inputCls} /></div>
             </div>
             <div className="flex flex-col sm:flex-row justify-between gap-3 pt-8 mt-6 border-t border-[var(--border-soft)]">
                 <button onClick={() => setActiveTab(5)} className="order-2 sm:order-1 w-full sm:w-auto bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors">Back</button>
@@ -1376,14 +1369,14 @@ export function ConsultationPage({
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             {medications.length > 1 && <button onClick={() => handleRemoveMed(i)} className="text-xs bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg font-bold transition-colors">Remove</button>}
                         </div>
-                        <h4 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wide mb-4">Medication {i + 1}</h4>
+                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-4">Medication {i + 1}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="sm:col-span-2 md:col-span-2">
-                                <label className={labelCls}>Medication Name</label>
-                                <input type="text" value={med.name} onChange={e => handleMedChange(i, 'name', e.target.value)} className={inputCls} placeholder="e.g. Amoxicillin 500mg" />
+                                <label className={labelCls} htmlFor={`consult-med-name-${i}`}>Medication Name</label>
+                                <input type="text" id={`consult-med-name-${i}`} value={med.name} onChange={e => handleMedChange(i, 'name', e.target.value)} className={inputCls} placeholder="e.g. Amoxicillin 500mg" />
                             </div>
-                            <div><label className={labelCls}>Sig / Dosage</label><input type="text" value={med.dosage} onChange={e => handleMedChange(i, 'dosage', e.target.value)} className={inputCls} placeholder="e.g. 1 tab 3x a day" /></div>
-                            <div><label className={labelCls}>Quantity</label><input type="text" value={med.quantity} onChange={e => handleMedChange(i, 'quantity', e.target.value)} className={inputCls} placeholder="e.g. #21" /></div>
+                            <div><label className={labelCls} htmlFor={`consult-med-dosage-${i}`}>Sig / Dosage</label><input type="text" id={`consult-med-dosage-${i}`} value={med.dosage} onChange={e => handleMedChange(i, 'dosage', e.target.value)} className={inputCls} placeholder="e.g. 1 tab 3x a day" /></div>
+                            <div><label className={labelCls} htmlFor={`consult-med-quantity-${i}`}>Quantity</label><input type="text" id={`consult-med-quantity-${i}`} value={med.quantity} onChange={e => handleMedChange(i, 'quantity', e.target.value)} className={inputCls} placeholder="e.g. #21" /></div>
                         </div>
                     </div>
                 ))}

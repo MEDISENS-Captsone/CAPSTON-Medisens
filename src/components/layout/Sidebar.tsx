@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { logout } from '../../lib/auth/roles';
 import { Icon } from '../shared/Icon';
+import { SkipToContent } from './SkipToContent';
 import '../../styles/dashboard.css';
 import medisensLogo from '../../assets/MEDISENS Logo.png';
 
@@ -25,6 +26,8 @@ interface SidebarProps {
 }
 
 const DEFAULT_NAV_GROUP = 'Workspace';
+const DESKTOP_NAV_QUERY = '(min-width: 768px)';
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function groupNavItems(navItems: NavItem[]) {
     const groups: { label: string; items: NavItem[] }[] = [];
@@ -53,36 +56,139 @@ export function Sidebar({
     
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const cancelLogoutRef = useRef<HTMLButtonElement>(null);
+    const logoutDialogRef = useRef<HTMLDivElement>(null);
+    const sidebarRef = useRef<HTMLElement>(null);
+    const [isDesktopNav, setIsDesktopNav] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia(DESKTOP_NAV_QUERY).matches,
+    );
+
+    useEffect(() => {
+        const query = window.matchMedia(DESKTOP_NAV_QUERY);
+        const sync = (event: MediaQueryListEvent) => setIsDesktopNav(event.matches);
+        setIsDesktopNav(query.matches);
+        query.addEventListener('change', sync);
+        return () => query.removeEventListener('change', sync);
+    }, []);
+
+    // Below the desktop breakpoint the drawer is only translated off-canvas, so without
+    // this it stays tabbable and exposed to assistive tech while visually hidden.
+    const isDrawerHidden = !isDesktopNav && !isMobileMenuOpen;
+
+    // Read through a ref so opening the logout dialog does not re-run the drawer effect
+    // (its cleanup restores focus, which would otherwise pull focus out of the dialog).
+    const showLogoutModalRef = useRef(showLogoutModal);
+    showLogoutModalRef.current = showLogoutModal;
+
+    // Mobile drawer: contain Tab/Shift+Tab, close on Escape, restore focus to the trigger.
+    useEffect(() => {
+        if (isDesktopNav || !isMobileMenuOpen) return;
+
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // The logout dialog sits above the drawer and owns keyboard handling while open.
+            if (showLogoutModalRef.current) return;
+
+            if (event.key === 'Escape') {
+                event.stopPropagation();
+                setIsMobileMenuOpen(false);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+
+            const drawer = sidebarRef.current;
+            if (!drawer) return;
+            const focusable = Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+            if (focusable.length === 0) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const active = document.activeElement;
+
+            if (!(active instanceof HTMLElement) || !drawer.contains(active)) {
+                event.preventDefault();
+                first.focus();
+            } else if (event.shiftKey && active === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && active === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            const restoreTarget = previouslyFocused?.isConnected
+                ? previouslyFocused
+                : document.querySelector<HTMLElement>('[data-nav-toggle]');
+            restoreTarget?.focus({ preventScroll: true });
+        };
+    }, [isDesktopNav, isMobileMenuOpen, setIsMobileMenuOpen]);
 
     useEffect(() => {
         if (!showLogoutModal) return;
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         cancelLogoutRef.current?.focus();
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setShowLogoutModal(false);
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setShowLogoutModal(false);
+                return;
+            }
+            // Contain Tab / Shift+Tab inside the confirmation dialog
+            if (event.key !== 'Tab') return;
+            const dialog = logoutDialogRef.current;
+            if (!dialog) return;
+            const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled])'));
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const active = document.activeElement;
+            if (!(active instanceof HTMLElement) || !dialog.contains(active)) {
+                event.preventDefault();
+                first.focus();
+            } else if (event.shiftKey && active === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && active === last) {
+                event.preventDefault();
+                first.focus();
+            }
         };
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            previouslyFocused?.focus({ preventScroll: true });
+        };
     }, [showLogoutModal]);
 
     const logoBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
-    const avatarBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
-    const activeBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500/20';
+    const avatarBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500';
+    const activeBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500/20';
     const activeText = isOnline ? 'text-white' : 'text-amber-100';
     const activeIndicator = isOnline ? 'bg-[var(--brand-accent-surface)]' : 'bg-amber-300';
 
     return (
         <>
-            {/* Mobile Backdrop */}
+            <SkipToContent />
+
+            {/* Mobile Backdrop — presentational so the close button keeps the only
+                "Close navigation menu" accessible name. */}
             {isMobileMenuOpen && (
-                <button
-                    type="button"
-                    aria-label="Close navigation menu"
-                    className="fixed inset-0 z-40 border-0 bg-slate-900/50 backdrop-blur-[2px] transition-opacity md:hidden"
+                <div
+                    aria-hidden="true"
+                    className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[2px] transition-opacity md:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
-            
-            <aside aria-label="Primary navigation" className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] md:w-[240px] bg-[var(--brand-active)] border-r border-white/15 flex flex-col transform transition-transform duration-300 ease-in-out print:hidden ${isMobileMenuOpen ? 'translate-x-0 shadow-lg' : '-translate-x-full md:translate-x-0'}`}>
+
+            <aside
+                ref={sidebarRef}
+                id="primary-navigation"
+                aria-label="Primary navigation"
+                inert={isDrawerHidden}
+                className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] md:w-[240px] bg-[var(--brand-active)] border-r border-white/15 flex flex-col transform transition-transform duration-300 ease-in-out print:hidden ${isMobileMenuOpen ? 'translate-x-0 shadow-lg' : '-translate-x-full md:translate-x-0'}`}
+            >
                 
                 {/* Brand Header */}
                 <div className="flex min-h-[56px] items-center justify-between border-b border-white/10 bg-[var(--brand-active-hover)] p-3 shrink-0">
@@ -146,6 +252,9 @@ export function Sidebar({
                     onClick={() => setShowLogoutModal(true)}
                     className="mt-auto w-full shrink-0 border-t border-white/15 bg-[var(--brand-active-hover)] p-3 text-left transition-colors hover:bg-[var(--brand-active)] group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white"
                     title="Log out"
+                    aria-label={`Log out — signed in as ${userName}, ${userRole}`}
+                    aria-haspopup="dialog"
+                    aria-expanded={showLogoutModal}
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
@@ -165,7 +274,7 @@ export function Sidebar({
             {/* Custom Logout Modal */}
             {showLogoutModal && (
                 <div onClick={() => setShowLogoutModal(false)} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-opacity" role="presentation">
-                    <div onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-white p-4 text-center shadow-sm">
+                    <div ref={logoutDialogRef} onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-white p-4 text-center shadow-sm">
                         <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600"><Icon name="logout" className="h-5 w-5" /></div>
                         <h3 id="logout-dialog-title" className="text-[length:var(--type-section-title-size)] font-semibold leading-[var(--type-section-title-line)] text-[var(--text)] tracking-[var(--tracking-normal)]">Log out</h3>
                         <p id="logout-dialog-description" className="mb-4 mt-2 text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--text-secondary)]">Are you sure you want to end your session?</p>

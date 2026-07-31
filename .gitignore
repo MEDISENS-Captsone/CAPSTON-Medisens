@@ -7,3 +7,12 @@ skills-lock.json
 .codex
 .agents
 CLAUDE.md
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+ds-types/
+.playwright-mcp
+screenshots review/
+.claude

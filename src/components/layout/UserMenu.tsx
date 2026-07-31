@@ -9,7 +9,7 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ userName, userInitials, userRole, isOnline = true, onLogoutClick }: UserMenuProps) {
-    const avatarColor = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
+    const avatarColor = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500';
     const content = (
         <>
             <div className="hidden min-w-0 text-right sm:block">
@@ -32,7 +32,9 @@ export function UserMenu({ userName, userInitials, userRole, isOnline = true, on
             type="button"
             onClick={onLogoutClick}
             className="group flex min-w-0 items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
-            title="Open user menu"
+            title="Log out"
+            aria-label={`Log out — signed in as ${userName}, ${userRole}`}
+            aria-haspopup="dialog"
         >
             {content}
         </button>

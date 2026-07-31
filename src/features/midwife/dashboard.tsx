@@ -42,7 +42,7 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
             {/* Header */}
             <div className="mb-4 flex justify-between items-end">
                 <div>
-                    <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Maternal & Child Health Work Queue</h1>
+                    <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Maternal & Child Health Work Queue</h2>
                     <p className="text-sm text-[var(--text-secondary)] mt-1">Review census entries, patient records, and reporting tasks for the current month.</p>
                 </div>
             </div>
@@ -124,10 +124,12 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
                     <div className="flex-1 w-full bg-white overflow-y-auto scrollbar-thin">
                         <div className="divide-y divide-[var(--border-soft)] w-full">
                             {recentPatients.length > 0 ? recentPatients.map(p => (
-                                <div
+                                <button
                                     key={p.id}
+                                    type="button"
                                     onClick={() => onPatientClick?.(p)}   // ← opens modal, no redirect
-                                    className="flex items-center justify-between px-4 py-3 hover:bg-[var(--surface-subtle)] cursor-pointer transition-colors group w-full"
+                                    aria-label={`Open patient details for ${p.lastName}, ${p.firstName}`}
+                                    className="clinical-row-button flex items-center justify-between px-4 py-3 hover:bg-[var(--surface-subtle)] transition-colors group"
                                 >
                                     <div className="flex items-center gap-4 min-w-0">
                                         <div className="hidden">
@@ -152,7 +154,7 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
                                             <span className="text-[0.68rem] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded shadow-sm tracking-wide uppercase inline-flex items-center gap-1"><Icon name="check" className="h-3 w-3" /> Signed</span>
                                         )}
                                     </div>
-                                </div>
+                                </button>
                             )) : (
                                 <div className="text-center py-10 text-sm text-[var(--text-muted)] font-medium border-2 border-dashed border-[var(--border-soft)] rounded-xl w-full">
                                     No patients found.

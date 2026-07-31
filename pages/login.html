@@ -224,7 +224,9 @@
 
         .card-kicker {
             margin-bottom: 8px;
-            color: #5A81FA;
+            /* --navy rather than the brand blue: this is small bold uppercase text,
+               where #5A81FA on white falls under 4.5:1. */
+            color: var(--navy);
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.14em;
@@ -283,7 +285,7 @@
             padding: 13px 14px;
             border: none;
             border-radius: 8px;
-            background: #5A81FA;
+            background: var(--navy);
             color: var(--white);
             font-family: 'DM Sans', sans-serif;
             font-size: 0.95rem;
@@ -542,19 +544,21 @@
                 <h2>Sign in to MEDISENS</h2>
                 <p>Access your RHU workspace using your assigned account.</p>
             </div>
-            <div class="field">
-                <label for="emailInput">Email Address</label>
-                <input type="email" id="emailInput" placeholder="you@medisens.com" autocomplete="email">
-            </div>
-            <div class="field">
-                <label for="passwordInput">Password</label>
-                <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password">
-            </div>
-            <button class="login-btn" id="loginBtn" onclick="handleLogin()">
-                <span id="btnText">Sign In</span>
-                <div class="spinner" id="spinner"></div>
-            </button>
-            <div class="error-msg" id="errorMsg"></div>
+            <form id="loginForm" novalidate>
+                <div class="field">
+                    <label for="emailInput">Email Address</label>
+                    <input type="email" id="emailInput" name="email" placeholder="you@medisens.com" autocomplete="email" required aria-describedby="errorMsg">
+                </div>
+                <div class="field">
+                    <label for="passwordInput">Password</label>
+                    <input type="password" id="passwordInput" name="password" placeholder="Password" autocomplete="current-password" required aria-describedby="errorMsg">
+                </div>
+                <button class="login-btn" id="loginBtn" type="submit">
+                    <span id="btnText">Sign In</span>
+                    <div class="spinner" id="spinner"></div>
+                </button>
+                <div class="error-msg" id="errorMsg" role="alert"></div>
+            </form>
             <p class="privacy-notice">
                 By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
             </p>

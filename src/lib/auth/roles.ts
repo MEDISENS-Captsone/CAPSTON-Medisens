@@ -101,5 +101,6 @@ export async function logout(): Promise<void> {
         });
     }
     await supabase.auth.signOut();
-    window.location.href = '/pages/login.html';
+    // replace() so the authenticated dashboard is not left in session history for Back.
+    window.location.replace('/pages/login.html');
 }

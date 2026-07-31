@@ -108,8 +108,8 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
 
 function RadioOption({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }) {
     return (
-        <label className={`cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)] shadow-sm' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)]'}`}>
-            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="hidden" />
+        <label className={`clinical-choice-label cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)] shadow-sm' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)]'}`}>
+            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
             <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${checked ? 'border-[var(--brand-primary)]' : 'border-[var(--border)]'}`}>
                 {checked && <div className="w-1.5 h-1.5 bg-[var(--brand-active)] rounded-full" />}
             </div>
@@ -301,7 +301,7 @@ function DetailsPage() {
                                 <div className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-[var(--border-soft)]">
                                     <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
+                                        <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
                                         <div className="text-sm text-[var(--text-2)] mt-1 font-medium">Update the necessary fields below and save your changes.</div>
                                     </div>
                                     <div className="shrink-0 flex gap-2 w-full md:w-auto mt-4 md:mt-0">
@@ -406,7 +406,7 @@ function DetailsPage() {
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-[var(--text)] text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
+                                        <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
                                         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-2">
                                             <span className="text-sm text-[var(--text-secondary)] font-medium">Blood: <span className="font-bold text-[var(--text-2)]">{patient.bloodType || 'Unknown'}</span></span>
                                             <span className="text-sm text-[var(--text-secondary)] font-medium">Sex: <span className="font-bold text-[var(--text-2)]">{patient.sex || '-'}</span></span>

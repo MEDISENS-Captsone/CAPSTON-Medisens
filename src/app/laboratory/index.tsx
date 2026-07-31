@@ -209,7 +209,7 @@ function LabRequestDetail({
                         <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor(request.status)}`}>
                             {request.status || 'Pending'}
                         </span>
-                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
+                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="h-10 w-10 -m-1 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
                     </div>
                 </div>
 
@@ -355,7 +355,8 @@ function LabRequestDetail({
 
 const LaboratoryDashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'lab');
+    // Single-workspace dashboard: the page is read from the hash on mount and never changes.
+    const [activePage] = useState(() => window.location.hash.replace('#', '') || 'lab');
 
     useEffect(() => {
         window.location.hash = activePage;
@@ -547,6 +548,7 @@ const LaboratoryDashboard = () => {
                     userRole="Laboratory Staff"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
@@ -674,7 +676,14 @@ const LaboratoryDashboard = () => {
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-3 text-right">
-                                                            <span className="clinical-link-action">Review</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); }}
+                                                                aria-label={`Review lab request for ${name}`}
+                                                                className="clinical-link-action"
+                                                            >
+                                                                Review
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 );

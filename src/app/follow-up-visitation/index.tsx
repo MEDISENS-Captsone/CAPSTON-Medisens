@@ -201,7 +201,7 @@ export default function FollowUp() {
                         <div className="flex items-center gap-4 mb-6">
                             <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
                             <div>
-                                <h1 className="text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)]">Follow-Up Record</h1>
+                                <h2 className="text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)]">Follow-Up Record</h2>
                                 <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">RHU Form Part IV</p>
                             </div>
                         </div>

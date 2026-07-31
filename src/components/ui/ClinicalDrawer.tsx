@@ -51,7 +51,7 @@ export function ClinicalDrawer({
                             type="button"
                             onClick={onClose}
                             aria-label={`Close ${title}`}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--brand-soft-surface)] text-[var(--text-secondary)] transition-colors"
+                            className="h-10 w-10 -m-1 flex items-center justify-center rounded-lg hover:bg-[var(--brand-soft-surface)] text-[var(--text-secondary)] transition-colors"
                         >
                             <Icon name="close" className="h-4 w-4" />
                         </button>

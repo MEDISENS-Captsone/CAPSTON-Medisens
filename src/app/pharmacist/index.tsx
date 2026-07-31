@@ -316,6 +316,7 @@ function PharmacyDashboard() {
                     userRole="Pharmacist"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
@@ -383,7 +384,16 @@ function PharmacyDashboard() {
                                                             </td>
                                                             <td>{new Date(rx.prescription_date).toLocaleDateString('en-PH')}</td>
                                                             <td><span className="clinical-status-badge warning"><Icon name="clock" className="h-3 w-3" /> Pending</span></td>
-                                                            <td className="text-right"><span className="clinical-link-action">Review</span></td>
+                                                            <td className="text-right">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleRxSelect(rx); }}
+                                                                    aria-label={`Review prescription for ${rx.patients?.lastName}, ${rx.patients?.firstName}`}
+                                                                    className="clinical-link-action"
+                                                                >
+                                                                    Review
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 )}
@@ -453,7 +463,7 @@ function PharmacyDashboard() {
                                                     <td className="p-4 text-center">
                                                         <input
                                                             type="checkbox"
-                                                            className="w-5 h-5 accent-teal-700 cursor-pointer"
+                                                            className="w-6 h-6 accent-teal-700 cursor-pointer"
                                                             checked={!!dispenseChecklist[i]}
                                                             onChange={() => handleToggleChecklist(i)}
                                                         />

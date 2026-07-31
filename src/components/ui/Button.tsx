@@ -14,7 +14,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-    primary: 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white shadow-sm hover:border-[var(--brand-primary-hover)] hover:bg-[var(--brand-primary-hover)]',
+    primary: 'border-[var(--brand-primary-hover)] bg-[var(--brand-primary-hover)] text-white shadow-sm hover:border-[var(--brand-active)] hover:bg-[var(--brand-active)]',
     secondary: 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white shadow-sm hover:border-[var(--brand-active-hover)] hover:bg-[var(--brand-active-hover)]',
     outline: 'border-[var(--border-strong)] bg-white text-[var(--text)] shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
     ghost: 'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',

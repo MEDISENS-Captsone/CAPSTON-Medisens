@@ -164,8 +164,18 @@ textarea {
 ::selection { background: var(--blue-light); color: var(--text); }
 
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-    outline: 3px solid var(--focus-ring);
+    /* Solid high-contrast indicator (WCAG 2.4.7 / 1.4.11); soft ring kept as secondary glow */
+    outline: 2px solid var(--focus-color);
     outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--focus-ring);
+}
+
+/* Styled radio/checkbox option labels: show focus on the label when the
+   visually-hidden native input inside receives keyboard focus. */
+.clinical-choice-label:focus-within {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--focus-ring);
 }
 
 :where(button, a, input, select, textarea, summary, [role="button"]) {
@@ -188,20 +198,6 @@ textarea {
 /* ══════════════════════════════════════════════════════════════
    LAYOUT: SIDEBAR & MAIN
 ══════════════════════════════════════════════════════════════ */
-.sidebar {
-    width: var(--sidebar-w);
-    min-height: 100vh;
-    background: var(--white);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 0; left: 0;
-    z-index: 200;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.3s ease;
-}
-
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -268,30 +264,6 @@ textarea {
     }
 }
 
-/* ── Topbar ── */
-.topbar {
-    height: var(--topbar-h);
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    /* clamp ensures padding scales smoothly from mobile to desktop */
-    padding: 0 clamp(0.75rem, 2vw, 1.25rem);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: var(--shadow-sm);
-}
-.topbar-left { display: flex; align-items: center; gap: 0.5rem; }
-.topbar-page {
-    color: var(--text);
-    font-size: var(--type-card-title-size);
-    font-weight: var(--font-weight-semibold);
-    line-height: var(--type-card-title-line);
-}
-.topbar-right { display: flex; align-items: center; gap: 0.5rem; }
-
 /* System Online pill */
 .online-pill {
     display: flex; align-items: center; gap: 0.5rem;
@@ -314,28 +286,6 @@ textarea {
     max-width: none;
 }
 
-/* Welcome row */
-.welcome-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-    flex-wrap: wrap; /* Allows wrapping on zoomed/small screens */
-    gap: 0.75rem;
-}
-.welcome-row h1 {
-    color: var(--text);
-    font-size: var(--type-page-title-size);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--type-page-title-line);
-}
-.welcome-row p  {
-    color: var(--text-2);
-    font-size: var(--type-supporting-size);
-    line-height: var(--type-supporting-line);
-    margin-top: 0.2rem;
-}
-
 /* ══════════════════════════════════════════════════════════════
    CARDS & GRIDS (FLUID RESPONSIVE)
 ══════════════════════════════════════════════════════════════ */
@@ -347,26 +297,6 @@ textarea {
     border: 1px solid var(--border);
 }
 
-/* Auto-fitting Stats Row: No media queries needed!
-   It automatically calculates how many columns fit based on min-width of 220px */
-.stats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 184px), 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.stat-card {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: clamp(0.75rem, 1.5vw, 1rem);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-}
-
 /* Auto-fitting Layout Grids */
 .grid-2 {
     display: grid;
@@ -374,40 +304,10 @@ textarea {
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
-.grid-3 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 224px), 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-/* For 2-3 split, we use auto-fit fallback, but force ratio on larger screens */
-.grid-2-3 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 288px), 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-@media (min-width: 992px) {
-    .grid-2-3 { grid-template-columns: 1.3fr 1fr; }
-}
-
-/* Quick actions fluid grid */
-.quick-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 0.5rem;
-}
 
 /* ══════════════════════════════════════════════════════════════
    TABLES
 ══════════════════════════════════════════════════════════════ */
-.table-wrap {
-    overflow-x: auto;
-    width: 100%;
-    min-width: 0;
-    -webkit-overflow-scrolling: touch;
-}
 table {
     width: 100%;
     min-width: min(100%, 500px); /* Prevent crunching data */
@@ -459,10 +359,7 @@ table {
 }
 
 .ds-button,
-.btn,
-.qa-btn,
-.view-all-link,
-.morb-btn {
+.btn {
     min-height: 2.25rem;
     border-radius: var(--radius-control);
     font-size: var(--type-button-size);
@@ -473,9 +370,10 @@ table {
 
 .ds-button-primary,
 .btn-primary {
-    background: var(--focus-color);
+    /* --brand-primary-hover keeps white text at >= 4.5:1 (WCAG 1.4.3) */
+    background: var(--brand-primary-hover);
     color: var(--white);
-    border: 1px solid var(--focus-color);
+    border: 1px solid var(--brand-primary-hover);
     box-shadow: var(--shadow-sm);
 }
 
@@ -587,7 +485,6 @@ textarea:focus {
 
 .bg-white,
 .card,
-.stat-card,
 .list-card,
 [class*="bg-white"][class*="border"] {
     background-color: var(--surface) !important;
@@ -1037,8 +934,9 @@ td {
 
 .clinical-filter-button.is-active,
 .clinical-filter-button[aria-pressed="true"] {
-    border-color: var(--focus-color);
-    background: var(--focus-color);
+    /* --brand-primary-hover keeps white text at >= 4.5:1 (WCAG 1.4.3) */
+    border-color: var(--brand-primary-hover);
+    background: var(--brand-primary-hover);
     color: #FFFFFF;
     box-shadow: var(--shadow-sm);
 }
@@ -1329,7 +1227,7 @@ td {
 
 .clinical-link-action {
     display: inline-flex;
-    min-height: 2rem;
+    min-height: 2.25rem;
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
@@ -1348,7 +1246,7 @@ td {
 
 .clinical-row-action {
     display: inline-flex;
-    min-height: 2rem;
+    min-height: 2.25rem;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
@@ -1416,6 +1314,27 @@ td {
     gap: 0.875rem;
     border-bottom: 1px solid var(--border-soft);
     padding: 0.75rem 1rem;
+}
+
+button.clinical-worklist-row {
+    width: 100%;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+/* Shared reset for list rows rendered as real <button> elements */
+.clinical-row-button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
 }
 
 .clinical-worklist-row:last-child {
@@ -2302,7 +2221,8 @@ td {
 .doctor-barangay-row:focus-visible {
     border-color: var(--brand-accent-surface);
     background: var(--surface-subtle);
-    outline: 0;
+    outline: 2px solid var(--focus-color);
+    outline-offset: -2px;
 }
 
 .doctor-barangay-row.is-selected {
@@ -2515,7 +2435,7 @@ td {
 }
 
 .doctor-map-metric-selector button {
-    min-height: 1.9rem;
+    min-height: 2.25rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
     background: var(--surface);
@@ -2526,12 +2446,18 @@ td {
     transition: border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
-.doctor-map-metric-selector button:hover,
+.doctor-map-metric-selector button:hover {
+    border-color: rgba(90, 129, 250, 0.36);
+    background: var(--brand-soft-surface);
+    color: var(--brand-active);
+}
+
 .doctor-map-metric-selector button:focus-visible {
     border-color: rgba(90, 129, 250, 0.36);
     background: var(--brand-soft-surface);
     color: var(--brand-active);
-    outline: 0;
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
 }
 
 .doctor-map-metric-selector button.is-active {
@@ -2602,12 +2528,21 @@ td {
 .doctor-map-barangay.is-high { fill-opacity: 0.88; }
 .doctor-map-barangay.is-highest { fill-opacity: 1; }
 
-.doctor-map-barangay:hover,
-.doctor-map-barangay:focus-visible {
+.doctor-map-barangay:hover {
     outline: none;
     fill-opacity: 0.96;
     stroke: var(--brand-soft-surface);
     stroke-width: 2.35;
+}
+
+/* Keyboard focus must be distinguishable from hover and stay readable against every
+   fill step, so it uses a dark brand stroke rather than the near-white hover stroke.
+   SVG outline support is inconsistent, hence stroke rather than outline. */
+.doctor-map-barangay:focus-visible {
+    outline: none;
+    fill-opacity: 0.96;
+    stroke: var(--brand-active);
+    stroke-width: 3.4;
 }
 
 .doctor-map-barangay:focus {
@@ -3447,42 +3382,6 @@ td {
     padding: 1rem 1.25rem;
 }
 
-.pharmacy-preview-modal {
-    display: flex;
-    width: min(100%, 44rem);
-    max-width: 44rem;
-    max-height: min(90dvh, 48rem);
-    flex-direction: column;
-}
-
-.pharmacy-preview-header {
-    display: flex;
-    flex-shrink: 0;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface-subtle);
-    padding: 1rem 1.25rem;
-}
-
-.pharmacy-preview-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 1.25rem;
-}
-
-.pharmacy-preview-footer {
-    display: flex;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    border-top: 1px solid var(--border);
-    background: var(--surface-subtle);
-    padding: 1rem 1.25rem;
-}
-
 .patient-chart-modal {
     display: flex;
     width: min(100%, 64rem);
@@ -3611,8 +3510,23 @@ td {
     inset: 0 0 1.65rem;
 }
 
+/* The span is a transparent hit box; the visible dot is drawn by ::before. The box
+   grows toward the 24px target minimum (WCAG 2.5.8) but is never wider than the gap
+   to the next bucket, so on dense charts one point cannot cover its neighbour's dot.
+   --doctor-point-gap is set inline from the bucket count. */
 .doctor-line-point {
     position: absolute;
+    width: min(1.5rem, var(--doctor-point-gap, 1.5rem));
+    height: 1.5rem;
+    transform: translate(-50%, -50%);
+    background: none;
+    border: 0;
+}
+
+.doctor-line-point::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 0.62rem;
     height: 0.62rem;
     transform: translate(-50%, -50%);
@@ -3620,14 +3534,19 @@ td {
     border-radius: 999px;
     background: var(--brand-primary);
     box-shadow: 0 0 0 1px rgba(90, 129, 250, 0.24);
+    content: '';
 }
 
-.doctor-line-point:hover,
-.doctor-line-point:focus-visible {
+.doctor-line-point:hover::before,
+.doctor-line-point:focus-visible::before {
     width: 0.8rem;
     height: 0.8rem;
-    outline: 2px solid var(--brand-primary);
+}
+
+.doctor-line-point:focus-visible {
+    outline: 2px solid var(--focus-color);
     outline-offset: 1px;
+    border-radius: var(--radius-control);
 }
 
 .doctor-line-point::after {
@@ -3660,19 +3579,33 @@ td {
     right: 0;
     bottom: 0;
     left: 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
+    height: 1.65rem;
     overflow: hidden;
     color: var(--text-secondary);
     font-size: var(--type-category-size);
     font-weight: var(--font-weight-medium);
 }
 
+/* Each label is anchored to the same percentage as its data point. Even distribution
+   would drift once intermediate labels are hidden on dense charts, because the kept
+   labels are not evenly spaced in index terms. */
 .doctor-line-x-axis span {
-    flex: 0 0 auto;
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
     text-align: center;
     white-space: nowrap;
+}
+
+/* Keep the end labels inside the plot instead of half-clipping them. */
+.doctor-line-x-axis span:first-child {
+    transform: none;
+}
+
+/* :not(:first-child) so a single-bucket period keeps its one label left-aligned
+   instead of being shifted off the plot. */
+.doctor-line-x-axis span:last-child:not(:first-child) {
+    transform: translateX(-100%);
 }
 
 .doctor-line-x-axis span.is-hidden {
@@ -3729,18 +3662,22 @@ td {
         align-items: stretch;
     }
 
+    /* overflow-x: auto clips on every edge, so reserve room for the focus ring
+       (2px outline + 2px offset). The negative inline margin cancels the inline
+       padding so the first and last chip stay visually flush. */
     .clinical-toolbar .clinical-filter-group {
         width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding-bottom: 0.125rem;
+        padding: 0.3rem;
+        margin-inline: -0.3rem;
     }
 }
 
 @media (max-width: 560px) {
     .doctor-analytics-period { align-items: flex-start; }
     .doctor-analytics-controls { width: 100%; justify-content: flex-start; }
-    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.125rem; }
+    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding: 0.3rem; margin-inline: -0.3rem; }
     .doctor-workspace-tabs { flex-wrap: nowrap; overflow-x: auto; }
     .doctor-operational-grid,
     .doctor-staff-metrics,
@@ -3753,7 +3690,8 @@ td {
         width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding-bottom: 0.125rem;
+        padding: 0.3rem;
+        margin-inline: -0.3rem;
     }
     .doctor-geographic-command {
         grid-template-areas:
@@ -4070,19 +4008,6 @@ td {
         padding-inline: 1rem;
     }
 
-    .pharmacy-preview-modal {
-        max-height: calc(100dvh - 1rem);
-    }
-
-    .pharmacy-preview-header,
-    .pharmacy-preview-body,
-    .pharmacy-preview-footer {
-        padding-inline: 1rem;
-    }
-
-    .pharmacy-preview-footer > button {
-        width: 100%;
-    }
 
     .patient-chart-modal {
         max-height: calc(100dvh - 0.75rem);

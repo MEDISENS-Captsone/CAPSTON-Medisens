@@ -20,8 +20,8 @@ const typeClasses = {
 export function Toast({ message, type = 'success', subText, onClose, className, icon }: ToastProps) {
     return (
         <div
-            role="status"
-            aria-live="polite"
+            role={type === 'error' ? 'alert' : 'status'}
+            aria-live={type === 'error' ? 'assertive' : 'polite'}
             aria-atomic="true"
             className={cn(
                 'fixed right-4 top-4 z-[10000] flex w-[calc(100vw-2rem)] max-w-sm items-start gap-2 rounded-lg px-3 py-2.5 text-white shadow-lg ring-1 ring-white/20 sm:right-4 sm:top-4',

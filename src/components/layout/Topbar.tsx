@@ -17,6 +17,7 @@ interface TopbarProps {
     userRole: string;
     isOnline: boolean;
     onOpenNavigation: () => void;
+    isNavigationOpen?: boolean;
     onUserMenuClick?: () => void;
 }
 
@@ -29,6 +30,7 @@ export function Topbar({
     userRole,
     isOnline,
     onOpenNavigation,
+    isNavigationOpen = false,
     onUserMenuClick,
 }: TopbarProps) {
     return (
@@ -38,7 +40,10 @@ export function Topbar({
                     type="button"
                     onClick={onOpenNavigation}
                     aria-label="Open navigation menu"
-                    className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)] md:hidden"
+                    aria-expanded={isNavigationOpen}
+                    aria-controls="primary-navigation"
+                    data-nav-toggle
+                    className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)] md:hidden"
                 >
                     <Icon name="menu" className="h-5 w-5" />
                 </button>
@@ -49,7 +54,7 @@ export function Topbar({
                 </div>
             </div>
             <div className="flex min-w-0 items-center gap-2">
-                <NetworkBadge isOnline={isOnline} compact className="hidden sm:inline-flex lg:hidden" />
+                <NetworkBadge isOnline={isOnline} compact className="inline-flex lg:hidden" />
                 <NetworkBadge isOnline={isOnline} className="hidden lg:inline-flex" />
                 <div className="hidden h-6 w-px bg-[var(--border)] sm:block" />
                 <UserMenu userName={userName} userInitials={userInitials} userRole={userRole} isOnline={isOnline} onLogoutClick={onUserMenuClick} />

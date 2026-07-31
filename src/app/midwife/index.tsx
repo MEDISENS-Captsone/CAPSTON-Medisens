@@ -185,9 +185,10 @@ function PatientModal({
                             <button
                                 type="button"
                                 onClick={() => setStep('details')}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] font-bold text-sm transition-colors"
+                                aria-label="Back to patient details"
+                                className="h-10 w-10 -m-1 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] font-bold text-sm transition-colors"
                             >
-                                ←
+                                <span aria-hidden="true">←</span>
                             </button>
                         )}
                         {/* Step pills */}
@@ -208,7 +209,7 @@ function PatientModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-secondary)] font-bold transition-colors"
+                        className="h-10 w-10 -m-1 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-secondary)] font-bold transition-colors"
                     >
                         <Icon name="close" className="h-4 w-4" label="Close patient details" />
                     </button>
@@ -330,6 +331,7 @@ const MidwifeApp = () => {
                     userRole="Registered Midwife"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 {/* Content */}

@@ -576,8 +576,10 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
     const previousPoints = rows.map((row, index) => chartPoint(index, row.previous_count ?? 0, rows.length, axisMax));
     const labelStride = rows.length > 12 ? Math.ceil(rows.length / 6) : rows.length > 7 ? 2 : 1;
 
+    // role="group", not role="img": an img is an atomic leaf, which would hide the
+    // focusable per-point labels below from screen readers.
     return (
-        <div className="doctor-line-chart" role="img" aria-label="Consultations per bucket, current period compared with the same bucket in the previous period">
+        <div className="doctor-line-chart" role="group" aria-label="Consultations per bucket, current period compared with the same bucket in the previous period">
             <div className="doctor-line-legend">
                 <span><i className="is-current" />Current period</span>
                 <span><i className="is-previous" />Previous period, same bucket</span>
@@ -593,7 +595,10 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
                         <path className="doctor-line-path is-previous" d={svgPath(previousPoints)} />
                         <path className="doctor-line-path is-current" d={svgPath(currentPoints)} />
                     </svg>
-                    <div className="doctor-line-hitpoints">
+                    <div
+                        className="doctor-line-hitpoints"
+                        style={{ '--doctor-point-gap': `${100 / Math.max(rows.length - 1, 1)}%` } as React.CSSProperties}
+                    >
                         {rows.map((row, index) => {
                             const current = row.current_count ?? 0;
                             const previous = row.previous_count ?? 0;
@@ -613,7 +618,11 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
                     </div>
                     <div className="doctor-line-x-axis">
                         {rows.map((row, index) => (
-                            <span key={`${row.bucket_start ?? 'period'}-${index}`} className={index % labelStride === 0 || index === rows.length - 1 ? '' : 'is-hidden'}>
+                            <span
+                                key={`${row.bucket_start ?? 'period'}-${index}`}
+                                className={index % labelStride === 0 || index === rows.length - 1 ? '' : 'is-hidden'}
+                                style={{ left: `${(index / Math.max(rows.length - 1, 1)) * 100}%` }}
+                            >
                                 {formatBucketDate(row.bucket_start, bucket)}
                             </span>
                         ))}
@@ -1644,7 +1653,7 @@ function StaffOperationsTrendChart({
     }));
 
     return (
-        <div className="doctor-line-chart" role="img" aria-label={`Trend for ${series.map(item => item.label).join(' and ')}`}>
+        <div className="doctor-line-chart" role="group" aria-label={`Trend for ${series.map(item => item.label).join(' and ')}`}>
             <div className="doctor-line-legend">
                 {plotted.map(item => (
                     <span key={item.label}><i className={item.variant} />{item.label}</span>
@@ -1661,7 +1670,10 @@ function StaffOperationsTrendChart({
                             <path key={item.label} className={`doctor-line-path ${item.variant}`} d={svgPath(item.points)} />
                         ))}
                     </svg>
-                    <div className="doctor-line-hitpoints">
+                    <div
+                        className="doctor-line-hitpoints"
+                        style={{ '--doctor-point-gap': `${100 / Math.max(buckets.length - 1, 1)}%` } as React.CSSProperties}
+                    >
                         {buckets.map((bucketStart, index) => (
                             <span
                                 key={bucketStart}
@@ -1676,7 +1688,11 @@ function StaffOperationsTrendChart({
                     </div>
                     <div className="doctor-line-x-axis">
                         {buckets.map((bucketStart, index) => (
-                            <span key={bucketStart} className={index % labelStride === 0 || index === buckets.length - 1 ? '' : 'is-hidden'}>
+                            <span
+                                key={bucketStart}
+                                className={index % labelStride === 0 || index === buckets.length - 1 ? '' : 'is-hidden'}
+                                style={{ left: `${(index / Math.max(buckets.length - 1, 1)) * 100}%` }}
+                            >
                                 {formatBucketDate(bucketStart, bucket)}
                             </span>
                         ))}
@@ -2163,8 +2179,27 @@ function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
     );
 }
 
+const DETAIL_TABS = [
+    { key: 'clinical', label: 'Diagnoses & Complaints' },
+    { key: 'laboratory', label: 'Lab Trends' },
+    { key: 'prescriptions', label: 'Prescription Trends' },
+] as const;
+
+// ARIA tabs pattern: horizontal arrows move between tabs, Home/End jump to the ends.
+// Returns the index to move to, or null when the key is not a tablist key.
+function nextTabIndex(key: string, current: number, count: number): number | null {
+    if (count === 0) return null;
+    if (key === 'ArrowRight') return (current + 1) % count;
+    if (key === 'ArrowLeft') return (current - 1 + count) % count;
+    if (key === 'Home') return 0;
+    if (key === 'End') return count - 1;
+    return null;
+}
+
 export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: boolean; role?: AnalyticsWorkspaceRole }) {
     const [detailTab, setDetailTab] = useState<'clinical' | 'laboratory' | 'prescriptions'>('clinical');
+    const workspaceTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const detailTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
     const [detailFilters, setDetailFilters] = useState<DetailFilterState>(EMPTY_DETAIL_FILTERS);
     const availableViews = useMemo(() => ANALYTICS_VIEWS.filter(view => view.roles.includes(role)), [role]);
     const [activeView, setActiveView] = useState<AnalyticsView>(() => readViewFromLocation(role));
@@ -2227,6 +2262,29 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
         const resolved = resolveAnalyticsView(view, role);
         setActiveView(resolved);
         writeViewToLocation(resolved, 'push');
+    };
+
+    // Activation follows focus, so arrowing selects the tab through the same
+    // selectView path a click uses and the ?view= URL state stays in step.
+    const handleWorkspaceTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+        const next = nextTabIndex(event.key, index, availableViews.length);
+        if (next === null) return;
+        event.preventDefault();
+        selectView(availableViews[next].key);
+        workspaceTabRefs.current[next]?.focus();
+    };
+
+    const selectDetailTab = (key: typeof DETAIL_TABS[number]['key']) => {
+        setDetailTab(key);
+        setDetailFilters(EMPTY_DETAIL_FILTERS);
+    };
+
+    const handleDetailTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+        const next = nextTabIndex(event.key, index, DETAIL_TABS.length);
+        if (next === null) return;
+        event.preventDefault();
+        selectDetailTab(DETAIL_TABS[next].key);
+        detailTabRefs.current[next]?.focus();
     };
 
     const customPeriod = useMemo(() => getCustomPeriod(customFrom, customTo), [customFrom, customTo]);
@@ -2520,7 +2578,7 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
 
             <header className="doctor-analytics-period">
                 <div className="min-w-0 flex-1">
-                    <h1 className="doctor-analytics-page-title">Analytics Overview</h1>
+                    <h2 className="doctor-analytics-page-title">Analytics Overview</h2>
                     <p className="doctor-analytics-period-label">{displayPeriod.from} to {displayPeriod.toExclusive}</p>
                 </div>
                 <div className="doctor-analytics-controls">
@@ -2573,16 +2631,19 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
             </header>
 
             <div className="doctor-workspace-tabs" role="tablist" aria-label="Analytics workspace">
-                {availableViews.map(view => (
+                {availableViews.map((view, index) => (
                     <button
                         key={view.key}
                         type="button"
                         role="tab"
                         id={`analytics-tab-${view.key}`}
+                        ref={element => { workspaceTabRefs.current[index] = element; }}
                         aria-selected={activeView === view.key}
                         aria-controls={`analytics-panel-${view.key}`}
+                        tabIndex={activeView === view.key ? 0 : -1}
                         className={`clinical-filter-button ${activeView === view.key ? 'is-active' : ''}`}
                         onClick={() => selectView(view.key)}
+                        onKeyDown={event => handleWorkspaceTabKeyDown(event, index)}
                     >
                         {view.label}
                     </button>
@@ -2717,24 +2778,30 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                     <SectionHeading title="Detailed Records" subtitle="Secondary aggregate tables for drill-down review." />
                     <SectionPanel title="Details" subtitle="Supporting aggregate tables for closer review.">
                         <div className="doctor-analytics-tabs" role="tablist" aria-label="Analytics detail">
-                            {([
-                                ['clinical', 'Diagnoses & Complaints'],
-                                ['laboratory', 'Lab Trends'],
-                                ['prescriptions', 'Prescription Trends'],
-                            ] as const).map(([key, label]) => (
+                            {DETAIL_TABS.map(({ key, label }, index) => (
                                 <button
                                     key={key}
                                     type="button"
                                     role="tab"
+                                    id={`analytics-detail-tab-${key}`}
+                                    ref={element => { detailTabRefs.current[index] = element; }}
                                     aria-selected={detailTab === key}
+                                    aria-controls={`analytics-detail-panel-${key}`}
+                                    tabIndex={detailTab === key ? 0 : -1}
                                     className={`clinical-filter-button ${detailTab === key ? 'is-active' : ''}`}
-                                    onClick={() => { setDetailTab(key); setDetailFilters(EMPTY_DETAIL_FILTERS); }}
+                                    onClick={() => selectDetailTab(key)}
+                                    onKeyDown={event => handleDetailTabKeyDown(event, index)}
                                 >
                                     {label}
                                 </button>
                             ))}
                         </div>
-                        <div className="doctor-detail-panel" role="tabpanel">
+                        <div
+                            className="doctor-detail-panel"
+                            role="tabpanel"
+                            id={`analytics-detail-panel-${detailTab}`}
+                            aria-labelledby={`analytics-detail-tab-${detailTab}`}
+                        >
                             {detailTab === 'clinical' && (
                                 <div className="ops-grid">
                                     <div className="col-span-12 lg:col-span-6">

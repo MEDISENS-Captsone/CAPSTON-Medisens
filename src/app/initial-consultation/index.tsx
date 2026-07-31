@@ -276,9 +276,10 @@ export function ConsultationComponent() {
                     <div className="w-full">
                         <div className="relative mb-6">
                             <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
-                            <input 
-                                type="text" 
-                                placeholder="Search consented patients by name..." 
+                            <input
+                                type="text"
+                                aria-label="Search consented patients by name"
+                                placeholder="Search consented patients by name..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 className="w-full pl-12 pr-4 py-3 rounded-lg border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] bg-white text-[var(--text)] font-medium"
@@ -331,8 +332,8 @@ export function ConsultationComponent() {
                                     <label className={labelClasses}>Mode of Transaction</label>
                                     <div className="flex flex-wrap gap-3 mt-2">
                                         {['Walk in', 'Referral'].map(v => (
-                                            <label key={v} className={`cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransaction === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
-                                                <input type="radio" name="modeOfTransaction" value={v} onChange={handleRadioChange} checked={formData.modeOfTransaction === v} className="hidden" />{v}
+                                            <label key={v} className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransaction === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
+                                                <input type="radio" name="modeOfTransaction" value={v} onChange={handleRadioChange} checked={formData.modeOfTransaction === v} className="sr-only" />{v}
                                             </label>
                                         ))}
                                     </div>
@@ -341,8 +342,8 @@ export function ConsultationComponent() {
                                     <label className={labelClasses}>Mode of Transfer</label>
                                     <div className="flex flex-wrap gap-3 mt-2">
                                         {['Ambulatory', 'Via Wheelchair'].map(v => (
-                                            <label key={v} className={`cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransfer === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
-                                                <input type="radio" name="modeOfTransfer" value={v} onChange={handleRadioChange} checked={formData.modeOfTransfer === v} className="hidden" />{v}
+                                            <label key={v} className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransfer === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
+                                                <input type="radio" name="modeOfTransfer" value={v} onChange={handleRadioChange} checked={formData.modeOfTransfer === v} className="sr-only" />{v}
                                             </label>
                                         ))}
                                     </div>
@@ -396,8 +397,8 @@ export function ConsultationComponent() {
                                 <label className={labelClasses}>General Survey Status</label>
                                 <div className="flex flex-wrap gap-3 mt-3">
                                     {['Awake and Alert', 'Altered Sensorium'].map(v => (
-                                        <label key={v} className={`cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors ${formData.generalSurvey === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
-                                            <input type="radio" name="generalSurvey" value={v} onChange={handleRadioChange} checked={formData.generalSurvey === v} className="hidden" />{v}
+                                        <label key={v} className={`clinical-choice-label cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors ${formData.generalSurvey === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
+                                            <input type="radio" name="generalSurvey" value={v} onChange={handleRadioChange} checked={formData.generalSurvey === v} className="sr-only" />{v}
                                         </label>
                                     ))}
                                 </div>
