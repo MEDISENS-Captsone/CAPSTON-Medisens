@@ -1215,8 +1215,8 @@ export function ConsultationPage({
                     <div><label className={labelCls} htmlFor="consult-followUpWeight">Weight (kg)</label><input id="consult-followUpWeight" type="text" name="followUpWeight" value={formData.followUpWeight} onChange={handleChange} className={inputCls} placeholder="65" /></div>
                     <div><label className={labelCls} htmlFor="consult-followUpHeight">Height (cm)</label><input id="consult-followUpHeight" type="text" name="followUpHeight" value={formData.followUpHeight} onChange={handleChange} className={inputCls} placeholder="165" /></div>
                     <div>
-                        <label className={labelCls}>BMI <span className="text-[var(--text-muted)] font-normal normal-case">(auto)</span></label>
-                        <input type="text" readOnly value={followUpBmiInfo ? followUpBmiInfo.value : ''} className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-secondary)] font-semibold cursor-default`} placeholder="?" />
+                        <label className={labelCls} htmlFor="consult-followUpBmiAuto">BMI <span className="text-[var(--text-muted)] font-normal normal-case">(auto)</span></label>
+                        <input id="consult-followUpBmiAuto" type="text" readOnly value={followUpBmiInfo ? followUpBmiInfo.value : ''} className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-secondary)] font-semibold cursor-default`} placeholder="?" />
                         {followUpBmiInfo && <p className={`text-xs mt-1.5 font-semibold ${followUpBmiInfo.color}`}>{followUpBmiInfo.status}</p>}
                     </div>
                     <div><label className={labelCls} htmlFor="consult-followUpVaL">Visual Acuity ? Left</label><input id="consult-followUpVaL" type="text" name="followUpVaL" value={formData.followUpVaL} onChange={handleChange} className={inputCls} placeholder="20/20" /></div>
@@ -1376,7 +1376,7 @@ export function ConsultationPage({
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             {medications.length > 1 && <button onClick={() => handleRemoveMed(i)} className="text-xs bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg font-bold transition-colors">Remove</button>}
                         </div>
-                        <h4 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wide mb-4">Medication {i + 1}</h4>
+                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-4">Medication {i + 1}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="sm:col-span-2 md:col-span-2">
                                 <label className={labelCls} htmlFor={`consult-med-name-${i}`}>Medication Name</label>

@@ -301,7 +301,7 @@ function DetailsPage() {
                                 <div className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-[var(--border-soft)]">
                                     <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
+                                        <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
                                         <div className="text-sm text-[var(--text-2)] mt-1 font-medium">Update the necessary fields below and save your changes.</div>
                                     </div>
                                     <div className="shrink-0 flex gap-2 w-full md:w-auto mt-4 md:mt-0">
@@ -406,7 +406,7 @@ function DetailsPage() {
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-[var(--text)] text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
+                                        <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
                                         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-2">
                                             <span className="text-sm text-[var(--text-secondary)] font-medium">Blood: <span className="font-bold text-[var(--text-2)]">{patient.bloodType || 'Unknown'}</span></span>
                                             <span className="text-sm text-[var(--text-secondary)] font-medium">Sex: <span className="font-bold text-[var(--text-2)]">{patient.sex || '-'}</span></span>

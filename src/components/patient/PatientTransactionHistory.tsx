@@ -71,7 +71,7 @@ function CardHeader({ type, title, date, status, summary }: PatientTransaction) 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                    <span className={`flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-[0.65rem] font-black ring-1 ${TYPE_MARK_CLASS[type]}`}>
+                    <span className={`flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-[0.65rem] font-semibold ring-1 ${TYPE_MARK_CLASS[type]}`}>
                         {TYPE_MARK[type]}
                     </span>
                     <StatusBadge tone={type === 'lab_result' || type === 'pharmacy' ? 'green' : type === 'vaccine' ? 'indigo' : 'blue'}>

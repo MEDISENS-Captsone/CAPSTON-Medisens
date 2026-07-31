@@ -1341,7 +1341,7 @@ td {
 
 .clinical-link-action {
     display: inline-flex;
-    min-height: 2rem;
+    min-height: 2.25rem;
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
@@ -1360,7 +1360,7 @@ td {
 
 .clinical-row-action {
     display: inline-flex;
-    min-height: 2rem;
+    min-height: 2.25rem;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;

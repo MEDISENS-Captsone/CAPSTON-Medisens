@@ -42,7 +42,7 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
             {/* Header */}
             <div className="mb-4 flex justify-between items-end">
                 <div>
-                    <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Maternal & Child Health Work Queue</h1>
+                    <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Maternal & Child Health Work Queue</h2>
                     <p className="text-sm text-[var(--text-secondary)] mt-1">Review census entries, patient records, and reporting tasks for the current month.</p>
                 </div>
             </div>

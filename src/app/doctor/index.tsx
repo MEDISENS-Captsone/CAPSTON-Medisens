@@ -551,7 +551,7 @@ const DoctorDashboard = () => {
                                     ].map(([label, value, note]) => (
                                         <div key={label} className="ops-summary-card">
                                             <p className="ops-summary-label">{label}</p>
-                                            <h2 className="ops-summary-value tabular-nums">{value}</h2>
+                                            <p className="ops-summary-value tabular-nums">{value}</p>
                                             <p className="ops-summary-note">{note}</p>
                                         </div>
                                     ))}
@@ -729,7 +729,7 @@ const DoctorDashboard = () => {
                                 <p className="text-xs text-[var(--text-muted)] mt-0.5">{allFollowUps.length} pending • sorted by date</p>
                             </div>
                             <button type="button" onClick={() => setShowFollowUpsModal(false)}
-                                aria-label="Close follow-up dialog" className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)] transition-colors"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
+                                aria-label="Close follow-up dialog" className="h-10 w-10 -m-1 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)] transition-colors"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {allFollowUps.length === 0 ? (

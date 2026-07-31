@@ -439,7 +439,7 @@ export function PatientDetailModal({
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close patient details"
-                                className={`w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
+                                className={`h-10 w-10 -m-1 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
                             >
                                 X
                             </button>

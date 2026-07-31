@@ -209,7 +209,7 @@ function LabRequestDetail({
                         <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor(request.status)}`}>
                             {request.status || 'Pending'}
                         </span>
-                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
+                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="h-10 w-10 -m-1 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
                     </div>
                 </div>
 

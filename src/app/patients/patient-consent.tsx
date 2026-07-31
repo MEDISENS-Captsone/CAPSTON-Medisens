@@ -25,7 +25,7 @@ interface SigPadProps {
 
 function SectionIcon({ name }: { name: string }) {
     return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-700 text-white shadow-sm">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-active)] text-white shadow-sm">
             <Icon name={name} className="h-5 w-5" />
         </span>
     );

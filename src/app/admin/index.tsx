@@ -585,7 +585,7 @@ const AdminDashboard = () => {
                                 <h3 id="user-dialog-title" className="text-xl font-bold text-[var(--text)]">{isEditMode ? `Edit: ${fFullName}` : 'Add New User'}</h3>
                                 <p className="text-xs font-medium text-[var(--text-secondary)] mt-1">{isEditMode ? 'Update name or role assignment' : 'Create a new system account'}</p>
                             </div>
-                            <button type="button" onClick={closeUserModal} aria-label="Close user dialog" className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close user dialog" /></button>
+                            <button type="button" onClick={closeUserModal} aria-label="Close user dialog" className="h-10 w-10 -m-1 flex items-center justify-center rounded-xl bg-white border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close user dialog" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">

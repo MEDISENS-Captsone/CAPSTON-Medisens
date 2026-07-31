@@ -227,9 +227,9 @@ export function TemplatesComponent() {
 
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
                         Patient Registration
-                    </h1>
+                    </h2>
                     <p className="text-sm text-slate-500 mt-1">Register a new patient into the system for initial triage.</p>
                 </div>
             </div>

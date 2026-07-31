@@ -462,7 +462,7 @@ function PharmacyDashboard() {
                                                     <td className="p-4 text-center">
                                                         <input
                                                             type="checkbox"
-                                                            className="w-5 h-5 accent-teal-700 cursor-pointer"
+                                                            className="w-6 h-6 accent-teal-700 cursor-pointer"
                                                             checked={!!dispenseChecklist[i]}
                                                             onChange={() => handleToggleChecklist(i)}
                                                         />
