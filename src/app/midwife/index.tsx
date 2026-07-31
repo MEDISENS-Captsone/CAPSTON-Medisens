@@ -331,6 +331,7 @@ const MidwifeApp = () => {
                     userRole="Registered Midwife"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 {/* Content */}

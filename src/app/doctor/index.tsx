@@ -524,6 +524,7 @@ const DoctorDashboard = () => {
                     userRole="General Practitioner"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 <div className="w-full flex flex-col gap-5">

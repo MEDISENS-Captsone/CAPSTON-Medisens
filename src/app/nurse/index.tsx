@@ -169,6 +169,7 @@ const NurseDashboard = () => {
                     userRole="Registered Nurse"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
