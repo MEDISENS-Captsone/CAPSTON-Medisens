@@ -355,7 +355,8 @@ function LabRequestDetail({
 
 const LaboratoryDashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'lab');
+    // Single-workspace dashboard: the page is read from the hash on mount and never changes.
+    const [activePage] = useState(() => window.location.hash.replace('#', '') || 'lab');
 
     useEffect(() => {
         window.location.hash = activePage;

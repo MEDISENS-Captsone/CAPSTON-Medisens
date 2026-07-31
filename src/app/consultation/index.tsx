@@ -5,7 +5,7 @@ import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useN
 import { useToast } from '../../components/feedback/Toast';
 import { createLabRequest, createPrescription, upsertConsultation, upsertFollowUpByConsultation, upsertLatestFollowUpByPatient } from '../../features/consultation/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
-import { isBlank, safeTrim, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
+import { isBlank, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
 import { printHtmlDocument } from '../../lib/utils/print';
 import { itemizeText } from '../../features/patients/itemization';
 import { Icon } from '../../components/shared/Icon';
@@ -454,9 +454,6 @@ export function ConsultationPage({
     const [consultationId, setConsultationId] = useState<number | null>(null);
     const [showHistory, setShowHistory] = useState(false);
 
-    // -- real-time live indicator ----------------------------------------------
-    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
-
     const { isOnline } = useNetworkSync();
     const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20';
 
@@ -709,11 +706,7 @@ export function ConsultationPage({
                 }
             )
 
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') setRealtimeStatus('live');
-                else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error');
-                else setRealtimeStatus('connecting');
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);

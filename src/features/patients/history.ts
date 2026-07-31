@@ -71,13 +71,15 @@ interface ConsentRow {
 
 interface InitialConsultationRow {
     initialconsultation_id: string | number;
-    consultation_date: string | null;
-    consultation_time: string | null;
-    mode_of_transaction: string | null;
-    referred_by: string | null;
-    mode_of_transfer: string | null;
-    chief_complaint: string | null;
-    diagnosis: string | null;
+    // Optional because the legacy fallback query can only select the identifier
+    // columns; every consumer below already tolerates a missing value.
+    consultation_date?: string | null;
+    consultation_time?: string | null;
+    mode_of_transaction?: string | null;
+    referred_by?: string | null;
+    mode_of_transfer?: string | null;
+    chief_complaint?: string | null;
+    diagnosis?: string | null;
 }
 
 interface ConsultationRow {
@@ -221,7 +223,6 @@ async function selectHistoryWithFallback<T>(
 
 function appendHistorySection(
     label: string,
-    transactions: PatientTransaction[],
     warnings: PatientHistoryWarning[],
     appendRecords: () => void,
 ) {
@@ -306,7 +307,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
     const patients = patientsResult.data;
     const consents = consentsResult.data;
 
-    appendHistorySection('Registration', transactions, warnings, () => {
+    appendHistorySection('Registration', warnings, () => {
         patients.forEach(patient => {
             const consentStatus = consents.length > 0 ? asText(consents[0].consent_status || 'Signed') : 'Pending';
             transactions.push({
@@ -324,7 +325,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Consent', transactions, warnings, () => {
+    appendHistorySection('Consent', warnings, () => {
         consents.forEach(consent => {
             const consentStatus = consent.consent_status || (consent.consent_signer ? 'Signed' : 'Recorded');
             const consentPersonnel = consent.personnel_name || consent.consent_personnel;
@@ -344,7 +345,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Initial consultation', transactions, warnings, () => {
+    appendHistorySection('Initial consultation', warnings, () => {
         initialsResult.data.forEach(record => {
             transactions.push({
                 id: `initial-${record.initialconsultation_id}`,
@@ -365,7 +366,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Doctor consultation', transactions, warnings, () => {
+    appendHistorySection('Doctor consultation', warnings, () => {
         consultationsResult.data.forEach(record => {
             const chiefComplaint = record.chief_complaints || record.chief_complaint;
             const assessment = record.assessment || record.remarks || record.diagnosis;
@@ -398,7 +399,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Lab requests', transactions, warnings, () => {
+    appendHistorySection('Lab requests', warnings, () => {
         labRequestsResult.data.forEach(record => {
             const requestedTests = itemizeLabTests(record as unknown as Record<string, unknown>);
             transactions.push({
@@ -416,7 +417,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Lab results', transactions, warnings, () => {
+    appendHistorySection('Lab results', warnings, () => {
         labResultsResult.data.forEach(record => {
             transactions.push({
                 id: `lab-result-${record.labresult_id}`,
@@ -434,7 +435,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Prescriptions', transactions, warnings, () => {
+    appendHistorySection('Prescriptions', warnings, () => {
         prescriptionsResult.data.forEach(record => {
             const medicationValues = itemizePrescriptionDisplay(record.rx_content);
             transactions.push({
@@ -449,7 +450,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('Follow-ups', transactions, warnings, () => {
+    appendHistorySection('Follow-ups', warnings, () => {
         followUpsResult.data.forEach(record => {
             transactions.push({
                 id: `follow-up-${record.followup_id}`,
@@ -469,7 +470,7 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
-    appendHistorySection('FHSIS/vaccines', transactions, warnings, () => {
+    appendHistorySection('FHSIS/vaccines', warnings, () => {
         fhsisLogsResult.data.forEach(log => {
             const vaccines: VaccineRecord[] = normalizeVaccineRecords(log.data_fields);
             vaccines.forEach(vaccine => {

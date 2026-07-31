@@ -101,8 +101,6 @@ const DoctorDashboard = () => {
     const trendFilterRef = useRef<FilterPeriod>('week');
     const morbFilterRef = useRef<FilterPeriod>('week');
 
-    // ── Realtime status for the two panels ──────────────────────────────────
-    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
     const { showToast, ToastComponent } = useToast();
 
     // ── Follow-ups modal ────────────────────────────────────────────────────
@@ -400,11 +398,7 @@ const DoctorDashboard = () => {
                 }
             )
 
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') setRealtimeStatus('live');
-                else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error');
-                else setRealtimeStatus('connecting');
-            });
+            .subscribe();
 
         return () => { supabase.removeChannel(channel); };
     }, [loadQueueAndFollowUps, loadTrendData, loadMorbidityData]);
