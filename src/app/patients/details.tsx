@@ -12,6 +12,9 @@ import type { Role } from '../../types/user';
 import { RELIGION_OPTIONS } from '../../types/patient';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { updatePatientRecord } from '../../features/patients/services';
+import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
+import { Skeleton, SkeletonList } from '../../components/ui/Skeleton';
+import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,10 +27,11 @@ interface Patient {
     category: string; categoryOthers: string; relativeName: string;
     relativeRelation: string; relativeAddress: string;
     consent_signed: boolean;
+    archive_status?: 'active' | 'archived';
 }
 
 interface EditForm extends Omit<Patient, 'id' | 'age' | 'consent_signed'> { age: string; }
-interface NavItem { id: string; label: string; icon: string; }
+interface NavItem { id: string; label: string; icon: string; group?: string; }
 
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] as const;
 const EDUCATION_LEVELS = [
@@ -37,38 +41,65 @@ const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Self-Employed', 'Student
 
 const patientId = new URLSearchParams(window.location.search).get('id');
 const PATIENT_DETAILS_ROLES = ['BHW', 'nurse', 'doctor', 'midwives'] as const satisfies readonly Role[];
+const PATIENT_DETAILS_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, birthday, birthPlace, bloodType, nationality, religion, civilStatus, address, contactNumber, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, archive_status';
 
 const PATIENT_DETAILS_NAV_ITEMS: Record<(typeof PATIENT_DETAILS_ROLES)[number], NavItem[]> = {
     doctor: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'consultation', label: 'Consultation', icon: 'clipboard' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'consultation', label: 'Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
     ],
     nurse: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
-        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
+        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
     ],
     midwives: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'reports', label: 'OCR Reports', icon: 'chart' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'reports', label: 'OCR Reports', icon: 'chart', group: 'Records & Governance' },
     ],
     BHW: [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
     ],
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+const DIGITS_ONLY_PATTERN = '[0-9]*';
+const NAME_TEXT_PATTERN = "[A-Za-z .'-]*";
+const NUMERIC_ONLY_EDIT_FIELDS = new Set<keyof EditForm>(['age', 'contactNumber']);
+const NAME_TEXT_EDIT_FIELDS = new Set<keyof EditForm>([
+    'firstName',
+    'middleName',
+    'lastName',
+    'suffix',
+    'nationality',
+    'civilStatus',
+    'relativeName',
+    'relativeRelation',
+]);
+
+function sanitizeEditValue(field: keyof EditForm, value: string) {
+    if (NUMERIC_ONLY_EDIT_FIELDS.has(field)) return value.replace(/\D/g, '');
+    if (NAME_TEXT_EDIT_FIELDS.has(field)) return value.replace(/[^a-zA-Z\s'.-]/g, '');
+    return value;
+}
+
+function restrictedInputProps(field: keyof EditForm): Pick<React.InputHTMLAttributes<HTMLInputElement>, 'inputMode' | 'pattern'> {
+    if (NUMERIC_ONLY_EDIT_FIELDS.has(field)) return { inputMode: 'numeric', pattern: DIGITS_ONLY_PATTERN };
+    if (NAME_TEXT_EDIT_FIELDS.has(field)) return { pattern: NAME_TEXT_PATTERN };
+    return {};
+}
+
 function DetailItem({ label, value }: { label: string; value?: string | number | null }) {
     const isEmpty = value === null || value === undefined || value === '';
     return (
         <div className="flex flex-col gap-1">
-            <div className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">{label}</div>
-            <div className={`text-sm font-semibold ${isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+            <div className="text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</div>
+            <div className={`text-sm font-semibold ${isEmpty ? 'text-[var(--text-muted)] italic' : 'text-[var(--text)]'}`}>
                 {isEmpty ? 'Not provided' : value}
             </div>
         </div>
@@ -77,10 +108,10 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
 
 function RadioOption({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }) {
     return (
-        <label className={`cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-slate-50'}`}>
-            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="hidden" />
-            <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${checked ? 'border-blue-600' : 'border-slate-300'}`}>
-                {checked && <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />}
+        <label className={`clinical-choice-label cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)] shadow-sm' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)]'}`}>
+            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
+            <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${checked ? 'border-[var(--brand-primary)]' : 'border-[var(--border)]'}`}>
+                {checked && <div className="w-1.5 h-1.5 bg-[var(--brand-active)] rounded-full" />}
             </div>
             {label}
         </label>
@@ -98,6 +129,7 @@ function DetailsPage() {
 
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [otherReligion, setOtherReligion] = useState('');
+    const isArchivedPatient = patient?.archive_status === 'archived';
 
     const [role, setRole] = useState<Role | null>(null);
     const [userName, setUserName] = useState('Loading...');
@@ -122,7 +154,7 @@ function DetailsPage() {
                 setUserInitials(profile.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2));
 
                 if (!patientId) {
-                    setError('No patient ID provided in URL.');
+                    setError('Select a patient record before opening the chart.');
                     return;
                 }
 
@@ -137,7 +169,7 @@ function DetailsPage() {
     }, []);
 
     async function loadPatient() {
-        const { data: patientData, error: pError } = await supabase.from('patients').select('*').eq('id', patientId).single();
+        const { data: patientData, error: pError } = await supabase.from('patients').select(PATIENT_DETAILS_COLUMNS).eq('id', patientId).single();
         if (pError || !patientData) { setError('Patient not found.'); return; }
 
         const { data: consentData } = await supabase.from('patient_consent').select('consent_id').eq('patient_id', patientId).maybeSingle();
@@ -158,8 +190,10 @@ function DetailsPage() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
-        setEditForm(f => ({ ...f, [id]: value }));
-        if (id === 'religion' && value !== 'Other') setOtherReligion('');
+        const field = id as keyof EditForm;
+        const sanitizedValue = sanitizeEditValue(field, value);
+        setEditForm(f => ({ ...f, [field]: sanitizedValue }));
+        if (field === 'religion' && sanitizedValue !== 'Other') setOtherReligion('');
     };
 
     const handleOtherReligion = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +209,11 @@ function DetailsPage() {
 
     const handleEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isArchivedPatient) {
+            showToast('Archived patient records are read-only. Restore the record before making changes.', true);
+            setEditing(false);
+            return;
+        }
         setSaving(true);
         const parsed = parseInt(editForm.age);
         const updates = { ...editForm, age: isNaN(parsed) ? null : parsed };
@@ -211,26 +250,26 @@ function DetailsPage() {
         else if (id === 'reports') window.location.href = '/pages/midwife.html';
     };
 
-    const sectionCls = "bg-white border border-slate-200 rounded-lg p-4 md:p-5 shadow-sm mb-4";
-    const headerCls = "flex items-center gap-3 text-sm font-semibold text-blue-600 uppercase tracking-wide border-b border-slate-200 pb-3 mb-4";
-    const inputCls = "w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors";
-    const labelCls = "block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2";
+    const sectionCls = "bg-white border border-[var(--border)] rounded-lg p-4 md:p-5 shadow-sm mb-4";
+    const headerCls = "flex items-center gap-3 text-sm font-semibold text-[var(--text-2)] uppercase tracking-wide border-b border-[var(--border)] pb-3 mb-4";
+    const inputCls = "w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--text)] focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none transition-colors";
+    const labelCls = "block text-xs font-semibold uppercase tracking-wide text-[var(--text-2)] mb-2";
 
     return (
-        <div className="flex w-full min-h-screen bg-[#F8FAFC] text-slate-800 overflow-x-hidden relative">
+        <div className="flex w-full min-h-screen bg-[var(--bg)] text-[var(--text)] overflow-x-hidden relative">
             <ToastComponent />
 
             <Sidebar activePage="records" userName={userName} userInitials={userInitials} userRole={role.toUpperCase()} navItems={navItems} onNavigate={handleNavigate} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} isOnline={isOnline} />
 
             <div className="flex-1 flex flex-col min-h-screen w-full md:pl-[240px]">
-                <header className="h-[72px] w-full bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
+                <header className="h-[52px] md:h-[56px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-3 md:px-5 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
-                        <div className="font-bold text-lg text-slate-800">{editing ? 'Edit Profile' : 'Patient Profile'}</div>
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-[var(--text-2)] hover:bg-[var(--surface-subtle)] rounded-lg"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                        <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">{editing ? 'Edit Profile' : 'Patient Profile'}</h1>
                     </div>
                     <div className="flex items-center gap-3">
 
-                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Back</button>
+                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
                     </div>
                 </header>
 
@@ -241,35 +280,44 @@ function DetailsPage() {
                         {error ? (
                             <div className="bg-red-50 text-red-700 p-6 rounded-xl border border-red-200 font-semibold text-center">{error}</div>
                         ) : !patient ? (
-                            <div className="text-center py-10 text-slate-400 font-bold animate-pulse">Loading Patient Data...</div>
-                        ) : showConsent ? (
-                            <div className="animate-in fade-in duration-300">
-                                <button onClick={() => setShowConsent(false)} className="mb-4 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Back to Details</button>
-                                <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setShowConsent(false); loadPatient(); }} />
+                            <div className="rounded-xl border border-[var(--border)] bg-white p-5" role="status" aria-live="polite" aria-busy="true">
+                                <div className="mb-5 flex items-center gap-4">
+                                    <Skeleton className="h-16 w-16 rounded-full" />
+                                    <div className="min-w-0 flex-1">
+                                        <Skeleton className="h-5 w-52 max-w-full" />
+                                        <Skeleton className="mt-3 h-3 w-36" />
+                                    </div>
+                                </div>
+                                <SkeletonList rows={4} />
                             </div>
-                        ) : editing ? (
+                        ) : showConsent ? (
+                            <div className="">
+                                <button onClick={() => setShowConsent(false)} className="mb-4 px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-xs font-bold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back to Details</button>
+                                <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setPatient(current => current ? { ...current, consent_signed: true } : current); setShowConsent(false); loadPatient(); }} />
+                            </div>
+                        ) : editing && !isArchivedPatient ? (
                             // Edit Mode Form...
-                            <form onSubmit={handleEditSubmit} className="animate-in fade-in duration-300">
-                                <div className="w-full bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-blue-500/10">
-                                    <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
+                            <form onSubmit={handleEditSubmit} className="">
+                                <div className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-[var(--border-soft)]">
+                                    <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-blue-900 text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
-                                        <div className="text-sm text-blue-700 mt-1 font-medium">Update the necessary fields below and save your changes.</div>
+                                        <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
+                                        <div className="text-sm text-[var(--text-2)] mt-1 font-medium">Update the necessary fields below and save your changes.</div>
                                     </div>
                                     <div className="shrink-0 flex gap-2 w-full md:w-auto mt-4 md:mt-0">
-                                        <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 bg-white text-slate-600 border border-slate-300 hover:bg-slate-50 text-sm font-bold rounded-lg transition-colors flex-1 md:flex-none text-center">Cancel</button>
-                                        <button type="submit" disabled={saving} className={`px-5 py-2.5 text-white text-sm font-bold rounded-lg transition-all flex-1 md:flex-none text-center shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30'}`}>{saving ? 'Saving...' : 'Save Changes'}</button>
+                                        <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 bg-white text-[var(--text-2)] border border-[var(--border)] hover:bg-[var(--surface-subtle)] text-sm font-bold rounded-lg transition-colors flex-1 md:flex-none text-center">Cancel</button>
+                                        <button type="submit" disabled={saving} className={`px-5 py-2.5 text-white text-sm font-bold rounded-lg transition-all flex-1 md:flex-none text-center shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${saving ? 'bg-[var(--text-muted)] cursor-not-allowed' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] hover:shadow-none'}`}>{saving ? 'Updating Chart...' : 'Update Patient Chart'}</button>
                                     </div>
                                 </div>
 
                                 <div className={sectionCls}>
                                     <div className={headerCls}>I. Patient's Information Record</div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                        <div><label className={labelCls}>First Name</label><input type="text" id="firstName" value={editForm.firstName} onChange={handleChange} className={inputCls} required /></div>
-                                        <div><label className={labelCls}>Middle Name</label><input type="text" id="middleName" value={editForm.middleName} onChange={handleChange} className={inputCls} /></div>
-                                        <div><label className={labelCls}>Last Name</label><input type="text" id="lastName" value={editForm.lastName} onChange={handleChange} className={inputCls} required /></div>
-                                        <div><label className={labelCls}>Suffix</label><input type="text" id="suffix" value={editForm.suffix} onChange={handleChange} className={inputCls} placeholder="Jr., Sr., III" /></div>
-                                        <div><label className={labelCls}>Age</label><input type="number" id="age" value={editForm.age} onChange={handleChange} className={inputCls} required min="0" /></div>
+                                        <div><label className={labelCls}>First Name</label><input type="text" id="firstName" value={editForm.firstName} onChange={handleChange} className={inputCls} required {...restrictedInputProps('firstName')} /></div>
+                                        <div><label className={labelCls}>Middle Name</label><input type="text" id="middleName" value={editForm.middleName} onChange={handleChange} className={inputCls} {...restrictedInputProps('middleName')} /></div>
+                                        <div><label className={labelCls}>Last Name</label><input type="text" id="lastName" value={editForm.lastName} onChange={handleChange} className={inputCls} required {...restrictedInputProps('lastName')} /></div>
+                                        <div><label className={labelCls}>Suffix</label><input type="text" id="suffix" value={editForm.suffix} onChange={handleChange} className={inputCls} placeholder="Jr., Sr., III" {...restrictedInputProps('suffix')} /></div>
+                                        <div><label className={labelCls}>Age</label><input type="text" id="age" value={editForm.age} onChange={handleChange} className={inputCls} required {...restrictedInputProps('age')} /></div>
                                         <div>
                                             <label className={labelCls}>Sex</label>
                                             <div className="flex gap-3">
@@ -279,9 +327,9 @@ function DetailsPage() {
                                         </div>
                                         <div><label className={labelCls}>Birthday</label><input type="date" id="birthday" value={editForm.birthday} onChange={handleChange} className={inputCls} /></div>
                                         <div><label className={labelCls}>Birth Place</label><input type="text" id="birthPlace" value={editForm.birthPlace} onChange={handleChange} className={inputCls} /></div>
-                                        <div><label className={labelCls}>Contact Number</label><input type="tel" id="contactNumber" value={editForm.contactNumber} onChange={handleChange} className={inputCls} placeholder="09XXXXXXXXX" /></div>
+                                        <div><label className={labelCls}>Contact Number</label><input type="tel" id="contactNumber" value={editForm.contactNumber} onChange={handleChange} className={inputCls} placeholder="09XXXXXXXXX" {...restrictedInputProps('contactNumber')} /></div>
                                         <div className="md:col-span-2"><label className={labelCls}>Address</label><input type="text" id="address" value={editForm.address} onChange={handleChange} className={inputCls} required /></div>
-                                        <div><label className={labelCls}>Nationality</label><input type="text" id="nationality" value={editForm.nationality} onChange={handleChange} className={inputCls} /></div>
+                                        <div><label className={labelCls}>Nationality</label><input type="text" id="nationality" value={editForm.nationality} onChange={handleChange} className={inputCls} {...restrictedInputProps('nationality')} /></div>
                                         <div>
                                             <label className={labelCls}>Religion</label>
                                             <select id="religion" value={editForm.religion.startsWith('Other:') ? 'Other' : editForm.religion} onChange={handleChange} className={inputCls}>
@@ -289,10 +337,10 @@ function DetailsPage() {
                                                 {RELIGION_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
                                             </select>
                                             {(editForm.religion === 'Other' || editForm.religion.startsWith('Other:')) && (
-                                                <input type="text" value={otherReligion || (editForm.religion.startsWith('Other:') ? editForm.religion.replace(/^Other:\s*/, '') : '')} onChange={handleOtherReligion} className={`${inputCls} mt-2`} placeholder="Enter religion" />
+                                                <input type="text" value={otherReligion || (editForm.religion.startsWith('Other:') ? editForm.religion.replace(/^Other:\s*/, '') : '')} onChange={handleOtherReligion} className={`${inputCls} mt-2`} placeholder="Enter religion" pattern={NAME_TEXT_PATTERN} />
                                             )}
                                         </div>
-                                        <div><label className={labelCls}>Civil Status</label><input type="text" id="civilStatus" value={editForm.civilStatus} onChange={handleChange} className={inputCls} /></div>
+                                        <div><label className={labelCls}>Civil Status</label><input type="text" id="civilStatus" value={editForm.civilStatus} onChange={handleChange} className={inputCls} {...restrictedInputProps('civilStatus')} /></div>
                                         <div>
                                             <label className={labelCls}>Blood Type</label>
                                             <select id="bloodType" value={editForm.bloodType} onChange={handleChange} className={inputCls}>
@@ -344,35 +392,39 @@ function DetailsPage() {
                                 <div className={sectionCls}>
                                     <div className={headerCls}>III. Emergency Contact</div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                        <div><label className={labelCls}>Relative's Name</label><input type="text" id="relativeName" value={editForm.relativeName} onChange={handleChange} className={inputCls} /></div>
-                                        <div><label className={labelCls}>Relationship</label><input type="text" id="relativeRelation" value={editForm.relativeRelation} onChange={handleChange} className={inputCls} /></div>
+                                        <div><label className={labelCls}>Relative's Name</label><input type="text" id="relativeName" value={editForm.relativeName} onChange={handleChange} className={inputCls} {...restrictedInputProps('relativeName')} /></div>
+                                        <div><label className={labelCls}>Relationship</label><input type="text" id="relativeRelation" value={editForm.relativeRelation} onChange={handleChange} className={inputCls} {...restrictedInputProps('relativeRelation')} /></div>
                                         <div><label className={labelCls}>Relative's Address</label><input type="text" id="relativeAddress" value={editForm.relativeAddress} onChange={handleChange} className={inputCls} /></div>
                                     </div>
                                 </div>
                             </form>
                         ) : (
                             // Read-Only Mode
-                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="w-full bg-white border border-slate-200 rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative">
-                                    <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
+                            <div className="">
+                                <div className="w-full bg-white border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative">
+                                    <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-black text-slate-900 text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
+                                        <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">{patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}</div>
                                         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-2">
-                                            <span className="text-sm text-slate-500 font-medium">Blood: <span className="font-bold text-slate-700">{patient.bloodType || 'Unknown'}</span></span>
-                                            <span className="text-sm text-slate-500 font-medium">Sex: <span className="font-bold text-slate-700">{patient.sex || '-'}</span></span>
-                                            <span className="text-sm text-slate-500 font-medium">Age: <span className="font-bold text-slate-700">{patient.age ?? '-'}</span> yrs</span>
-                                            <span className="text-sm text-slate-500 font-medium truncate max-w-xs">Address: <span className="font-bold text-slate-700">{patient.address || '-'}</span></span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Blood: <span className="font-bold text-[var(--text-2)]">{patient.bloodType || 'Unknown'}</span></span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Sex: <span className="font-bold text-[var(--text-2)]">{patient.sex || '-'}</span></span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium">Age: <span className="font-bold text-[var(--text-2)]">{patient.age ?? '-'}</span> yrs</span>
+                                            <span className="text-sm text-[var(--text-secondary)] font-medium truncate max-w-xs">Address: <span className="font-bold text-[var(--text-2)]">{patient.address || '-'}</span></span>
                                         </div>
                                     </div>
 
                                     <div className="shrink-0 flex flex-col md:items-end gap-2 w-full md:w-auto mt-4 md:mt-0">
-                                        <div className="flex gap-2 w-full md:w-auto">
-                                            <button onClick={() => setEditing(true)} className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-1 md:flex-none">
-                                                Edit Profile
-                                            </button>
-                                        </div>
+                                        {isArchivedPatient ? (
+                                            <span className="bg-[var(--surface-subtle)] text-[var(--text-2)] border border-[var(--border)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Archived Read-Only</span>
+                                        ) : (
+                                            <div className="flex gap-2 w-full md:w-auto">
+                                                <button onClick={() => setEditing(true)} className="px-4 py-2 bg-[var(--surface-subtle)] hover:bg-[var(--surface-subtle)] text-[var(--text-2)] border border-[var(--border)] text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-1 md:flex-none">
+                                                    Edit Profile
+                                                </button>
+                                            </div>
+                                        )}
 
                                         {patient.consent_signed ? (
                                             <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Consent Signed</span>
@@ -424,15 +476,15 @@ function DetailsPage() {
 
                                 <div className="flex flex-col gap-3">
                                     {/* Midwife action */}
-                                    {role === 'midwives' && !patient.consent_signed && (
-                                        <button onClick={() => setShowConsent(true)} className="w-full bg-blue-600 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                    {role === 'midwives' && !patient.consent_signed && !isArchivedPatient && (
+                                        <button onClick={() => setShowConsent(true)} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
                                             Proceed to Patient Consent
                                         </button>
                                     )}
 
                                     {/* Nurse / Doctor / any role action */}
                                     {(role === 'nurse' || role === 'doctor' || role === 'midwives' || role === 'BHW') && (
-                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-lg hover:bg-teal-700 hover:shadow-teal-600/30 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
                                             View Complete Transaction History
                                         </button>
                                     )}
@@ -445,28 +497,17 @@ function DetailsPage() {
 
             {/* ─── UNIFIED TRANSACTION HISTORY MODAL ─── */}
             {historyModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-
-                        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-                            <div>
-                                <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                                    Transaction History
-                                </h3>
-                                <p className="text-sm text-slate-500 font-medium mt-0.5">
-                                    {patient?.lastName}, {patient?.firstName} — Registration, consultations, lab, pharmacy, vaccines, follow-ups
-                                </p>
-                            </div>
-                            <button onClick={() => setHistoryModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors font-bold shrink-0">
-                                X
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto bg-[#F8FAFC] flex-1 scrollbar-thin">
-                            {patientId && <PatientTransactionHistory patientId={patientId} />}
-                        </div>
-                    </div>
-                </div>
+                <ClinicalDrawer
+                    title="Transaction History"
+                    labelledBy="patient-transaction-history-title"
+                    onClose={() => setHistoryModalOpen(false)}
+                    subtitle={<>{patient?.lastName}, {patient?.firstName} - Registration, consultations, lab, pharmacy, vaccines, follow-ups</>}
+                >
+                    {patient && <PatientChartIdentityHeader patient={patient} compact className="mb-4" />}
+                    <PatientHistoryPanel>
+                        {patientId && <PatientTransactionHistory patientId={patientId} />}
+                    </PatientHistoryPanel>
+                </ClinicalDrawer>
             )}
 
         </div>

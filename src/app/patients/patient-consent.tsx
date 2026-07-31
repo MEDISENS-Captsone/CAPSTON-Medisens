@@ -25,7 +25,7 @@ interface SigPadProps {
 
 function SectionIcon({ name }: { name: string }) {
     return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/20">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-active)] text-white shadow-sm">
             <Icon name={name} className="h-5 w-5" />
         </span>
     );
@@ -40,7 +40,7 @@ function SigPad({ label, sigRef, penColor = colors.neutral[900], onClear }: SigP
             <div className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</div>
             <div
                 className={`relative overflow-hidden rounded-xl border-2 border-dashed bg-slate-50 transition-colors ${
-                    active ? 'border-blue-500 bg-blue-50/30' : 'border-slate-300'
+                    active ? 'border-slate-500 bg-slate-50/70' : 'border-slate-300'
                 }`}
             >
                 {!hasContent && (
@@ -117,7 +117,7 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                 consent_date: new Date().toISOString(),
             });
 
-            showToast('Consent successfully recorded!', false);
+            showToast('Patient consent saved successfully.', false);
             onConsentSaved();
         } catch (err) {
             logError('Failed to save patient consent', err);
@@ -132,19 +132,19 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
             <ToastComponent />
             <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
                 <Card>
-                    <CardHeader className="flex flex-wrap items-center gap-3 bg-blue-50">
+                    <CardHeader className="flex flex-wrap items-center gap-3 bg-slate-50">
                         <SectionIcon name="clipboard" />
-                        <CardTitle className="text-sm text-blue-700">IV. Patient Consent &amp; Data Privacy</CardTitle>
+                        <CardTitle className="text-sm text-slate-700">IV. Patient Consent &amp; Data Privacy</CardTitle>
                         <Badge tone="blue" className="ml-auto gap-1.5">
                             <Icon name="lock" className="h-3.5 w-3.5" /> RA 10173
                         </Badge>
                     </CardHeader>
                     <CardBody>
                         <p className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium leading-7 text-slate-600">
-                            I hereby give my consent to the <span className="font-bold text-blue-900">Malvar Rural Health Unit</span> to collect,
+                            I hereby give my consent to the <span className="font-bold text-slate-900">Malvar Rural Health Unit</span> to collect,
                             process, and store my personal and medical information for the purpose of healthcare delivery, diagnosis, treatment,
                             and referral. I understand that my records will be kept confidential in accordance with the{' '}
-                            <span className="font-bold text-blue-900">Data Privacy Act of 2012 (RA 10173)</span>. I certify that the information
+                            <span className="font-bold text-slate-900">Data Privacy Act of 2012 (RA 10173)</span>. I certify that the information
                             provided is true and correct to the best of my knowledge.
                         </p>
                     </CardBody>
@@ -156,16 +156,16 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                         <CardTitle className="text-sm text-slate-800">Privacy Notice</CardTitle>
                     </CardHeader>
                     <CardBody>
-                        <p className="rounded-xl border border-blue-100 bg-blue-50/70 px-5 py-4 text-sm font-medium leading-7 text-blue-900">
+                        <p className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium leading-7 text-slate-900">
                             MEDISENS handles personal and health information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173). Patient information is collected, stored, accessed, and processed only for authorized healthcare services of the Rural Health Unit.
                         </p>
                     </CardBody>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex items-center gap-3 bg-blue-50">
+                    <CardHeader className="flex items-center gap-3 bg-slate-50">
                         <SectionIcon name="edit" />
-                        <CardTitle className="text-sm text-blue-700">Signatures</CardTitle>
+                        <CardTitle className="text-sm text-slate-700">Signatures</CardTitle>
                     </CardHeader>
                     <CardBody>
                         <div className="grid gap-6 md:grid-cols-2">
@@ -186,9 +186,9 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex items-center gap-3 bg-blue-50">
+                    <CardHeader className="flex items-center gap-3 bg-slate-50">
                         <SectionIcon name="id-card" />
-                        <CardTitle className="text-sm text-blue-700">Printed Names</CardTitle>
+                        <CardTitle className="text-sm text-slate-700">Printed Names</CardTitle>
                     </CardHeader>
                     <CardBody>
                         <div className="grid gap-5 md:grid-cols-2">

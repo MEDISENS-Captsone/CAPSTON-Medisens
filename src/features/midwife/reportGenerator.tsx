@@ -161,7 +161,7 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
             });
         } catch (error) {
             console.error("Error generating PDF:", error);
-            showToast('Failed to generate FHSIS PDF. Please try again.', true);
+            showToast('Unable to generate the FHSIS PDF. Please try again.', true);
         } finally {
             setIsExporting(false);
         }
@@ -176,13 +176,13 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
     };
 
     return (
-        <div className="w-full mx-auto animate-in fade-in duration-500 pb-10 px-4">
+        <div className="w-full mx-auto  pb-10 px-4">
             <ToastComponent />
             {/* CONTROLS */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm print:hidden">
+            <div className="flex flex-col gap-4 mb-6 rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm print:hidden md:flex-row md:items-end">
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">DOH Form Layout</label>
-                    <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="w-full p-2 border border-slate-300 rounded-lg font-bold outline-none">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">FHSIS Report Type</label>
+                    <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]">
                         <option value="maternal">Maternal Care Program</option>
                         <option value="child">Child Care Program</option>
                         <option value="dental">Dental Health Program</option>
@@ -192,26 +192,26 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
                     </select>
                 </div>
                 <div className="w-full md:w-48">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Month</label>
-                    <input type="month" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} className="w-full p-2 border border-slate-300 rounded-lg font-bold outline-none"/>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">Reporting Month</label>
+                    <input type="month" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]"/>
                 </div>
-                <div className="flex items-end">
-                    <button onClick={handleExportPDF} disabled={isExporting || isLoading} className="w-full px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition disabled:opacity-70">
-                        {isExporting ? 'Generating...' : isLoading ? 'Loading Data...' : 'Download PDF'}
+                <div className="flex">
+                    <button type="button" onClick={handleExportPDF} disabled={isExporting || isLoading} className="w-full rounded-lg bg-[var(--brand-active)] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--brand-active-hover)] disabled:opacity-70">
+                        {isExporting ? 'Preparing PDF...' : isLoading ? 'Loading FHSIS records...' : 'Export FHSIS PDF'}
                     </button>
                 </div>
             </div>
 
             {isLoading && (
-                <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 print:hidden">
+                <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-semibold text-[var(--text-2)] print:hidden">
                     Loading FHSIS records...
                 </div>
             )}
 
             {/* DOH DOCUMENT RENDER AREA */}
-                <div className="overflow-x-auto bg-slate-200 p-4 md:p-8 rounded-xl shadow-inner flex flex-col items-start">  
+                <div className="flex flex-col items-start overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 print:border-0 print:bg-white print:p-0 md:p-6">
             {/* Added w-max and h-fit so the paper strictly hugs the table dimensions */}
-                <div ref={reportRef} className={`bg-white p-10 shadow-2xl font-sans text-black w-max h-fit ${selectedReport === 'fp' ? 'min-w-[1550px] pl-20 ml-0' : 'min-w-[1100px] mx-auto'}`}>
+                <div ref={reportRef} className={`bg-white p-10 shadow-sm font-sans text-black w-max h-fit print:shadow-none ${selectedReport === 'fp' ? 'min-w-[1550px] pl-20 ml-0' : 'min-w-[1100px] mx-auto'}`}>
                     
                     {/* DOH Header */}
                     <div className="text-center mb-6">

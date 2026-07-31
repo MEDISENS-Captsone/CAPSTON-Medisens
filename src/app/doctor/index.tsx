@@ -8,9 +8,12 @@ import { useToast } from '../../components/feedback/Toast';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
 import { Modal } from '../../components/ui/Modal';
+import { SkeletonList } from '../../components/ui/Skeleton';
 import type { Patient } from '../../components/patient/PatientDetailModal';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { AuditLogPage } from '../../features/audit/AuditLogPage';
+import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
+import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 
 const ConsultationPage = lazy(() => import('../consultation'));
 const RecordsComponent = lazy(() => import('../patients/records').then(module => ({ default: module.RecordsComponent })));
@@ -18,8 +21,8 @@ const TemplatesComponent = lazy(() => import('../patients/templates').then(modul
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
 
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600">
-        Loading workspace...
+    <div className="rounded-xl border border-[var(--border)] bg-white">
+        <SkeletonList rows={4} />
     </div>
 );
 
@@ -31,6 +34,7 @@ const FILTER_OPTIONS: { label: string; value: FilterPeriod }[] = [
     { label: 'Month', value: 'month' },
     { label: 'Year', value: 'year' },
 ];
+const COUNT_ONLY_COLUMN = 'id';
 
 const getDateRange = (period: FilterPeriod): { from: string; to: string } => {
     const now = new Date();
@@ -52,10 +56,15 @@ const getDateRange = (period: FilterPeriod): { from: string; to: string } => {
 };
 
 const FilterTabs = ({ value, onChange }: { value: FilterPeriod; onChange: (v: FilterPeriod) => void }) => (
-    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+    <div className="clinical-filter-group" role="group" aria-label="Dashboard period filter">
         {FILTER_OPTIONS.map(opt => (
-            <button key={opt.value} onClick={() => onChange(opt.value)}
-                className={`text-[0.7rem] font-bold px-2.5 py-1 rounded-md transition-all ${value === opt.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+            <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(opt.value)}
+                className={`clinical-filter-button ${value === opt.value ? 'is-active' : ''}`}
+                aria-pressed={value === opt.value}
+            >
                 {opt.label}
             </button>
         ))}
@@ -68,7 +77,12 @@ const DoctorDashboard = () => {
     const [userName, setUserName] = useState('Loading...');
     const [userInitials, setUserInitials] = useState('D');
 
-    const [activePage, setActivePage] = useState('dashboard');
+    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
+
+    useEffect(() => {
+        window.location.hash = activePage;
+    }, [activePage]);
+
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [selectedIcid, setSelectedIcid] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -87,8 +101,6 @@ const DoctorDashboard = () => {
     const trendFilterRef = useRef<FilterPeriod>('week');
     const morbFilterRef = useRef<FilterPeriod>('week');
 
-    // ── Realtime status for the two panels ──────────────────────────────────
-    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
     const { showToast, ToastComponent } = useToast();
 
     // ── Follow-ups modal ────────────────────────────────────────────────────
@@ -103,10 +115,12 @@ const DoctorDashboard = () => {
     const morbChartInst = useRef<any>(null);
 
     const navItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'consultation', label: 'Consultation Room', icon: 'clipboard' },
-        { id: 'audit-log', label: 'Audit Log', icon: 'clipboard' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
+        { id: 'analytics', label: 'Analytics', icon: 'chart', group: 'Insights' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'consultation', label: 'Consultation Room', icon: 'clipboard', group: 'Clinical Workflow' },
+        { id: 'archive-review', label: 'Archive Review', icon: 'clipboard', group: 'Records & Governance' },
+        { id: 'audit-log', label: 'Audit Log', icon: 'clipboard', group: 'Records & Governance' },
     ];
 
     const formatTime = (t: string | null) => {
@@ -125,8 +139,9 @@ const DoctorDashboard = () => {
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
         const { data } = await supabase
             .from('follow_up')
-            .select(`followup_id, patient_id, visit_date, patients!inner(firstName, lastName, sex)`)
+            .select(`followup_id, patient_id, visit_date, patients!inner(firstName, lastName, sex, archive_status)`)
             .neq('follow_up_status', 'done')
+            .or('archive_status.eq.active,archive_status.is.null', { foreignTable: 'patients' })
             .gte('visit_date', today)
             .order('visit_date', { ascending: true });
         setAllFollowUps(data || []);
@@ -228,8 +243,9 @@ const DoctorDashboard = () => {
 
         let qQuery = supabase
             .from('initial_consultation')
-            .select(`initialconsultation_id, patient_id, consultation_time, patients!inner(firstName, lastName, sex, bloodType)`)
+            .select(`initialconsultation_id, patient_id, consultation_time, patients!inner(firstName, lastName, sex, bloodType, archive_status)`)
             .eq('consultation_date', today)
+            .or('archive_status.eq.active,archive_status.is.null', { foreignTable: 'patients' })
             .order('initialconsultation_id', { ascending: true });
         if (completedIds.length > 0) {
             qQuery = qQuery.not('initialconsultation_id', 'in', `(${completedIds.join(',')})`);
@@ -240,8 +256,9 @@ const DoctorDashboard = () => {
         // Follow-ups preview (5 rows)
         const { data: fData } = await supabase
             .from('follow_up')
-            .select(`followup_id, patient_id, visit_date, patients!inner(firstName, lastName, sex)`)
+            .select(`followup_id, patient_id, visit_date, patients!inner(firstName, lastName, sex, archive_status)`)
             .neq('follow_up_status', 'done')
+            .or('archive_status.eq.active,archive_status.is.null', { foreignTable: 'patients' })
             .gte('visit_date', today)
             .order('visit_date', { ascending: true })
             .limit(5);
@@ -259,7 +276,7 @@ const DoctorDashboard = () => {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
             const { count: pCount } = await supabase
-                .from('patients').select('*', { count: 'exact', head: true });
+                .from('patients').select(COUNT_ONLY_COLUMN, { count: 'exact', head: true });
             setTotalPatients(pCount || 0);
 
             const { data: completedToday } = await supabase
@@ -353,7 +370,7 @@ const DoctorDashboard = () => {
                 { event: 'INSERT', schema: 'public', table: 'patients' },
                 () => {
                     supabase.from('patients')
-                        .select('*', { count: 'exact', head: true })
+                        .select(COUNT_ONLY_COLUMN, { count: 'exact', head: true })
                         .then(({ count }) => setTotalPatients(count || 0));
                 }
             )
@@ -381,11 +398,7 @@ const DoctorDashboard = () => {
                 }
             )
 
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') setRealtimeStatus('live');
-                else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error');
-                else setRealtimeStatus('connecting');
-            });
+            .subscribe();
 
         return () => { supabase.removeChannel(channel); };
     }, [loadQueueAndFollowUps, loadTrendData, loadMorbidityData]);
@@ -414,47 +427,47 @@ const DoctorDashboard = () => {
             if (trendChartRef.current && trendData.length > 0) {
                 if (trendChartInst.current) trendChartInst.current.destroy();
                 trendChartInst.current = new Chart(trendChartRef.current, {
-                type: 'line',
-                data: {
-                    labels: trendData.map(d => d.date),
-                    datasets: [{
-                        label: 'Visits', data: trendData.map(d => d.count),
-                        borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
-                        borderWidth: 2, fill: true, tension: 0.4,
-                        pointBackgroundColor: '#3b82f6', pointRadius: 4, pointHoverRadius: 6,
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-                        y: { grid: { color: '#f1f5f9' }, ticks: { stepSize: 1, precision: 0, color: '#94a3b8', font: { size: 10 } }, beginAtZero: true }
+                    type: 'line',
+                    data: {
+                        labels: trendData.map(d => d.date),
+                        datasets: [{
+                            label: 'Visits', data: trendData.map(d => d.count),
+                            borderColor: '#5A81FA', backgroundColor: 'rgba(90,129,250,0.12)',
+                            borderWidth: 2, fill: true, tension: 0.4,
+                            pointBackgroundColor: '#5A81FA', pointRadius: 4, pointHoverRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: '#6A6E83', font: { size: 10 } } },
+                            y: { grid: { color: '#EEF1FB' }, ticks: { stepSize: 1, precision: 0, color: '#6A6E83', font: { size: 10 } }, beginAtZero: true }
+                        }
                     }
-                }
-            });
+                });
             }
 
             if (morbChartRef.current && morbidityData.length > 0) {
                 if (morbChartInst.current) morbChartInst.current.destroy();
                 morbChartInst.current = new Chart(morbChartRef.current, {
-                type: 'bar',
-                data: {
-                    labels: morbidityData.map(m => m.label),
-                    datasets: [{ label: 'Cases', data: morbidityData.map(m => m.percentage), backgroundColor: '#93c5fd', borderRadius: 2, barThickness: 16 }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { callbacks: { label: (ctx) => { const item = morbidityData[ctx.dataIndex]; return ` ${item.percentage}%  (${item.count} cases)`; } } }
+                    type: 'bar',
+                    data: {
+                        labels: morbidityData.map(m => m.label),
+                        datasets: [{ label: 'Cases', data: morbidityData.map(m => m.percentage), backgroundColor: '#D1DDFF', borderRadius: 2, barThickness: 16 }]
                     },
-                    scales: {
-                        x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => `${v}%` }, beginAtZero: true, max: 100 },
-                        y: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } }
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: (ctx) => { const item = morbidityData[ctx.dataIndex]; return ` ${item.percentage}%  (${item.count} cases)`; } } }
+                        },
+                        scales: {
+                            x: { grid: { color: '#EEF1FB' }, ticks: { color: '#6A6E83', font: { size: 10 }, callback: (v) => `${v}%` }, beginAtZero: true, max: 100 },
+                            y: { grid: { display: false }, ticks: { color: '#6A6E83', font: { size: 11 } } }
+                        }
                     }
-                }
-            });
+                });
             }
         };
 
@@ -465,6 +478,17 @@ const DoctorDashboard = () => {
         };
     }, [trendData, morbidityData, activePage]);
 
+    // Accessible text alternatives for the canvas charts (WCAG 1.1.1)
+    const trendTotal = trendData.reduce((s, d) => s + d.count, 0);
+    const trendPeak = trendData.reduce((max, d) => (d.count > (max?.count ?? 0) ? d : max), trendData[0]);
+    const trendPeriodLabel = FILTER_OPTIONS.find(o => o.value === trendFilter)?.label.toLowerCase() ?? trendFilter;
+    const trendSummary = trendData.length === 0
+        ? 'Visit trends chart: no visit data for the selected period.'
+        : `Visit trends chart, ${trendPeriodLabel}: ${trendTotal} completed visit${trendTotal === 1 ? '' : 's'}; highest ${trendPeak.count} on ${trendPeak.date}.`;
+    const morbiditySummary = morbidityData.length === 0
+        ? 'Top morbidities chart: no diagnoses recorded for the selected period.'
+        : `Top morbidities chart: ${morbidityData.slice(0, 3).map(m => `${m.label} ${m.percentage}%`).join(', ')}.`;
+
     const handleConsultNavigate = (patientId: string, icid?: string) => {
         setSelectedPatient(null);
         setSelectedPatientId(patientId);
@@ -473,7 +497,7 @@ const DoctorDashboard = () => {
     };
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden w-full">
+        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             <ToastComponent />
             <Sidebar
                 activePage={activePage}
@@ -493,16 +517,17 @@ const DoctorDashboard = () => {
 
             <main className="flex-1 overflow-auto md:ml-[240px]">
                 <Topbar
-                    title={activePage === 'dashboard' ? 'Doctor Dashboard' : activePage === 'records' ? 'Patient Records' : activePage === 'audit-log' ? 'Audit Log' : 'Consultation Room'}
+                    title={activePage === 'dashboard' ? 'Doctor Dashboard' : activePage === 'analytics' ? 'Doctor Analytics' : activePage === 'records' ? 'Patient Records' : activePage === 'audit-log' ? 'Audit Log' : activePage === 'archive-review' ? 'Archive Review' : 'Consultation Room'}
                     sectionLabel="Clinical Consultation"
                     userName={userName}
                     userInitials={userInitials}
                     userRole="General Practitioner"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="w-full flex flex-col gap-5 animate-in fade-in duration-500">
+                <div className="w-full flex flex-col gap-5">
 
                     {activePage === 'dashboard' && (
                         <>
@@ -512,127 +537,131 @@ const DoctorDashboard = () => {
                             />
                             <div className="pwa-page-pad flex flex-col pwa-panel-gap">
 
-                            <div className="ops-summary-grid">
-                                {[
-                                    ['Waiting Patients', queue.length, 'Ready for consultation'],
-                                    ['Follow-ups Due', followUps.length, 'Scheduled returns'],
-                                    ['Visits Today', visitsToday, 'Completed encounters'],
-                                    ['Total Patients', totalPatients, 'Registry baseline'],
-                                ].map(([label, value, note]) => (
-                                    <div key={label} className="ops-summary-card">
-                                        <p className="ops-summary-label">{label}</p>
-                                        <h2 className="ops-summary-value tabular-nums">{value}</h2>
-                                        <p className="ops-summary-note">{note}</p>
-                                    </div>
-                                ))}
-                            </div>
+                                <div className="ops-summary-grid">
+                                    {[
+                                        ['Waiting Patients', queue.length, 'Ready for consultation'],
+                                        ['Follow-ups Due', followUps.length, 'Scheduled returns'],
+                                        ['Visits Today', visitsToday, 'Completed encounters'],
+                                        ['Total Patients', totalPatients, 'Registry baseline'],
+                                    ].map(([label, value, note]) => (
+                                        <div key={label} className="ops-summary-card">
+                                            <p className="ops-summary-label">{label}</p>
+                                            <p className="ops-summary-value tabular-nums">{value}</p>
+                                            <p className="ops-summary-note">{note}</p>
+                                        </div>
+                                    ))}
+                                </div>
 
-                            {/* Queue + Trends */}
-                            <div className="ops-grid">
+                                {/* Queue + Trends */}
+                                <div className="ops-grid">
 
-                                {/* ── Patient Queue ── */}
-                                <div className="lg:col-span-5 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px] overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 shrink-0 flex items-center justify-between">
-                                        <h3 className="font-semibold text-slate-800 text-[0.95rem]">Waiting Patients</h3>
-                                        <div className="flex items-center gap-2">
-                                            {/* queue count badge */}
+                                    {/* ── Patient Queue ── */}
+                                    <div className="lg:col-span-5 ops-panel flex flex-col h-[380px]">
+                                        <div className="ops-panel-header shrink-0">
+                                            <h3 className="ops-panel-title">Waiting Patients</h3>
                                             {queue.length > 0 && (
-                                                <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-full">{queue.length}</span>
+                                                <span className="clinical-count-badge">{queue.length}</span>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto">
-                                        {queue.length === 0 ? (
-                                            <p className="text-center text-slate-400 py-16 text-sm">No patients in queue</p>
-                                        ) : (
-                                            <div className="divide-y divide-slate-100">
-                                                {queue.map((q, index) => (
-                                                    <div key={q.initialconsultation_id}
-                                                        onClick={() => handleConsultNavigate(q.patient_id, q.initialconsultation_id.toString())}
-                                                        className="cursor-pointer px-5 py-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-xs font-black text-slate-300 w-5 text-center">{index + 1}</span>
-                                                            <div className="flex flex-col gap-0.5">
-                                                                <p className="font-bold text-slate-800 text-[0.9rem] group-hover:text-blue-600 transition-colors">{q.patients?.lastName}, {q.patients?.firstName}</p>
-                                                                <p className="text-xs text-slate-500 font-medium">{q.patients?.sex} • {q.patients?.bloodType || '—'}</p>
+                                        <div className="flex-1 overflow-y-auto">
+                                            {queue.length === 0 ? (
+                                                <div className="clinical-table-state">No patients in queue</div>
+                                            ) : (
+                                                <div>
+                                                    {queue.map((q, index) => (
+                                                        <button key={q.initialconsultation_id}
+                                                            type="button"
+                                                            onClick={() => handleConsultNavigate(q.patient_id, q.initialconsultation_id.toString())}
+                                                            aria-label={`Start consultation for ${q.patients?.lastName}, ${q.patients?.firstName}`}
+                                                            className="clinical-worklist-row cursor-pointer w-full text-left">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-xs font-semibold text-[var(--text-muted)] w-5 text-center tabular-nums">{index + 1}</span>
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <p className="clinical-primary">{q.patients?.lastName}, {q.patients?.firstName}</p>
+                                                                    <p className="clinical-secondary">{q.patients?.sex} • {q.patients?.bloodType || '—'}</p>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <p className="text-xs font-bold text-blue-600">{formatTime(q.consultation_time)}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                            <p className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums">{formatTime(q.consultation_time)}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {queue.length > 0 && (
+                                            <button type="button" onClick={() => setActivePage('records')} className="clinical-link-action w-full rounded-none border-t border-[var(--border-soft)] py-3 shrink-0 transition-colors">
+                                                View all patients
+                                            </button>
                                         )}
                                     </div>
-                                    {queue.length > 0 && (
-                                        <button onClick={() => setActivePage('records')} className="p-4 text-xs font-bold text-blue-600 hover:bg-blue-50 border-t border-slate-100 transition-colors text-center shrink-0">
-                                            View all patients →
-                                        </button>
-                                    )}
-                                </div>
 
-                                {/* Visit Trends */}
-                                <div className="lg:col-span-7 bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px]">
-                                    <div className="flex justify-between items-center mb-4 shrink-0">
-                                        <h3 className="font-bold text-slate-800 text-[0.95rem]">Visit Trends</h3>
-                                        <FilterTabs value={trendFilter} onChange={setTrendFilter} />
-                                    </div>
-                                    <div className="flex-1 relative w-full h-full">
-                                        <canvas ref={trendChartRef} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Morbidity + Follow-ups */}
-                            <div className="ops-grid">
-
-                                {/* Morbidity */}
-                                <div className="lg:col-span-7 bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px]">
-                                    <div className="flex justify-between items-center mb-2 shrink-0">
-                                        <h3 className="font-bold text-slate-800 text-[0.95rem]">Morbidity Analytics</h3>
-                                        <FilterTabs value={morbFilter} onChange={setMorbFilter} />
-                                    </div>
-                                    <div className="flex-1 relative w-full h-full">
-                                        <canvas ref={morbChartRef} />
+                                    {/* Visit Trends */}
+                                    <div className="lg:col-span-7 ops-panel p-4 flex flex-col h-[380px]">
+                                        <div className="flex justify-between items-center gap-3 flex-wrap mb-4 shrink-0">
+                                            <h3 className="ops-panel-title">Visit Trends</h3>
+                                            <FilterTabs value={trendFilter} onChange={setTrendFilter} />
+                                        </div>
+                                        <div className="flex-1 relative w-full h-full">
+                                            <canvas ref={trendChartRef} role="img" aria-label={trendSummary} />
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* ── Upcoming Follow-ups ── */}
-                                <div className="lg:col-span-5 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px] overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 flex justify-between items-center shrink-0">
-                                        <h3 className="font-semibold text-slate-800 text-[0.95rem]">Follow-ups Due</h3>
+                                {/* Morbidity + Follow-ups */}
+                                <div className="ops-grid">
+
+                                    {/* Morbidity */}
+                                    <div className="lg:col-span-7 ops-panel p-4 flex flex-col h-[380px]">
+                                        <div className="flex justify-between items-center gap-3 flex-wrap mb-2 shrink-0">
+                                            <h3 className="ops-panel-title">Top Morbidities</h3>
+                                            <FilterTabs value={morbFilter} onChange={setMorbFilter} />
+                                        </div>
+                                        <div className="flex-1 relative w-full h-full">
+                                            <canvas ref={morbChartRef} role="img" aria-label={morbiditySummary} />
+                                        </div>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto">
-                                        {followUps.length === 0 ? (
-                                            <p className="text-center text-slate-400 py-16 text-sm">No follow-ups scheduled</p>
-                                        ) : (
-                                            <div className="divide-y divide-slate-100">
-                                                {followUps.map(f => {
-                                                    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-                                                    const isToday = f.visit_date === today;
-                                                    return (
-                                                        <div key={f.followup_id}
-                                                            onClick={() => handleConsultNavigate(f.patient_id)}
-                                                            className="cursor-pointer px-5 py-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                                                            <div className="flex flex-col gap-0.5">
-                                                                <p className="font-bold text-slate-800 text-[0.9rem] truncate group-hover:text-blue-600 transition-colors">{f.patients?.lastName}, {f.patients?.firstName}</p>
-                                                                <p className="text-[11px] text-slate-500 font-medium">Return Visit</p>
-                                                            </div>
-                                                            <p className={`text-[10px] font-bold px-2.5 py-1 rounded-md whitespace-nowrap ml-2 shrink-0 ${isToday ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
-                                                                {isToday ? 'Today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                            </p>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+
+                                    {/* ── Upcoming Follow-ups ── */}
+                                    <div className="lg:col-span-5 ops-panel flex flex-col h-[380px]">
+                                        <div className="ops-panel-header shrink-0">
+                                            <h3 className="ops-panel-title">Follow-ups Due</h3>
+                                            {followUps.length > 0 && (
+                                                <span className="clinical-count-badge">{followUps.length}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto">
+                                            {followUps.length === 0 ? (
+                                                <div className="clinical-table-state">No follow-ups scheduled</div>
+                                            ) : (
+                                                <div>
+                                                    {followUps.map(f => {
+                                                        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+                                                        const isToday = f.visit_date === today;
+                                                        return (
+                                                            <button key={f.followup_id}
+                                                                type="button"
+                                                                onClick={() => handleConsultNavigate(f.patient_id)}
+                                                                aria-label={`Open follow-up consultation for ${f.patients?.lastName}, ${f.patients?.firstName}`}
+                                                                className="clinical-worklist-row cursor-pointer w-full text-left">
+                                                                <div className="flex flex-col gap-0.5 min-w-0">
+                                                                    <p className="clinical-primary truncate">{f.patients?.lastName}, {f.patients?.firstName}</p>
+                                                                    <p className="clinical-secondary">Return Visit</p>
+                                                                </div>
+                                                                <span className={`clinical-status-badge shrink-0 ${isToday ? 'warning' : ''}`}>
+                                                                    {isToday ? 'Due today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {followUps.length > 0 && (
+                                            <button type="button" onClick={loadAllFollowUps} className="clinical-link-action w-full rounded-none border-t border-[var(--border-soft)] py-3 shrink-0 transition-colors">
+                                                View all follow-ups
+                                            </button>
                                         )}
                                     </div>
-                                    {followUps.length > 0 && (
-                                        <button onClick={loadAllFollowUps} className="p-4 text-xs font-bold text-blue-600 hover:bg-blue-50 border-t border-slate-100 transition-colors text-center shrink-0">
-                                            View all follow-ups →
-                                        </button>
-                                    )}
                                 </div>
-                            </div>
                             </div>
                         </>
                     )}
@@ -643,6 +672,9 @@ const DoctorDashboard = () => {
                                 <RecordsComponent onPatientClick={(p) => setSelectedPatient(p as Patient)} />
                             </Suspense>
                         </div>
+                    )}
+                    {activePage === 'analytics' && (
+                        <DoctorAnalyticsPage isOnline={isOnline} role="doctor" />
                     )}
                     {activePage === 'new-record' && (
                         <Suspense fallback={<LazyPanelFallback />}>
@@ -669,6 +701,15 @@ const DoctorDashboard = () => {
                             <AuditLogPage />
                         </>
                     )}
+                    {activePage === 'archive-review' && (
+                        <>
+                            <PageHeader
+                                title="Patient Archive Review"
+                                subtitle="Read-only review of inactive patient records. Archive and restore actions are not available in this workspace."
+                            />
+                            <ArchiveReviewPage isOnline={isOnline} readOnly={true} />
+                        </>
+                    )}
                 </div>
             </main>
 
@@ -677,47 +718,47 @@ const DoctorDashboard = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
                     onClick={(e) => { if (e.target === e.currentTarget) setShowFollowUpsModal(false); }}>
                     <Modal labelledBy="followups-dialog-title" onClose={() => setShowFollowUpsModal(false)} className="max-h-[80vh] max-w-lg flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
+                        <div className="flex items-center justify-between p-6 border-b border-[var(--border)] shrink-0">
                             <div>
-                                <div className="flex items-center gap-2">
-                                    <h2 id="followups-dialog-title" className="text-lg font-semibold text-slate-800">All Upcoming Follow-ups</h2>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-0.5">{allFollowUps.length} pending • sorted by date</p>
+                                <h2 id="followups-dialog-title" className="text-lg font-semibold text-[var(--text)]">All Upcoming Follow-ups</h2>
+                                <p className="text-xs text-[var(--text-muted)] mt-0.5">{allFollowUps.length} pending • sorted by date</p>
                             </div>
-                            <button onClick={() => setShowFollowUpsModal(false)}
-                                aria-label="Close follow-up dialog" className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors font-bold text-base"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
+                            <button type="button" onClick={() => setShowFollowUpsModal(false)}
+                                aria-label="Close follow-up dialog" className="h-10 w-10 -m-1 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)] transition-colors"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {allFollowUps.length === 0 ? (
-                                <p className="text-center text-slate-400 py-16 text-sm">No upcoming follow-ups</p>
+                                <div className="clinical-table-state">No upcoming follow-ups</div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div>
                                     {allFollowUps.map((f, idx) => {
                                         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
                                         const isToday = f.visit_date === today;
                                         return (
-                                            <div key={f.followup_id}
+                                            <button key={f.followup_id}
+                                                type="button"
                                                 onClick={() => { setShowFollowUpsModal(false); handleConsultNavigate(f.patient_id); }}
-                                                className="cursor-pointer px-6 py-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-black text-slate-300 w-5 text-center">{idx + 1}</span>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <p className="font-bold text-slate-800 text-[0.9rem] group-hover:text-blue-600 transition-colors">{f.patients?.lastName}, {f.patients?.firstName}</p>
-                                                        <p className="text-[11px] text-slate-400 font-medium">{f.patients?.sex} • Return Visit</p>
+                                                aria-label={`Open follow-up consultation for ${f.patients?.lastName}, ${f.patients?.firstName}`}
+                                                className="clinical-worklist-row cursor-pointer w-full text-left">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <span className="text-xs font-semibold text-[var(--text-muted)] w-5 text-center tabular-nums">{idx + 1}</span>
+                                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                                        <p className="clinical-primary truncate">{f.patients?.lastName}, {f.patients?.firstName}</p>
+                                                        <p className="clinical-secondary">{f.patients?.sex} • Return Visit</p>
                                                     </div>
                                                 </div>
-                                                <p className={`text-[10px] font-bold px-2.5 py-1 rounded-md whitespace-nowrap shrink-0 ml-3 ${isToday ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
-                                                    {isToday ? 'Today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                </p>
-                                            </div>
+                                                <span className={`clinical-status-badge shrink-0 ${isToday ? 'warning' : ''}`}>
+                                                    {isToday ? 'Due today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </span>
+                                            </button>
                                         );
                                     })}
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-100 shrink-0">
-                            <button onClick={() => setShowFollowUpsModal(false)}
-                                className="w-full py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Close</button>
+                        <div className="p-4 border-t border-[var(--border)] shrink-0">
+                            <button type="button" onClick={() => setShowFollowUpsModal(false)}
+                                className="clinical-secondary-action w-full">Close</button>
                         </div>
                     </Modal>
                 </div>

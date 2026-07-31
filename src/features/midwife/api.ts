@@ -16,6 +16,7 @@ export const midwifeAPI = {
         const { data, error } = await supabase
             .from('patients')
             .select('id, firstName, lastName, address, birthday, sex, age')
+            .or('archive_status.eq.active,archive_status.is.null')
             .order('lastName', { ascending: true });
 
         if (error) {
@@ -91,7 +92,6 @@ export const midwifeAPI = {
 
     /**
      * Inserts a new FHSIS entry and links it via patient_id.
-     * TODO(audit): Add update logging when the app introduces an explicit FHSIS edit workflow.
      */
     saveFHSISLog: async (payload: { patientId: number; category: string; data: any }) => {
         const user = await getCurrentUser();
@@ -119,6 +119,7 @@ export const midwifeAPI = {
             recordType: 'fhsis_log',
             description: 'Created FHSIS census entry.',
             metadata: {
+                count: saved?.id ? 1 : 0,
                 patient_id: payload.patientId,
                 category: payload.category,
             },

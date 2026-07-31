@@ -1,5 +1,49 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Supabase local temporary files
 supabase/.temp/
-docs/
+
+# Generated design-system artifacts
+ds-bundle/
+ds-types/
+.ds-sync/
+.design-sync/
+
+# Local AI agent state
+.agents/
+.codex/
+.claude/
+
+# Local browser testing artifacts
+.playwright-mcp/
+screenshots review/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE-specific local files
+.vscode/
+.idea/
+
+# Local generated lock/config file
+skills-lock.json

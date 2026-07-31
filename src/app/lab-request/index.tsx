@@ -4,6 +4,7 @@ import { useToast } from '../../components/feedback/Toast';
 import { requireRole } from '../../lib/auth/roles';
 import { createLabRequest } from '../../features/consultation/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 interface LabRequestData {
   date: string; labNo: string; name: string; age: string; sex: string; address: string; cc: string;
@@ -61,9 +62,9 @@ function LabRequest() {
         
         others: formData.others || null,
         requested_by: formData.requestedBy || null,
-        status: formData.status
+        status: 'Pending'
       });
-      showToast(`Lab Request ${formData.status === 'Completed' ? 'Results Saved' : 'Submitted'}!`, false);
+      showToast('Laboratory request sent to the work queue.', false);
     } catch (err) {
       logError('Failed to submit lab request', err);
       showToast(healthcareErrorMessage("submit the lab request"), true);
@@ -72,10 +73,20 @@ function LabRequest() {
     }
   };
 
-  if (!role) return <div>Loading...</div>;
+  if (!role) return (
+    <div className="w-full rounded-lg border bg-white p-4 shadow md:p-6" role="status" aria-live="polite" aria-busy="true">
+      <Skeleton className="mx-auto mb-6 h-6 w-64" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-9 w-full" />)}
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-8 w-full" />)}
+      </div>
+    </div>
+  );
 
   const isLab = role === 'labaratory';
-  const inputStyle = "border-b border-gray-400 focus:border-blue-600 outline-none bg-transparent px-2 text-sm w-full";
+  const inputStyle = "border-b border-[var(--border-strong)] focus:border-[var(--focus-color)] outline-none bg-transparent px-2 text-sm w-full";
 
   return (
     <>
@@ -102,7 +113,7 @@ function LabRequest() {
         <div className="flex"><label className="w-20 font-bold text-sm">Address:</label><input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className={inputStyle} disabled={isLab}/></div>
         <div className="flex"><label className="w-12 font-bold text-sm">CC:</label><input type="text" value={formData.cc} onChange={e => setFormData({...formData, cc: e.target.value})} className={inputStyle} disabled={isLab}/></div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-3 mt-6 p-4 border border-gray-200 rounded">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-3 mt-6 p-4 border border-[var(--border)] rounded">
           <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.cbc} onChange={() => handleTestCheck('tests', 'cbc')} disabled={isLab}/> Complete Blood Count (CBC)</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.urinalysis} onChange={() => handleTestCheck('tests', 'urinalysis')} disabled={isLab}/> Urinalysis</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.cbcPlatelet} onChange={() => handleTestCheck('tests', 'cbcPlatelet')} disabled={isLab}/> CBC with Platelet Count</label>
@@ -113,7 +124,7 @@ function LabRequest() {
           <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.ultrasound} onChange={() => handleTestCheck('tests', 'ultrasound')} disabled={isLab}/> Ultrasound</label>
         </div>
 
-        <div className="p-4 border border-gray-200 rounded bg-gray-50">
+        <div className="p-4 border border-[var(--border)] rounded bg-[var(--surface-subtle)]">
           <h4 className="font-bold text-sm mb-3">For fasting 8-10 hours</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.rbs} onChange={() => handleTestCheck('fastingTests', 'rbs')} disabled={isLab}/> RBS</label>
@@ -128,17 +139,17 @@ function LabRequest() {
 
         {/* Lab Department Section */}
         {isLab && (
-          <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="font-bold text-blue-800 mb-4">Laboratory Results Entry</h3>
+          <div className="mt-8 p-6 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-lg">
+            <h3 className="font-bold text-[var(--text)] mb-4">Laboratory Results Entry</h3>
             <textarea className="w-full p-3 border rounded mb-4 h-32" placeholder="Enter findings or append link to result file..." value={formData.labNotes} onChange={e => setFormData({...formData, labNotes: e.target.value})}></textarea>
             <label className="flex items-center gap-2 font-bold text-sm text-green-700">
               <input type="checkbox" checked={formData.status === 'Completed'} onChange={e => setFormData({...formData, status: e.target.checked ? 'Completed' : 'Pending'})} />
-              Mark as Completed (Sends back to Doctor)
+              Mark results as completed for doctor review
             </label>
           </div>
         )}
 
-        <button type="submit" disabled={isSubmitting} className="w-full bg-blue-700 text-white font-bold py-3 rounded mt-4 disabled:opacity-60">{isSubmitting ? 'Saving...' : isLab ? 'Save Lab Results' : 'Submit Lab Request'}</button>
+        <button type="submit" disabled={isSubmitting} className="w-full bg-[var(--brand-active-hover)] text-white font-bold py-3 rounded mt-4 disabled:opacity-60">{isSubmitting ? 'Recording...' : isLab ? 'Record Lab Results' : 'Send Lab Request'}</button>
       </form>
     </div>
     </>

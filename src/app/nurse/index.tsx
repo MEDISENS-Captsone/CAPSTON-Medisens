@@ -7,6 +7,8 @@ import { getInitials } from '../../lib/utils/names';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
+import { SkeletonList } from '../../components/ui/Skeleton';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -17,9 +19,17 @@ const TemplatesComponent = lazy(() => import('../patients/templates').then(modul
 const ConsultationComponent = lazy(() => import('../initial-consultation').then(module => ({ default: module.ConsultationComponent })));
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
 
+const pageTitles: Record<string, string> = {
+    dashboard: 'Nurse Dashboard',
+    records: 'Patient Records',
+    'new-record': 'New Record',
+    consultation: 'Initial Consultation',
+    'archive-review': 'Archive Review',
+};
+
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600">
-        Loading workspace...
+    <div className="rounded-xl border border-[var(--border)] bg-white">
+        <SkeletonList rows={4} />
     </div>
 );
 
@@ -32,16 +42,21 @@ const NurseDashboard = () => {
     const [consentedPatients, setConsentedPatients] = useState<Patient[]>([]);
     const [totalPatientsCount, setTotalPatientsCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activePage, setActivePage] = useState('dashboard');
+    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
+
+    useEffect(() => {
+        window.location.hash = activePage;
+    }, [activePage]);
 
     // Modal state — still used by Records component
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const navItems = [
-        { id: 'dashboard', label: 'Home', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
-        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard' }
+        { id: 'dashboard', label: 'Home', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
+        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
+        { id: 'archive-review', label: 'Archive Review', icon: 'clipboard', group: 'Records & Governance' },
     ];
 
     // ─── Restored from old code: navigates to consultation with patient ID in URL ───
@@ -54,7 +69,8 @@ const NurseDashboard = () => {
     const loadPatients = async () => {
         const { count: totalCount } = await supabase
             .from('patients')
-            .select('id', { count: 'exact', head: true });
+            .select('id', { count: 'exact', head: true })
+            .or('archive_status.eq.active,archive_status.is.null');
         setTotalPatientsCount(totalCount || 0);
 
         const { data, error } = await supabase
@@ -67,6 +83,7 @@ const NurseDashboard = () => {
                 relativeName, relativeRelation, relativeAddress,
                 patient_consent ( consent_id )
             `)
+            .or('archive_status.eq.active,archive_status.is.null')
             .order('created_at', { ascending: false });
 
         if (!error && data) {
@@ -128,7 +145,7 @@ const NurseDashboard = () => {
     }, [consentedPatients, searchQuery]);
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden w-full">
+        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
 
             <Sidebar
                 activePage={activePage}
@@ -145,16 +162,17 @@ const NurseDashboard = () => {
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
 
                 <Topbar
-                    title={activePage === 'dashboard' ? 'Nurse Dashboard' : activePage.replace('-', ' ')}
+                    title={pageTitles[activePage] || 'Nurse Dashboard'}
                     sectionLabel="Nursing"
                     userName={userName}
                     userInitials={userInitials}
                     userRole="Registered Nurse"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[#F8FAFC]">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full flex flex-col gap-5">
 
                         {activePage === 'dashboard' && (
@@ -167,7 +185,7 @@ const NurseDashboard = () => {
                                     </span>}
                                 />
 
-                                <div className="pwa-page-pad">
+                                <div className="pwa-page-pad flex flex-col pwa-panel-gap patient-list-page-shell">
                                     <div className="ops-summary-grid">
                                         {[
                                             ['Ready for Vitals', stats.consented, 'Consented patients'],
@@ -182,21 +200,23 @@ const NurseDashboard = () => {
                                             </div>
                                         ))}
                                     </div>
-                                </div>
 
-                                <div className="mx-3 md:mx-4 xl:mx-5 ops-panel overflow-hidden mb-5">
-                                    <div className="px-4 py-3 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/60">
+                                    <section className="clinical-table-panel">
+                                    <div className="clinical-table-titlebar nurse-consented-titlebar">
                                         <div>
-                                            <h2 className="text-base font-semibold text-slate-800">Consented Patients</h2>
-                                            <p className="text-xs text-slate-500">Open a patient to continue the RHU consultation workflow.</p>
+                                            <h2 className="clinical-table-title">Consented Patients</h2>
+                                            <p className="clinical-table-subtitle">Open a patient to continue the RHU consultation workflow.</p>
                                         </div>
-                                        <div className="relative w-full sm:max-w-sm">
-                                            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <span className="clinical-count-badge">{filteredPatients.length} result{filteredPatients.length !== 1 ? 's' : ''}</span>
+                                    </div>
+
+                                    <div className="clinical-toolbar">
+                                        <div className="clinical-search">
+                                            <Icon name="search" className="h-4 w-4 text-[var(--text-secondary)]" />
                                             <input
                                                 type="text"
                                                 aria-label="Search consented patients by name"
                                                 placeholder="Search by name..."
-                                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 text-sm bg-white"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                             />
@@ -206,18 +226,18 @@ const NurseDashboard = () => {
                                     <div className="clinical-table-scroll">
                                         {filteredPatients.length === 0 ? (
                                             <div className="text-center py-12">
-                                                <Icon name="clock" className="h-8 w-8 mx-auto mb-3 text-slate-300" />
-                                                <p className="text-slate-500 font-medium">No consented patients found.</p>
+                                                <Icon name="clock" className="h-8 w-8 mx-auto mb-3 text-[var(--text-muted)]" />
+                                                <p className="text-[var(--text-secondary)] font-medium">No consented patients found.</p>
                                             </div>
                                         ) : (
-                                            <table className="clinical-table min-w-[820px]">
+                                            <table className="clinical-table nurse-consented-table min-w-[820px]">
                                                 <thead>
                                                     <tr>
-                                                        <th>Patient</th>
-                                                        <th>Profile</th>
-                                                        <th>Address</th>
-                                                        <th>Registered</th>
-                                                        <th className="text-right">Action</th>
+                                                        <th className="nurse-col-patient">Patient</th>
+                                                        <th className="nurse-col-profile">Profile</th>
+                                                        <th className="nurse-col-address">Address</th>
+                                                        <th className="nurse-col-date">Registered</th>
+                                                        <th className="nurse-col-action text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -227,18 +247,21 @@ const NurseDashboard = () => {
                                                             : '-';
 
                                                         return (
-                                                            <tr key={p.id} onClick={() => handleConsultNavigate(p.id)} className="cursor-pointer transition-colors hover:bg-slate-50">
-                                                                <td className="px-4 py-3">
-                                                                    <div className="font-semibold text-slate-800">{p.lastName}, {p.firstName} {p.middleName || ''}</div>
-                                                                    <div className="text-xs text-slate-500">Consent signed</div>
+                                                            <tr key={p.id} onClick={() => handleConsultNavigate(p.id)} className="cursor-pointer transition-colors hover:bg-[var(--surface-subtle)]">
+                                                                <td className="nurse-col-patient">
+                                                                    <div className="patient-records-primary-cell">
+                                                                        <div className="clinical-primary">{p.lastName}, {p.firstName} {p.middleName || ''}</div>
+                                                                        <div className="clinical-secondary">Consent signed</div>
+                                                                    </div>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-slate-600">{p.sex || '-'} | {p.age ?? '-'} yrs | {p.bloodType || '-'}</td>
-                                                                <td className="px-4 py-3 text-slate-600 max-w-[260px] truncate">{p.address || 'No address'}</td>
-                                                                <td className="px-4 py-3 text-slate-500">{date}</td>
-                                                                <td className="px-4 py-3 text-right">
+                                                                <td className="nurse-col-profile">{p.sex || '-'} | {p.age ?? '-'} yrs | {p.bloodType || '-'}</td>
+                                                                <td className="nurse-col-address">{p.address || 'No address'}</td>
+                                                                <td className="nurse-col-date">{date}</td>
+                                                                <td className="nurse-col-action text-right">
                                                                     <button
+                                                                        type="button"
                                                                         onClick={(e) => { e.stopPropagation(); handleConsultNavigate(p.id); }}
-                                                                        className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                                                                        className="clinical-row-action"
                                                                     >
                                                                         Initial Intake
                                                                     </button>
@@ -250,6 +273,7 @@ const NurseDashboard = () => {
                                             </table>
                                         )}
                                     </div>
+                                    </section>
                                 </div>
 
                             </>
@@ -272,6 +296,15 @@ const NurseDashboard = () => {
                             <Suspense fallback={<LazyPanelFallback />}>
                                 <ConsultationComponent />
                             </Suspense>
+                        )}
+                        {activePage === 'archive-review' && (
+                            <>
+                                <PageHeader
+                                    title="Patient Archive Review"
+                                    subtitle="Review inactive patient records and complete soft archive or restore actions with a required reason."
+                                />
+                                <ArchiveReviewPage isOnline={isOnline} />
+                            </>
                         )}
                     </div>
                 </div>

@@ -6,12 +6,13 @@ import { RELIGION_OPTIONS, type FieldErrors, type PatientRegistrationForm } from
 import { calcAge, formatPhilhealth, philhealthDigits, toPatientRegistrationPayload, validatePatientRegistration } from '../../features/patients/validation';
 import { createPatient } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
+import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
 
 // ─── Reusable Tailwind Classes ───────────────────────────────────────────────
-const inputClasses = "w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-left focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white focus:bg-white transition-colors text-slate-800 placeholder:text-slate-400";
-const inputErrorClasses = "w-full border border-red-400 rounded-lg px-3 py-2.5 text-sm text-left focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none bg-red-50 focus:bg-white transition-colors text-slate-800 placeholder:text-slate-400";
+const inputClasses = clinicalInputClass;
+const inputErrorClasses = clinicalInputErrorClass;
 const readOnlyInputClasses = "w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-left bg-slate-100 text-slate-600 font-semibold cursor-not-allowed select-none";
-const labelClasses = "block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5";
+const labelClasses = clinicalLabelClass;
 const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-slate-200 mb-4 overflow-hidden";
 const legendClasses = "w-full px-4 py-3 border-b border-slate-200 text-sm font-semibold text-slate-800 uppercase tracking-wide bg-slate-50/60 flex items-center gap-2";
 
@@ -105,8 +106,8 @@ function RadioOption({ name, value, label, checked, onChange }: {
     checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
     return (
-        <label className={`cursor-pointer px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all ${checked ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-slate-50'}`}>
-            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="hidden" />
+        <label className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all ${checked ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
+            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
             {label}
         </label>
     );
@@ -205,7 +206,7 @@ export function TemplatesComponent() {
         try {
             if (isOnline) {
                 await createPatient(payload);
-                showToast('Patient record saved to database!', false);
+                showToast('Patient registration recorded.', false);
             } else {
                 await saveToIndexedDB('MediSensDB', 'offline_patients', { id: Date.now(), type: 'patient_registration', data: payload });
                 showToast('Offline Mode: Record saved locally. Will sync when online.', false);
@@ -226,9 +227,9 @@ export function TemplatesComponent() {
 
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
                         Patient Registration
-                    </h1>
+                    </h2>
                     <p className="text-sm text-slate-500 mt-1">Register a new patient into the system for initial triage.</p>
                 </div>
             </div>
@@ -237,7 +238,7 @@ export function TemplatesComponent() {
                 <form onSubmit={handleSubmit} className="flex-1 w-full min-w-0">
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
-                            <span className="text-blue-600">①</span> Patient's Information Record
+                            <span className="text-slate-700">①</span> Patient's Information Record
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
@@ -291,7 +292,7 @@ export function TemplatesComponent() {
                                     <FieldError message={errors['birthday']} />
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Age <span className="text-blue-400 font-normal normal-case tracking-normal">(auto)</span></label>
+                                    <label className={labelClasses}>Age <span className="text-slate-500 font-normal normal-case tracking-normal">(auto)</span></label>
                                     <input
                                         type="text" id="age" value={form.age}
                                         readOnly
@@ -501,9 +502,9 @@ export function TemplatesComponent() {
                         </div>
                     </fieldset>
 
-                    <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm font-medium leading-6 text-blue-900">
+                    <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-medium leading-6 text-slate-900">
                         <div className="flex gap-3">
-                            <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                            <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-slate-700" />
                             <p>
                                 Personal and health data are collected and processed only for authorized RHU healthcare purposes in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
                             </p>
@@ -514,9 +515,9 @@ export function TemplatesComponent() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${saving ? 'bg-blue-400 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700'}`}
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${saving ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-slate-700 hover:bg-slate-800'}`}
                         >
-                            {saving ? 'Saving...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Save Registration</>}
+                            {saving ? 'Registering Patient...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Register Patient</>}
                         </button>
                     </div>
                 </form>

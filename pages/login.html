@@ -8,13 +8,13 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --navy: #0b1f3a;
-            --navy-mid: #112b50;
-            --teal: #0fbfad;
-            --surface: #f8fbff;
-            --surface-line: #d9e5ef;
-            --text: #10253d;
-            --muted: #536c86;
+            --navy: #2B318A;
+            --navy-mid: #2B318A;
+            --teal: #5A81FA;
+            --surface: #F7F8FC;
+            --surface-line: #A8B1CE;
+            --text: #1F1F1F;
+            --muted: #6A6E83;
             --error: #c93636;
             --white: #ffffff;
         }
@@ -33,7 +33,7 @@
             inset: 0;
             z-index: 0;
             overflow: hidden;
-            background: linear-gradient(135deg, #07192f 0%, #0b1f3a 55%, #0a2f4d 100%);
+            background: #1F1F1F;
         }
 
         .bg::before,
@@ -50,8 +50,7 @@
             height: 620px;
             top: -210px;
             right: -160px;
-            background: radial-gradient(circle, rgba(15, 191, 173, 0.12) 0%, transparent 68%);
-            animation: pulse 10s ease-in-out infinite;
+            display: none;
         }
 
         .bg::after {
@@ -59,8 +58,7 @@
             height: 480px;
             bottom: -130px;
             left: -110px;
-            background: radial-gradient(circle, rgba(15, 191, 173, 0.07) 0%, transparent 70%);
-            animation: pulse 12s ease-in-out infinite reverse;
+            display: none;
         }
 
         .bg-slide {
@@ -69,16 +67,13 @@
             z-index: 1;
             background-size: cover;
             background-position: center;
-            filter: blur(12px) saturate(0.9);
+            filter: saturate(0.75);
             opacity: 0;
-            transform: scale(1.04);
-            animation: loginCarousel 36s ease-in-out infinite;
-            will-change: opacity;
         }
 
-        .bg-slide:nth-child(1) { background-image: var(--login-bg-1, none); animation-delay: 0s; }
-        .bg-slide:nth-child(2) { background-image: var(--login-bg-2, none); animation-delay: 12s; }
-        .bg-slide:nth-child(3) { background-image: var(--login-bg-3, none); animation-delay: 24s; }
+        .bg-slide:nth-child(1) { background-image: var(--login-bg-1, none); opacity: 0.62; }
+        .bg-slide:nth-child(2) { background-image: var(--login-bg-2, none); }
+        .bg-slide:nth-child(3) { background-image: var(--login-bg-3, none); }
 
         .bg-tint {
             position: absolute;
@@ -94,20 +89,9 @@
             inset: 0;
             z-index: 4;
             background-image:
-                linear-gradient(rgba(120, 201, 222, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(120, 201, 222, 0.04) 1px, transparent 1px);
+                linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
             background-size: 56px 56px;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.7; }
-        }
-
-        @keyframes loginCarousel {
-            0%, 28% { opacity: 0; }
-            6%, 22% { opacity: 0.78; }
-            34%, 100% { opacity: 0; }
         }
 
         .page {
@@ -123,12 +107,6 @@
             flex-direction: column;
             justify-content: center;
             padding: clamp(40px, 6vw, 84px);
-            animation: fadeInLeft 0.8s ease both;
-        }
-
-        @keyframes fadeInLeft {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
         }
 
         .brand {
@@ -203,7 +181,6 @@
             color: rgba(244, 251, 253, 0.88);
             font-size: 0.82rem;
             font-weight: 600;
-            backdrop-filter: blur(10px);
         }
 
         .trust-item::before {
@@ -212,15 +189,15 @@
             height: 8px;
             flex: 0 0 auto;
             border-radius: 999px;
-            background: #48d6c9;
-            box-shadow: 0 0 0 4px rgba(72, 214, 201, 0.13);
+            background: #5A81FA;
+            box-shadow: 0 0 0 4px rgba(90, 129, 250, 0.16);
         }
 
         .facility-note {
             max-width: 480px;
             margin-top: 48px;
             padding-left: 18px;
-            border-left: 3px solid rgba(72, 214, 201, 0.72);
+            border-left: 3px solid rgba(47, 125, 117, 0.72);
             color: rgba(226, 243, 248, 0.78);
             font-size: 0.88rem;
             line-height: 1.55;
@@ -231,12 +208,6 @@
             align-items: center;
             justify-content: center;
             padding: 40px clamp(28px, 4vw, 56px);
-            animation: fadeInRight 0.8s 0.2s ease both;
-        }
-
-        @keyframes fadeInRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
         }
 
         .card {
@@ -245,15 +216,17 @@
             padding: 42px 40px;
             border: 1px solid rgba(208, 224, 237, 0.95);
             border-radius: 16px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 249, 253, 0.97) 100%);
-            box-shadow: 0 22px 54px rgba(4, 18, 35, 0.28);
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 8px 24px rgba(4, 18, 35, 0.18);
         }
 
         .card-header { margin-bottom: 30px; }
 
         .card-kicker {
             margin-bottom: 8px;
-            color: #087fb9;
+            /* --navy rather than the brand blue: this is small bold uppercase text,
+               where #5A81FA on white falls under 4.5:1. */
+            color: var(--navy);
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.14em;
@@ -278,7 +251,7 @@
         .field label {
             display: block;
             margin-bottom: 7px;
-            color: #1b3856;
+            color: #1F1F1F;
             font-size: 0.76rem;
             font-weight: 700;
             letter-spacing: 0.08em;
@@ -299,11 +272,11 @@
         }
 
         .field input:focus {
-            border-color: var(--teal);
-            box-shadow: 0 0 0 3px rgba(15, 191, 173, 0.15);
+            border-color: #5A81FA;
+            box-shadow: 0 0 0 3px rgba(90, 129, 250, 0.18);
         }
 
-        .field input::placeholder { color: #8fa3b7; }
+        .field input::placeholder { color: #A8B1CE; }
 
         .login-btn {
             width: 100%;
@@ -312,23 +285,22 @@
             padding: 13px 14px;
             border: none;
             border-radius: 8px;
-            background: #0c8cd4;
+            background: var(--navy);
             color: var(--white);
             font-family: 'DM Sans', sans-serif;
             font-size: 0.95rem;
             font-weight: 700;
             letter-spacing: 0.01em;
             cursor: pointer;
-            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
         }
 
         .login-btn:hover {
-            background: #087fbd;
-            box-shadow: 0 8px 18px rgba(12, 140, 212, 0.24);
-            transform: translateY(-1px);
+            background: #1F1F1F;
+            box-shadow: 0 4px 12px rgba(43, 49, 138, 0.18);
         }
 
-        .login-btn:active { transform: translateY(0); }
+        .login-btn:active { background: #1F1F1F; }
         .login-btn.loading { pointer-events: none; opacity: 0.7; }
 
         .spinner {
@@ -359,7 +331,7 @@
             margin-top: 18px;
             padding-top: 14px;
             border-top: 1px solid var(--surface-line);
-            color: #5b7188;
+            color: #6A6E83;
             font-size: 0.76rem;
             line-height: 1.55;
         }
@@ -399,25 +371,137 @@
         }
 
         @media (max-width: 560px) {
-            .left { padding: 24px 18px 4px; }
+            html,
+            body {
+                min-height: 100%;
+                overflow: auto;
+            }
+
+            .page {
+                display: flex;
+                min-height: 100vh;
+                flex-direction: column;
+            }
+
+            .left {
+                display: contents;
+                padding: 0;
+            }
+
+            .brand {
+                order: 1;
+                gap: 11px;
+                margin-bottom: 0;
+                padding: 14px 16px 4px;
+            }
+
             .brand-logo {
-                width: 48px;
-                height: 48px;
-                border-radius: 12px;
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
             }
-            .brand-name { font-size: 1.3rem; }
-            .brand-subtitle { font-size: 0.66rem; }
+
+            .brand-name { font-size: 1.08rem; }
+            .brand-subtitle {
+                margin-top: 3px;
+                font-size: 0.58rem;
+                letter-spacing: 0.12em;
+            }
+
+            .hero-text {
+                order: 3;
+                padding: 2px 16px 18px;
+            }
+
             .hero-text h1 { display: none; }
-            .trust-list { gap: 8px; }
-            .trust-item {
-                min-height: 34px;
-                padding: 7px 10px;
-                font-size: 0.76rem;
+
+            .trust-list {
+                justify-content: center;
+                gap: 7px;
+                margin-top: 8px;
             }
-            .right { padding: 20px 16px 28px; }
+
+            .trust-item {
+                min-height: 30px;
+                padding: 6px 9px;
+                font-size: 0.68rem;
+                background: rgba(8, 31, 58, 0.5);
+            }
+
+            .trust-item::before {
+                width: 6px;
+                height: 6px;
+                box-shadow: 0 0 0 3px rgba(90, 129, 250, 0.16);
+            }
+
+            .right {
+                order: 2;
+                padding: 10px 14px 8px;
+            }
+
             .card {
-                padding: 30px 24px;
-                border-radius: 14px;
+                max-width: 100%;
+                padding: 20px 18px 18px;
+                border-radius: 12px;
+                box-shadow: 0 6px 18px rgba(4, 18, 35, 0.16);
+            }
+
+            .card-header {
+                margin-bottom: 18px;
+            }
+
+            .card-kicker {
+                margin-bottom: 5px;
+                font-size: 0.66rem;
+                letter-spacing: 0.11em;
+            }
+
+            .card-header h2 {
+                font-size: 1.32rem;
+                letter-spacing: -0.01em;
+            }
+
+            .card-header p {
+                margin-top: 4px;
+                font-size: 0.8rem;
+                line-height: 1.35;
+            }
+
+            .field {
+                margin-bottom: 13px;
+            }
+
+            .field label {
+                margin-bottom: 5px;
+                font-size: 0.68rem;
+                letter-spacing: 0.06em;
+            }
+
+            .field input {
+                min-height: 44px;
+                padding: 10px 12px;
+                border-radius: 8px;
+                font-size: 0.92rem;
+            }
+
+            .login-btn {
+                min-height: 44px;
+                margin-top: 2px;
+                padding: 11px 13px;
+            }
+
+            .error-msg {
+                margin-top: 10px;
+                padding: 9px 11px;
+                font-size: 0.78rem;
+            }
+
+            .privacy-notice {
+                margin-top: 12px;
+                padding-top: 10px;
+                font-size: 0.68rem;
+                line-height: 1.38;
             }
         }
     </style>
@@ -460,19 +544,21 @@
                 <h2>Sign in to MEDISENS</h2>
                 <p>Access your RHU workspace using your assigned account.</p>
             </div>
-            <div class="field">
-                <label for="emailInput">Email Address</label>
-                <input type="email" id="emailInput" placeholder="you@medisens.com" autocomplete="email">
-            </div>
-            <div class="field">
-                <label for="passwordInput">Password</label>
-                <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password">
-            </div>
-            <button class="login-btn" id="loginBtn" onclick="handleLogin()">
-                <span id="btnText">Sign In</span>
-                <div class="spinner" id="spinner"></div>
-            </button>
-            <div class="error-msg" id="errorMsg"></div>
+            <form id="loginForm" novalidate>
+                <div class="field">
+                    <label for="emailInput">Email Address</label>
+                    <input type="email" id="emailInput" name="email" placeholder="you@medisens.com" autocomplete="email" required aria-describedby="errorMsg">
+                </div>
+                <div class="field">
+                    <label for="passwordInput">Password</label>
+                    <input type="password" id="passwordInput" name="password" placeholder="Password" autocomplete="current-password" required aria-describedby="errorMsg">
+                </div>
+                <button class="login-btn" id="loginBtn" type="submit">
+                    <span id="btnText">Sign In</span>
+                    <div class="spinner" id="spinner"></div>
+                </button>
+                <div class="error-msg" id="errorMsg" role="alert"></div>
+            </form>
             <p class="privacy-notice">
                 By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
             </p>

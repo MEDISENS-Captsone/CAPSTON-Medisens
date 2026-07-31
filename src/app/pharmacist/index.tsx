@@ -12,7 +12,7 @@ import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { Icon } from '../../components/shared/Icon';
-import { Modal } from '../../components/ui/Modal';
+import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { safeTrim } from '../../lib/utils/strings';
 import { logAuditEvent } from '../../features/audit/services';
@@ -57,12 +57,17 @@ function PharmacyDashboard() {
     const { showToast, ToastComponent } = useToast();
 
     // Sidebar & Layout State
-    const [activePage, setActivePage] = useState('queue');
+    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'queue');
+
+    useEffect(() => {
+        window.location.hash = activePage;
+    }, [activePage]);
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const isOnline = useOnlineStatus();
 
     const pharmacistNavItems = [
-        { id: 'queue', label: 'Pending Queue', icon: 'pill' }
+        { id: 'queue', label: 'Pending Queue', icon: 'pill', group: 'Pharmacy Operations' }
     ];
 
     useEffect(() => {
@@ -97,17 +102,19 @@ function PharmacyDashboard() {
             .from('prescription')
             .select(`
                 *,
-                patients (
+                patients!inner (
                     id,
                     firstName,
                     middleName,
                     lastName,
                     age,
                     sex,
-                    address
+                    address,
+                    archive_status
                 )
             `)
             .eq('status', 'Pending')
+            .eq('patients.archive_status', 'active')
             .order('prescription_id', { ascending: false });
 
         if (!error && data) {
@@ -285,7 +292,7 @@ function PharmacyDashboard() {
     const allChecked = medsToDispense.length > 0 && medsToDispense.every((_, i) => dispenseChecklist[i]);
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden w-full">
+        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             <ToastComponent />
             <Sidebar
                 activePage={activePage}
@@ -309,9 +316,10 @@ function PharmacyDashboard() {
                     userRole="Pharmacist"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[#F8FAFC]">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full max-w-full flex flex-col gap-6">
                         {activePage === 'queue' && (
                             <>
@@ -324,8 +332,7 @@ function PharmacyDashboard() {
                                     <div className="ops-summary-grid">
                                         {[
                                             ['To Dispense', prescriptions.length, 'Pending e-prescriptions'],
-                                            ['Matching Search', filteredRx.length, 'Visible worklist'],
-                                            ['Review Required', filteredRx.length, 'Open row for medication details'],
+                                            ['Showing', filteredRx.length, 'Matching the current search'],
                                         ].map(([label, value, note]) => (
                                             <div key={label} className="ops-summary-card">
                                                 <div className="ops-summary-label">{label}</div>
@@ -337,18 +344,18 @@ function PharmacyDashboard() {
                                 </div>
 
                                 <div className="m-3 md:m-4 xl:m-5 ops-panel overflow-hidden">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 bg-slate-50/60 px-4 py-3">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3">
                                         <div>
-                                            <h3 className="font-semibold text-slate-900">Pending Prescriptions</h3>
-                                            <p className="text-xs text-slate-500">{prescriptions.length} awaiting dispense | click a row to review medication details</p>
+                                            <h3 className="font-semibold text-[var(--text)]">Pending Prescriptions</h3>
+                                            <p className="text-xs text-[var(--text-secondary)]">{prescriptions.length} awaiting dispensing review. Select a prescription to verify medication details.</p>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 w-full sm:w-auto">
-                                            <Icon name="search" className="h-4 w-4 text-slate-400" />
+                                        <div className="flex items-center gap-2 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-lg px-3 py-2 w-full sm:w-auto">
+                                            <Icon name="search" className="h-4 w-4 text-[var(--text-muted)]" />
                                             <input
                                                 type="text"
                                                 aria-label="Search prescriptions by patient"
                                                 placeholder="Search patient..."
-                                                className="bg-transparent border-none outline-none text-sm text-slate-700 w-full"
+                                                className="bg-transparent border-none outline-none text-sm text-[var(--text-2)] w-full"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                             />
@@ -367,7 +374,7 @@ function PharmacyDashboard() {
                                             </thead>
                                             <tbody>
                                                 {filteredRx.length === 0 ? (
-                                                    <tr><td colSpan={4}><EmptyState title="No pending prescriptions" description="New e-prescriptions from doctors will appear here." /></td></tr>
+                                                    <tr><td colSpan={4} className="px-6 py-12"><EmptyState title="No pending prescriptions" description="New e-prescriptions from doctors will appear here." /></td></tr>
                                                 ) : (
                                                     filteredRx.map(rx => (
                                                         <tr key={rx.prescription_id} onClick={() => handleRxSelect(rx)} className="cursor-pointer">
@@ -376,8 +383,17 @@ function PharmacyDashboard() {
                                                                 <div className="clinical-secondary">{rx.patients?.sex || '-'}</div>
                                                             </td>
                                                             <td>{new Date(rx.prescription_date).toLocaleDateString('en-PH')}</td>
-                                                            <td><span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700"><Icon name="clock" className="h-3 w-3" /> Pending</span></td>
-                                                            <td className="text-right"><span className="clinical-link-action">Review</span></td>
+                                                            <td><span className="clinical-status-badge warning"><Icon name="clock" className="h-3 w-3" /> Pending</span></td>
+                                                            <td className="text-right">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleRxSelect(rx); }}
+                                                                    aria-label={`Review prescription for ${rx.patients?.lastName}, ${rx.patients?.firstName}`}
+                                                                    className="clinical-link-action"
+                                                                >
+                                                                    Review
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 )}
@@ -391,25 +407,45 @@ function PharmacyDashboard() {
                 </div>
             </main>
 
-            {/* Modal */}
+            {/* Prescription detail drawer */}
             {selectedRx && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <Modal labelledBy="prescription-dialog-title" onClose={() => setSelectedRx(null)} className="pharmacy-preview-modal">
-                        <div className="pharmacy-preview-header">
-                            <div className="min-w-0">
-                                <h2 id="prescription-dialog-title" className="text-lg font-semibold text-slate-900">E-Prescription Details</h2>
-                                <p className="text-sm text-slate-500 mt-1 truncate">Patient: <span className="font-semibold text-slate-700">{selectedRx.patients?.firstName} {selectedRx.patients?.lastName}</span></p>
-                            </div>
-                            <button onClick={() => setSelectedRx(null)} aria-label="Close prescription details" className="w-8 h-8 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center transition-colors shrink-0"><Icon name="close" className="h-4 w-4" label="Close prescription details" /></button>
-                        </div>
+                <ClinicalDrawer
+                    title="E-Prescription Details"
+                    labelledBy="prescription-dialog-title"
+                    onClose={() => setSelectedRx(null)}
+                    subtitle={<>Patient: <span className="font-semibold text-[var(--text-2)]">{selectedRx.patients?.firstName} {selectedRx.patients?.lastName}</span></>}
+                    footer={(
+                        <>
+                            <button type="button" onClick={() => setSelectedRx(null)} className="px-5 py-2.5 rounded-lg text-sm font-bold text-[var(--text-2)] bg-white border border-[var(--border)] hover:bg-[var(--surface-subtle)] transition-colors w-full sm:w-auto">
+                                Cancel
+                            </button>
 
-                        <div className="pharmacy-preview-body">
+                            <button
+                                type="button"
+                                onClick={handlePrintUnavailable}
+                                disabled={allChecked}
+                                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all w-full sm:w-auto flex items-center justify-center gap-2 ${allChecked ? 'opacity-40 cursor-not-allowed bg-[var(--border-soft)] text-[var(--text-secondary)] border border-[var(--border)]' : 'text-pink-700 bg-pink-100 border border-pink-200 hover:bg-pink-200 shadow-sm hover:shadow'}`}
+                            >
+                                <Icon name="printer" className="h-4 w-4" /> Print
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleDispense}
+                                disabled={isDispensing}
+                                className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] disabled:opacity-50 transition-colors w-full sm:w-auto flex items-center justify-center gap-2"
+                            >
+                                {isDispensing ? 'Dispensing...' : <><Icon name="check" className="h-4 w-4" /> Mark as Dispensed</>}
+                            </button>
+                        </>
+                    )}
+                >
                             <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                                 <h3 className="clinical-field-label mb-0">Prescribed Medications</h3>
-                                <span className="text-xs font-medium text-slate-500">Check each medication that can be dispensed.</span>
+                                <span className="text-xs font-medium text-[var(--text-secondary)]">Check each medication that can be dispensed.</span>
                             </div>
 
-                            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
                                 <div className="clinical-table-scroll">
                                     <table className="clinical-table min-w-[680px]">
                                         <thead>
@@ -423,50 +459,26 @@ function PharmacyDashboard() {
                                         </thead>
                                         <tbody>
                                             {medsToDispense.map((med: Medication, i: number) => (
-                                                <tr key={i} className={`border-b border-slate-200 last:border-0 transition-colors ${dispenseChecklist[i] ? 'bg-white hover:bg-blue-50/40' : 'bg-red-50/70 text-slate-600'}`}>
+                                                <tr key={i} className={`border-b border-[var(--border)] last:border-0 transition-colors ${dispenseChecklist[i] ? 'bg-white hover:bg-[var(--surface-subtle)]/40' : 'bg-red-50/70 text-[var(--text-2)]'}`}>
                                                     <td className="p-4 text-center">
                                                         <input
                                                             type="checkbox"
-                                                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                                                            className="w-6 h-6 accent-teal-700 cursor-pointer"
                                                             checked={!!dispenseChecklist[i]}
                                                             onChange={() => handleToggleChecklist(i)}
                                                         />
                                                     </td>
-                                                    <td className={`p-4 font-bold ${dispenseChecklist[i] ? 'text-blue-600' : 'text-red-700 line-through'}`}>{med.name}</td>
-                                                    <td className="p-4 text-slate-700">{med.dosage}</td>
-                                                    <td className="p-4 text-slate-700">{med.frequency}</td>
-                                                    <td className="p-4 font-semibold text-slate-900 tabular-nums">{med.quantity}</td>
+                                                    <td className={`p-4 font-bold ${dispenseChecklist[i] ? 'text-[var(--text-2)]' : 'text-red-700 line-through'}`}>{med.name}</td>
+                                                    <td className="p-4 text-[var(--text-2)]">{med.dosage}</td>
+                                                    <td className="p-4 text-[var(--text-2)]">{med.frequency}</td>
+                                                    <td className="p-4 font-semibold text-[var(--text)] tabular-nums">{med.quantity}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="pharmacy-preview-footer">
-                            <button onClick={() => setSelectedRx(null)} className="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors w-full sm:w-auto">
-                                Cancel
-                            </button>
-
-                            <button
-                                onClick={handlePrintUnavailable}
-                                disabled={allChecked}
-                                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all w-full sm:w-auto flex items-center justify-center gap-2 ${allChecked ? 'opacity-40 cursor-not-allowed bg-slate-200 text-slate-500 border border-slate-300' : 'text-pink-700 bg-pink-100 border border-pink-200 hover:bg-pink-200 shadow-sm hover:shadow'}`}
-                            >
-                                <Icon name="printer" className="h-4 w-4" /> Print
-                            </button>
-
-                            <button
-                                onClick={handleDispense}
-                                disabled={isDispensing}
-                                className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors w-full sm:w-auto flex items-center justify-center gap-2"
-                            >
-                                {isDispensing ? 'Dispensing...' : <><Icon name="check" className="h-4 w-4" /> Mark as Dispensed</>}
-                            </button>
-                        </div>
-                    </Modal>
-                </div>
+                </ClinicalDrawer>
             )}
         </div>
     );

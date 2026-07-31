@@ -6,32 +6,41 @@ import { requireRole } from '../../lib/auth/roles';
 import { getInitials } from '../../lib/utils/names';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
+import { SkeletonList } from '../../components/ui/Skeleton';
 import { safeTrim } from '../../lib/utils/strings';
 import { PatientTransactionHistory } from '../../components/patient/PatientTransactionHistory';
+import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 
 import Dashboard from '../../features/midwife/dashboard';
 import PatientRecords from '../../features/midwife/patientRecords';
 import CensusEntry from '../../features/midwife/censusEntry';
 import PatientConsent from '../patients/patient-consent';
 import { useMidwifeData } from '../../features/midwife/useMidwifeData';
+import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
+
+const LazyPanelFallback = () => (
+    <div className="rounded-xl border border-[var(--border)] bg-white">
+        <SkeletonList rows={4} />
+    </div>
+);
 
 // ─── Detail Item ──────────────────────────────────────────────────────────────
 function DetailItem({ label, value }: { label: string; value?: string | number | null }) {
     const isEmpty = value === null || value === undefined || value === '';
     return (
         <div className="flex flex-col gap-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-            <div className={`text-sm font-semibold ${isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{label}</div>
+            <div className={`text-sm font-semibold ${isEmpty ? 'text-[var(--text-muted)] italic' : 'text-[var(--text)]'}`}>
                 {isEmpty ? 'Not provided' : value}
             </div>
         </div>
     );
 }
 
-const sectionCls = "bg-white border border-slate-200 rounded-lg p-4 md:p-5 mb-4 shadow-sm";
-const headerCls  = "flex items-center gap-2 text-sm font-semibold text-blue-600 uppercase tracking-wide border-b border-slate-200 pb-3 mb-4";
+const sectionCls = "bg-white border border-[var(--border)] rounded-lg p-4 md:p-5 mb-4 shadow-sm";
+const headerCls  = "flex items-center gap-2 text-sm font-semibold text-[var(--text-2)] uppercase tracking-wide border-b border-[var(--border)] pb-3 mb-4";
 
 // ─── Patient Details Panel ────────────────────────────────────────────────────
 function PatientDetailsPanel({
@@ -51,28 +60,28 @@ function PatientDetailsPanel({
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="">
             {/* Profile banner */}
-            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4 flex flex-wrap items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 rounded-md bg-blue-600 text-white flex items-center justify-center font-semibold text-lg shadow-sm shrink-0 uppercase">
+            <div className="bg-white border border-[var(--border)] rounded-lg p-4 mb-4 flex flex-wrap items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-md bg-[var(--brand-active)] text-white flex items-center justify-center font-semibold text-lg shadow-sm shrink-0 uppercase">
                     {patient.firstName?.[0]}{patient.lastName?.[0]}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-900 text-lg leading-tight truncate">
+                    <div className="font-semibold text-[var(--text)] text-lg leading-tight truncate">
                         {patient.firstName} {patient.middleName} {patient.lastName} {patient.suffix}
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="droplet" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.bloodType || '—'}</span></span>
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="user" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.sex || '—'}</span></span>
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="calendar" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.age ?? '—'}</span> yrs</span>
-                        <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Icon name="map-pin" className="h-3.5 w-3.5" /> <span className="font-bold text-slate-700">{patient.address || '—'}</span></span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="droplet" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.bloodType || '—'}</span></span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="user" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.sex || '—'}</span></span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="calendar" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.age ?? '—'}</span> yrs</span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium inline-flex items-center gap-1"><Icon name="map-pin" className="h-3.5 w-3.5" /> <span className="font-bold text-[var(--text-2)]">{patient.address || '—'}</span></span>
                     </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button
                         type="button"
                         onClick={onViewHistory}
-                        className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[0.65rem] font-extrabold text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1.5 text-[0.65rem] font-extrabold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
                     >
                         <Icon name="clock" className="mr-1 inline h-3.5 w-3.5" /> History
                     </button>
@@ -129,8 +138,9 @@ function PatientDetailsPanel({
 
             {!consentSigned && (
                 <button
+                    type="button"
                     onClick={onProceedToConsent}
-                    className="w-full bg-blue-600 text-white font-extrabold text-sm uppercase tracking-wider py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3 mt-2"
+                    className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] transition-all  flex items-center justify-center gap-3 mt-2"
                 >
                     <Icon name="clipboard" className="h-5 w-5" /> Proceed to Patient Consent →
                 </button>
@@ -165,37 +175,41 @@ function PatientModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-            <div className="bg-[#F8FAFC] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 ">
+            <div className="bg-[var(--bg)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-sm flex flex-col max-h-[92vh] sm:max-h-[88vh]">
 
                 {/* Modal Header */}
-                <div className="px-5 py-4 border-b border-slate-200 bg-white rounded-t-2xl flex items-center justify-between shrink-0">
+                <div className="px-5 py-4 border-b border-[var(--border)] bg-white rounded-t-2xl flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
                         {step !== 'details' && (
                             <button
+                                type="button"
                                 onClick={() => setStep('details')}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-colors"
+                                aria-label="Back to patient details"
+                                className="h-10 w-10 -m-1 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] font-bold text-sm transition-colors"
                             >
-                                ←
+                                <span aria-hidden="true">←</span>
                             </button>
                         )}
                         {/* Step pills */}
                         <div className="flex items-center gap-1.5 text-xs font-bold">
                             <button
+                                type="button"
                                 onClick={() => setStep('details')}
-                                className={`px-2.5 py-1 rounded-md transition-colors ${step === 'details' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                className={`px-2.5 py-1 rounded-md transition-colors ${step === 'details' ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:bg-[var(--border-soft)]'}`}
                             >
                                 1 · Details
                             </button>
-                            <span className="text-slate-300">›</span>
-                            <span className={`px-2.5 py-1 rounded-md ${step === 'consent' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                            <span className="text-[var(--text-muted)]">›</span>
+                            <span className={`px-2.5 py-1 rounded-md ${step === 'consent' ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
                                 2 · Consent
                             </span>
                         </div>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold transition-colors"
+                        className="h-10 w-10 -m-1 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-secondary)] font-bold transition-colors"
                     >
                         <Icon name="close" className="h-4 w-4" label="Close patient details" />
                     </button>
@@ -211,7 +225,7 @@ function PatientModal({
                             onViewHistory={() => setStep('history')}
                         />
                     ) : step === 'consent' ? (
-                        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="">
                             <PatientConsent
                                 patientId={patient.id}
                                 patientName={`${patient.firstName} ${patient.lastName}`}
@@ -220,11 +234,11 @@ function PatientModal({
                             />
                         </div>
                     ) : (
-                        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                            <div className={sectionCls}>
-                                <div className={headerCls}><Icon name="clock" className="h-4 w-4" /> Patient History</div>
+                        <div className="">
+                            <PatientChartIdentityHeader patient={patient} compact className="mb-4" />
+                            <PatientHistoryPanel title="Patient History">
                                 <PatientTransactionHistory patientId={patient.id} />
-                            </div>
+                            </PatientHistoryPanel>
                         </div>
                     )}
                 </div>
@@ -235,7 +249,12 @@ function PatientModal({
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 const MidwifeApp = () => {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
+
+    useEffect(() => {
+        window.location.hash = activeTab;
+    }, [activeTab]);
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [userData, setUserData] = useState({ name: 'Loading...', initials: 'U' });
@@ -277,14 +296,15 @@ const MidwifeApp = () => {
     }, [handleRealtimeChange]);
 
     const midwifeNavItems = [
-        { id: 'dashboard', label: 'Home',           icon: 'home' },
-        { id: 'records',   label: 'Patient Records', icon: 'users' },
-        { id: 'census',    label: 'Census Entry',    icon: 'clipboard' },
-        { id: 'reports',   label: 'OCR Reports',     icon: 'chart' },
+        { id: 'dashboard', label: 'Home',           icon: 'home', group: 'Overview' },
+        { id: 'analytics', label: 'Analytics',      icon: 'chart', group: 'Insights' },
+        { id: 'records',   label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'census',    label: 'Census Entry',    icon: 'clipboard', group: 'Maternal & Community Care' },
+        { id: 'reports',   label: 'OCR Reports',     icon: 'chart', group: 'Records & Governance' },
     ];
 
     return (
-        <div className="flex h-screen w-full bg-[#F8FAFC] overflow-hidden">
+        <div className="flex h-screen w-full bg-[var(--bg)] overflow-hidden">
             <Sidebar
                 activePage={activeTab}
                 userName={userData.name}
@@ -300,6 +320,7 @@ const MidwifeApp = () => {
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 <Topbar
                     title={activeTab === 'dashboard' ? 'Midwife Dashboard'
+                        : activeTab === 'analytics' ? 'Analytics'
                         : activeTab === 'records' ? 'Patient Records'
                         : activeTab === 'census' ? 'Census Entry'
                         : activeTab === 'reports' ? 'OCR Generation'
@@ -310,10 +331,11 @@ const MidwifeApp = () => {
                     userRole="Registered Midwife"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
                 {/* Content */}
-                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC]">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-[var(--bg)]">
                     <div className="w-full min-h-full pwa-page-pad">
                         <div className="w-full">
                             {activeTab === 'dashboard' && (
@@ -324,6 +346,9 @@ const MidwifeApp = () => {
                                     onNavigateToRecords={() => setActiveTab('records')}
                                     onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
                                 />
+                            )}
+                            {activeTab === 'analytics' && (
+                                <DoctorAnalyticsPage isOnline={isOnline} role="midwives" />
                             )}
                             {activeTab === 'records' && (
                                 <PatientRecords
@@ -342,7 +367,7 @@ const MidwifeApp = () => {
                                 />
                             )}
                             {activeTab === 'reports' && (
-                                <Suspense fallback={<div className="rounded-xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600">Loading report generator...</div>}>
+                                <Suspense fallback={<LazyPanelFallback />}>
                                     <ReportGenerator records={records} isLoading={isLoading} />
                                 </Suspense>
                             )}

@@ -10,9 +10,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("PROJECT_URL")
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY");
 
-const ALLOWED_ACTIONS = new Set(["login", "logout", "create", "update", "view", "generate", "dispense"]);
-const ALLOWED_MODULES = new Set(["Authentication", "Administration", "Patient Records", "Consultation", "Census Entry", "Laboratory", "Pharmacy", "Reports"]);
-const ALLOWED_RECORD_TYPES = new Set(["profile", "patient", "consultation", "initial_consultation", "fhsis_log", "lab_request", "lab_result", "prescription", "report", null]);
+const ALLOWED_ACTIONS = new Set(["login", "logout", "create", "update", "view", "generate", "dispense", "archived", "restored"]);
+const ALLOWED_MODULES = new Set(["Authentication", "Administration", "Patient Records", "Consultation", "Census Entry", "Laboratory", "Pharmacy", "Reports", "Patient Archive"]);
+const ALLOWED_RECORD_TYPES = new Set(["profile", "patient", "consultation", "initial_consultation", "follow_up", "fhsis_log", "lab_request", "lab_result", "prescription", "report", null]);
 const ALLOWED_METADATA_KEYS = new Set([
   "source",
   "status",

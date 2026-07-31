@@ -1,4 +1,4 @@
-export function getErrorMessage(error: unknown, fallback = 'Unexpected error'): string {
+export function getErrorMessage(error: unknown, fallback = 'Unable to complete the request'): string {
     if (error instanceof Error) return error.message;
     if (typeof error === 'string') return error;
     if (error && typeof error === 'object' && 'message' in error) {

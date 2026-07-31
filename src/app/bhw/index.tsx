@@ -7,6 +7,7 @@ import { getInitials } from '../../lib/utils/names';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { SkeletonList } from '../../components/ui/Skeleton';
 import { safeTrim } from '../../lib/utils/strings';
 
 
@@ -15,12 +16,15 @@ import type { Patient } from '../../components/patient/PatientDetailModal';
 
 const RecordsComponent = lazy(() => import('../patients/records').then(module => ({ default: module.RecordsComponent })));
 const TemplatesComponent = lazy(() => import('../patients/templates').then(module => ({ default: module.TemplatesComponent })));
+const BHW_PATIENT_LIMIT = 1000;
+const BHW_FHSIS_LIMIT = 1000;
+const BHW_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at';
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600">
-        Loading workspace...
+    <div className="rounded-xl border border-[var(--border)] bg-white">
+        <SkeletonList rows={4} />
     </div>
 );
 
@@ -34,13 +38,17 @@ const BhwDashboard = () => {
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     // ─── SPA Navigation State ───
-    const [activePage, setActivePage] = useState('dashboard');
+    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
+
+    useEffect(() => {
+        window.location.hash = activePage;
+    }, [activePage]);
 
     const navItems = [
-        { id: 'dashboard', label: 'Home', icon: 'home' },
-        { id: 'records', label: 'Patient Records', icon: 'users' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus' },
-        { id: 'reports', label: 'OCR Generation', icon: 'chart' }
+        { id: 'dashboard', label: 'Home', icon: 'home', group: 'Overview' },
+        { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
+        { id: 'reports', label: 'OCR Generation', icon: 'chart', group: 'Records & Governance' }
     ];
 
     useEffect(() => {
@@ -58,8 +66,10 @@ const BhwDashboard = () => {
             // 2. Fetch ALL patients
             const { data: allPatients, error: statsError } = await supabase
                 .from('patients')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .select(BHW_PATIENT_COLUMNS)
+                .or('archive_status.eq.active,archive_status.is.null')
+                .order('created_at', { ascending: false })
+                .limit(BHW_PATIENT_LIMIT);
 
             if (!statsError && allPatients) {
                 setPatients(allPatients as Patient[]);
@@ -81,7 +91,8 @@ const BhwDashboard = () => {
                         address
                     )
                 `)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(BHW_FHSIS_LIMIT);
 
             if (!fhsisError && fhsisData) {
                 // Flatten the relationship for the ReportGenerator
@@ -124,7 +135,7 @@ const BhwDashboard = () => {
     const recentPatients = useMemo(() => patients.slice(0, 5), [patients]);
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden w-full">
+        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             
             <Sidebar
                 activePage={activePage}
@@ -148,10 +159,11 @@ const BhwDashboard = () => {
                     userRole="Barangay Health Worker"
                     isOnline={isOnline}
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
+                    isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[#F8FAFC]">
-                    <div className="w-full animate-in fade-in duration-500">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
+                    <div className="w-full ">
                         
                         {/* ─── DASHBOARD VIEW ─── */}
                         {activePage === 'dashboard' && (
@@ -191,19 +203,23 @@ const BhwDashboard = () => {
                                                 <div className="ops-empty">No recent registrations.</div>
                                             ) : (
                                                 recentPatients.map(p => (
-                                                    <div key={p.id} onClick={() => setSelectedPatient(p)} className="ops-row cursor-pointer sm:grid-cols-[minmax(0,2fr)_120px_96px]">
+                                                    <button key={p.id} type="button" onClick={() => setSelectedPatient(p)}
+                                                        aria-label={`Open chart for ${p.lastName}, ${p.firstName}`}
+                                                        className="ops-row bhw-recent-registration-row clinical-row-button">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="ops-row-title">{p.lastName}, {p.firstName}</div>
                                                             <div className="ops-row-meta">{p.sex || '-'} | {p.bloodType || '-'} | {p.address || 'No address'}</div>
                                                         </div>
-                                                        <div className="ops-row-meta">{p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</div>
-                                                        <div className="ops-action sm:text-right">Open Chart</div>
-                                                    </div>
+                                                        <div className="bhw-recent-registration-meta">
+                                                            <div className="ops-row-meta">{p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</div>
+                                                            <div className="ops-action">Open Chart</div>
+                                                        </div>
+                                                    </button>
                                                 ))
                                             )}
                                         </div>
-                                        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/60 text-right">
-                                            <button onClick={() => setActivePage('records')} className="text-blue-600 font-semibold text-sm hover:text-blue-700">View Patient Registry</button>
+                                        <div className="px-4 py-3 border-t border-[var(--border)] bg-[var(--surface-subtle)] text-right">
+                                            <button type="button" onClick={() => setActivePage('records')} className="text-[var(--brand-active)] font-semibold text-sm hover:text-[var(--brand-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">View Patient Registry</button>
                                         </div>
                                     </div>
 
@@ -214,7 +230,7 @@ const BhwDashboard = () => {
                                                 <p className="ops-panel-subtitle">Current master list counts</p>
                                             </div>
                                         </div>
-                                        <div className="divide-y divide-slate-100 text-sm">
+                                        <div className="divide-y divide-[var(--border-soft)] text-sm">
                                             {[
                                                 ['Total Patients', stats.total],
                                                 ['Male', stats.male],
@@ -222,16 +238,16 @@ const BhwDashboard = () => {
                                                 ['With Address', stats.withAddress],
                                             ].map(([label, value]) => (
                                                 <div key={label} className="flex items-center justify-between px-4 py-3">
-                                                    <span className="font-medium text-slate-600">{label}</span>
-                                                    <span className="font-semibold text-slate-900 tabular-nums">{value}</span>
+                                                    <span className="font-medium text-[var(--text-2)]">{label}</span>
+                                                    <span className="font-semibold text-[var(--text)] tabular-nums">{value}</span>
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="grid grid-cols-1 gap-2 p-4 border-t border-slate-200 bg-slate-50/60">
-                                            <button onClick={() => setActivePage('new-record')} className="flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50">
+                                        <div className="grid grid-cols-1 gap-2 p-4 border-t border-[var(--border)] bg-[var(--surface-subtle)]">
+                                            <button type="button" onClick={() => setActivePage('new-record')} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)]">
                                                 <Icon name="user-plus" className="h-4 w-4" /> Register Patient
                                             </button>
-                                            <button onClick={() => setActivePage('reports')} className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                                            <button type="button" onClick={() => setActivePage('reports')} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)]">
                                                 <Icon name="chart" className="h-4 w-4" /> FHSIS Reports
                                             </button>
                                         </div>
@@ -243,7 +259,7 @@ const BhwDashboard = () => {
 
                         {/* ─── MODULAR COMPONENT TABS ─── */}
                         {activePage === 'records' && (
-                            <div className="w-full pwa-dense-panel min-h-[500px] m-3 md:m-4 xl:m-5">
+                            <div className="pwa-page-pad patient-list-page-shell">
                                 <Suspense fallback={<LazyPanelFallback />}>
                                     <RecordsComponent onPatientClick={(p) => setSelectedPatient(p as any)} />
                                 </Suspense>
@@ -259,9 +275,9 @@ const BhwDashboard = () => {
                         )}
 
                         {activePage === 'reports' && (
-                            <div className="w-full bg-[#F8FAFC] min-h-[500px] m-3 md:m-4 xl:m-5">
+                            <div className="w-full bg-[var(--bg)] min-h-[500px] m-3 md:m-4 xl:m-5">
                                 {/* Pass the newly fetched FHSIS logs down to the generator */}
-                                <Suspense fallback={<div className="rounded-xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600">Loading report generator...</div>}>
+                                <Suspense fallback={<LazyPanelFallback />}>
                                     <ReportGenerator records={records} />
                                 </Suspense>
                             </div>

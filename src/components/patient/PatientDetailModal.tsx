@@ -14,8 +14,10 @@ import {
     getVaccineDisplayName,
 } from '../../features/vaccines/vaccineOptions';
 import { Modal } from '../ui/Modal';
+import { SkeletonList } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { RELIGION_OPTIONS } from '../../types/patient';
+import { PatientChartIdentityHeader, PatientHistoryPanel } from './PatientChart';
 
 export interface Patient {
     id: string;
@@ -76,6 +78,20 @@ interface PatientDetailModalProps {
     onConsult?: (patient: Patient) => void;
 }
 
+interface DetailItemProps {
+    label: string;
+    value?: string | number | null;
+    name: keyof Patient;
+    type?: "text" | "select" | "date" | "number";
+    options?: readonly string[];
+    isEditing: boolean;
+    editForm: Patient;
+    otherReligion: string;
+    inputCls: string;
+    onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+    onOtherReligionChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Unknown'] as const;
 const CIVIL_STATUSES = ['Single', 'Married', 'Widowed', 'Separated', 'Annulled'] as const;
 const EDUCATION_LEVELS = [
@@ -84,6 +100,113 @@ const EDUCATION_LEVELS = [
     'College Level', 'College Graduate', 'Post-Graduate'
 ] as const;
 const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Self-Employed', 'Student', 'Retired'] as const;
+const DIGITS_ONLY_PATTERN = '[0-9]*';
+const NAME_TEXT_PATTERN = "[A-Za-z .'-]*";
+const NUMERIC_ONLY_PATIENT_FIELDS = new Set<keyof Patient>(['age', 'contactNumber']);
+const NAME_TEXT_PATIENT_FIELDS = new Set<keyof Patient>([
+    'firstName',
+    'middleName',
+    'lastName',
+    'nationality',
+    'relativeName',
+    'relativeRelation',
+]);
+
+function sanitizePatientEditValue(name: keyof Patient, value: string) {
+    if (NUMERIC_ONLY_PATIENT_FIELDS.has(name)) return value.replace(/\D/g, '');
+    if (NAME_TEXT_PATIENT_FIELDS.has(name)) return value.replace(/[^a-zA-Z\s'.-]/g, '');
+    return value;
+}
+
+function getPatientInputProps(
+    name: keyof Patient,
+    type: DetailItemProps['type']
+): Pick<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'inputMode' | 'pattern'> {
+    if (NUMERIC_ONLY_PATIENT_FIELDS.has(name)) {
+        return { type: 'text', inputMode: 'numeric' as const, pattern: DIGITS_ONLY_PATTERN };
+    }
+    if (NAME_TEXT_PATIENT_FIELDS.has(name)) {
+        return { type: type || 'text', pattern: NAME_TEXT_PATTERN };
+    }
+    return { type: type || 'text' };
+}
+
+function DetailItem({
+    label,
+    value,
+    name,
+    type = "text",
+    options,
+    isEditing,
+    editForm,
+    otherReligion,
+    inputCls,
+    onInputChange,
+    onOtherReligionChange,
+}: DetailItemProps) {
+    const isEmpty = value === null || value === undefined || value === '';
+    const inputProps = getPatientInputProps(name, type);
+
+    if (isEditing) {
+        return (
+            <div className="flex flex-col gap-1">
+                <label className="clinical-field-label">{label}</label>
+                {name === 'religion' ? (
+                    <>
+                        <select
+                            name={name}
+                            value={(editForm.religion || '').startsWith('Other:') ? 'Other' : editForm.religion || ''}
+                            onChange={onInputChange}
+                            className={inputCls}
+                        >
+                            <option value="">Select...</option>
+                            {RELIGION_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                        {(editForm.religion === 'Other' || (editForm.religion || '').startsWith('Other:')) && (
+                            <input
+                                type="text"
+                                value={otherReligion || ((editForm.religion || '').startsWith('Other:') ? (editForm.religion || '').replace(/^Other:\s*/, '') : '')}
+                                onChange={onOtherReligionChange}
+                                className={`${inputCls} mt-2`}
+                                placeholder="Enter religion"
+                                pattern={NAME_TEXT_PATTERN}
+                            />
+                        )}
+                    </>
+                ) : type === "select" ? (
+                    <select
+                        name={name}
+                        value={editForm[name] as string || ''}
+                        onChange={onInputChange}
+                        className={inputCls}
+                    >
+                        <option value="">Select...</option>
+                        {options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                ) : (
+                    <input
+                        type={inputProps.type}
+                        name={name}
+                        value={editForm[name] as string | number || ''}
+                        onChange={onInputChange}
+                        inputMode={inputProps.inputMode}
+                        pattern={inputProps.pattern}
+                        className={inputCls}
+                    />
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="clinical-field-label">{label}</div>
+            <div className={`patient-chart-field ${isEmpty ? 'is-empty' : ''}`}>
+                {isEmpty ? 'Not provided' : value}
+            </div>
+        </div>
+    );
+}
 
 export function PatientDetailModal({
     patient: initialPatient,
@@ -167,7 +290,7 @@ export function PatientDetailModal({
         try {
             setVaccineSaving(true);
             await saveVaccineRecord(patient.id, cleanRecord);
-            showToast('Vaccine record saved successfully.', false);
+            showToast('Vaccination record updated.', false);
             setShowAddVaccine(false);
             setNewVaccine(createVaccineRecord());
             await loadVaccineRecords();
@@ -208,8 +331,10 @@ export function PatientDetailModal({
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setEditForm(prev => ({ ...prev, [name]: value }));
-        if (name === 'religion' && value !== 'Other') setOtherReligion('');
+        const fieldName = name as keyof Patient;
+        const sanitizedValue = sanitizePatientEditValue(fieldName, value);
+        setEditForm(prev => ({ ...prev, [fieldName]: sanitizedValue }));
+        if (fieldName === 'religion' && sanitizedValue !== 'Other') setOtherReligion('');
     };
 
     const handleOtherReligion = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,73 +371,6 @@ export function PatientDetailModal({
         }
     };
 
-    const DetailItem = ({ label, value, name, type = "text", options }: {
-        label: string;
-        value?: string | number | null;
-        name: keyof Patient;
-        type?: "text" | "select" | "date" | "number";
-        options?: readonly string[];
-    }) => {
-        const isEmpty = value === null || value === undefined || value === '';
-
-        if (isEditing) {
-            return (
-                <div className="flex flex-col gap-1">
-                    <label className="clinical-field-label">{label}</label>
-                    {name === 'religion' ? (
-                        <>
-                            <select
-                                name={name}
-                                value={(editForm.religion || '').startsWith('Other:') ? 'Other' : editForm.religion || ''}
-                                onChange={handleInputChange}
-                                className={inputCls}
-                            >
-                                <option value="">Select...</option>
-                                {RELIGION_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                            {(editForm.religion === 'Other' || (editForm.religion || '').startsWith('Other:')) && (
-                                <input
-                                    type="text"
-                                    value={otherReligion || ((editForm.religion || '').startsWith('Other:') ? (editForm.religion || '').replace(/^Other:\s*/, '') : '')}
-                                    onChange={handleOtherReligion}
-                                    className={`${inputCls} mt-2`}
-                                    placeholder="Enter religion"
-                                />
-                            )}
-                        </>
-                    ) : type === "select" ? (
-                        <select
-                            name={name}
-                            value={editForm[name] as string || ''}
-                            onChange={handleInputChange}
-                            className={inputCls}
-                        >
-                            <option value="">Select...</option>
-                            {options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                    ) : (
-                        <input
-                            type={type}
-                            name={name}
-                            value={editForm[name] as string | number || ''}
-                            onChange={handleInputChange}
-                            className={inputCls}
-                        />
-                    )}
-                </div>
-            );
-        }
-
-        return (
-            <div className="flex flex-col gap-1">
-                <div className="clinical-field-label">{label}</div>
-                <div className={`patient-chart-field ${isEmpty ? 'is-empty' : ''}`}>
-                    {isEmpty ? 'Not provided' : value}
-                </div>
-            </div>
-        );
-    };
-
     const displayCategory = () => {
         if (patient.category === 'Other/s') return `Others (${patient.categoryOthers || 'Unspecified'})`;
         return patient.category || 'N/A';
@@ -320,35 +378,31 @@ export function PatientDetailModal({
 
     const sectionCls = "patient-chart-section";
     const headerCls = "patient-chart-section-header";
-    const focusCls = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9FE6]";
-    const inputCls = `w-full rounded-lg border border-[#BFE3F7] bg-white px-3 py-2 text-left text-sm font-semibold text-[#0F3154] shadow-sm transition-colors focus:border-[#2E9FE6] focus:ring-2 focus:ring-[#2E9FE6]/20 ${focusCls}`;
-    const vaccineInputCls = `w-full rounded-lg border border-[#BFE3F7] bg-white px-3 py-2 text-sm font-medium text-[#0F3154] transition-colors focus:border-[#2E9FE6] focus:ring-2 focus:ring-[#2E9FE6]/20 ${focusCls}`;
+    const focusCls = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]";
+    const inputCls = `w-full rounded-lg border border-[var(--border-strong)] bg-white px-3 py-2 text-left text-sm font-semibold text-[var(--text)] shadow-sm transition-colors focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--focus-ring)] ${focusCls}`;
+    const vaccineInputCls = `w-full rounded-lg border border-[var(--border-strong)] bg-white px-3 py-2 text-sm font-medium text-[var(--text)] transition-colors focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--focus-ring)] ${focusCls}`;
+    const detailItemProps = {
+        isEditing,
+        editForm,
+        otherReligion,
+        inputCls,
+        onInputChange: handleInputChange,
+        onOtherReligionChange: handleOtherReligion,
+    };
 
     return (
         <>
             <ToastComponent />
             {/* Backdrop */}
-            <div className="fixed inset-0 bg-[#0F3154]/60 backdrop-blur-sm z-[200]" onClick={onClose} />
+            <div className="fixed inset-0 bg-[var(--brand-active)]/60 backdrop-blur-sm z-[200]" onClick={onClose} />
 
             {/* Modal Panel */}
             <div className="fixed inset-0 z-[201] flex items-center justify-center p-4">
-                <Modal labelledBy="patient-detail-dialog-title" onClose={onClose} className="patient-chart-modal animate-in fade-in zoom-in-95 duration-200">
+                <Modal labelledBy="patient-detail-dialog-title" onClose={onClose} className="patient-chart-modal">
 
                     {/* Modal Header */}
                     <div className="patient-chart-header">
-                        <div className="patient-chart-identity">
-                            <div className={`patient-chart-avatar ${patient.sex === 'Male' ? 'bg-[#2E9FE6]' : 'bg-[#2563EB]'}`}>
-                                {(patient.firstName?.[0] || '?').toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                                <div id="patient-detail-dialog-title" className="font-semibold text-[#0F3154] leading-tight">
-                                    {patient.lastName}, {patient.firstName} {patient.middleName || ''}
-                                </div>
-                                <div className="text-xs text-[#5F82A3] font-medium mt-0.5">
-                                    {patient.sex || '—'} · {patient.age ?? '—'} yrs · {patient.bloodType || '—'}
-                                </div>
-                            </div>
-                        </div>
+                        <PatientChartIdentityHeader patient={patient} titleId="patient-detail-dialog-title" className="flex-1 border-0 bg-transparent p-0" />
                         <div className="flex flex-wrap items-center justify-end gap-2">
                             {!showHistory && (
                                 <>
@@ -356,7 +410,7 @@ export function PatientDetailModal({
                                         <button
                                             type="button"
                                             onClick={() => onConsult(patient)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 bg-[#2E9FE6] text-white hover:bg-[#147EC1] ${focusCls}`}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--brand-primary-hover)] text-white hover:bg-[var(--brand-active)] ${focusCls}`}
                                         >
                                             <Icon name="clipboard" className="h-3.5 w-3.5" />
                                             Consult
@@ -366,7 +420,7 @@ export function PatientDetailModal({
                                         <button
                                             type="button"
                                             onClick={loadHistory}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 bg-white text-[#147EC1] border border-[#BFE3F7] hover:bg-[#EAF6FF] ${focusCls}`}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-white text-[var(--brand-active)] border border-[var(--border-strong)] hover:bg-[var(--surface-muted)] ${focusCls}`}
                                         >
                                             <Icon name="clock" className="h-3.5 w-3.5" />
                                             History
@@ -375,7 +429,7 @@ export function PatientDetailModal({
                                     <button
                                         type="button"
                                         onClick={handleEditToggle}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${focusCls} ${isEditing ? 'bg-[#F3F7FA] text-[#456987] hover:bg-[#DDE7EF]' : 'bg-[#EAF6FF] text-[#147EC1] hover:bg-[#DDE7EF]'}`}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${focusCls} ${isEditing ? 'bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)]' : 'bg-[var(--surface-muted)] text-[var(--brand-active)] hover:bg-[var(--brand-accent-surface)]'}`}
                                     >
                                         {isEditing ? 'Cancel' : 'Edit Profile'}
                                     </button>
@@ -385,7 +439,7 @@ export function PatientDetailModal({
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close patient details"
-                                className={`w-8 h-8 flex items-center justify-center rounded-lg bg-[#F3F7FA] text-[#456987] hover:bg-[#DDE7EF] transition-colors font-bold text-sm ${focusCls}`}
+                                className={`h-10 w-10 -m-1 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
                             >
                                 X
                             </button>
@@ -401,24 +455,24 @@ export function PatientDetailModal({
                                     <div className={headerCls}>Patient Summary</div>
                                     <div className="patient-chart-section-body patient-chart-summary">
                                         <div>
-                                            <div className="text-xs font-medium text-[#5F82A3]">Patient</div>
-                                            <div className="font-semibold text-[#0F3154]">{patient.lastName}, {patient.firstName}</div>
+                                            <div className="text-xs font-medium text-[var(--text-secondary)]">Patient</div>
+                                            <div className="font-semibold text-[var(--text)]">{patient.lastName}, {patient.firstName}</div>
                                         </div>
                                         <div>
-                                            <div className="text-xs font-medium text-[#5F82A3]">Profile</div>
-                                            <div className="font-semibold text-[#0F3154]">{patient.sex || '—'} · {patient.age ?? '—'} yrs</div>
+                                            <div className="text-xs font-medium text-[var(--text-secondary)]">Profile</div>
+                                            <div className="font-semibold text-[var(--text)]">{patient.sex || '—'} · {patient.age ?? '—'} yrs</div>
                                         </div>
                                         <div>
-                                            <div className="text-xs font-medium text-[#5F82A3]">Blood Type</div>
-                                            <div className="font-semibold text-[#0F3154]">{patient.bloodType || '—'}</div>
+                                            <div className="text-xs font-medium text-[var(--text-secondary)]">Blood Type</div>
+                                            <div className="font-semibold text-[var(--text)]">{patient.bloodType || '—'}</div>
                                         </div>
                                         <div>
-                                            <div className="text-xs font-medium text-[#5F82A3]">PhilHealth</div>
-                                            <div className="font-semibold text-[#0F3154]">{patient.philhealthStatus || '—'}</div>
+                                            <div className="text-xs font-medium text-[var(--text-secondary)]">PhilHealth</div>
+                                            <div className="font-semibold text-[var(--text)]">{patient.philhealthStatus || '—'}</div>
                                         </div>
                                         <div className="col-span-2 sm:col-span-4">
-                                            <div className="text-xs font-medium text-[#5F82A3]">Address</div>
-                                            <div className="font-semibold text-[#0F3154]">{patient.address || '—'}</div>
+                                            <div className="text-xs font-medium text-[var(--text-secondary)]">Address</div>
+                                            <div className="font-semibold text-[var(--text)]">{patient.address || '—'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -427,21 +481,21 @@ export function PatientDetailModal({
                                 <div className={sectionCls}>
                                     <div className={headerCls}>Demographics</div>
                                     <div className="patient-chart-section-body grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        <DetailItem label="First Name" value={patient.firstName} name="firstName" />
-                                        <DetailItem label="Middle Name" value={patient.middleName} name="middleName" />
-                                        <DetailItem label="Last Name" value={patient.lastName} name="lastName" />
-                                        <DetailItem label="Age" value={patient.age} name="age" type="number" />
-                                        <DetailItem label="Sex" value={patient.sex} name="sex" type="select" options={['Male', 'Female']} />
-                                        <DetailItem label="Birthday" value={patient.birthday} name="birthday" type="date" />
-                                        <DetailItem label="Blood Type" value={patient.bloodType} name="bloodType" type="select" options={BLOOD_TYPES} />
-                                        <DetailItem label="Civil Status" value={patient.civilStatus} name="civilStatus" type="select" options={CIVIL_STATUSES} />
-                                        <DetailItem label="Nationality" value={patient.nationality} name="nationality" />
-                                        <DetailItem label="Religion" value={patient.religion} name="religion" type="select" options={RELIGION_OPTIONS} />
-                                        <DetailItem label="Contact Number" value={patient.contactNumber} name="contactNumber" />
-                                        <DetailItem label="Educational Attainment" value={patient.educationalAttain} name="educationalAttain" type="select" options={EDUCATION_LEVELS} />
-                                        <DetailItem label="Employment Status" value={patient.employmentStatus} name="employmentStatus" type="select" options={EMPLOYMENT_STATUSES} />
+                                        <DetailItem {...detailItemProps} label="First Name" value={patient.firstName} name="firstName" />
+                                        <DetailItem {...detailItemProps} label="Middle Name" value={patient.middleName} name="middleName" />
+                                        <DetailItem {...detailItemProps} label="Last Name" value={patient.lastName} name="lastName" />
+                                        <DetailItem {...detailItemProps} label="Age" value={patient.age} name="age" type="number" />
+                                        <DetailItem {...detailItemProps} label="Sex" value={patient.sex} name="sex" type="select" options={['Male', 'Female']} />
+                                        <DetailItem {...detailItemProps} label="Birthday" value={patient.birthday} name="birthday" type="date" />
+                                        <DetailItem {...detailItemProps} label="Blood Type" value={patient.bloodType} name="bloodType" type="select" options={BLOOD_TYPES} />
+                                        <DetailItem {...detailItemProps} label="Civil Status" value={patient.civilStatus} name="civilStatus" type="select" options={CIVIL_STATUSES} />
+                                        <DetailItem {...detailItemProps} label="Nationality" value={patient.nationality} name="nationality" />
+                                        <DetailItem {...detailItemProps} label="Religion" value={patient.religion} name="religion" type="select" options={RELIGION_OPTIONS} />
+                                        <DetailItem {...detailItemProps} label="Contact Number" value={patient.contactNumber} name="contactNumber" />
+                                        <DetailItem {...detailItemProps} label="Educational Attainment" value={patient.educationalAttain} name="educationalAttain" type="select" options={EDUCATION_LEVELS} />
+                                        <DetailItem {...detailItemProps} label="Employment Status" value={patient.employmentStatus} name="employmentStatus" type="select" options={EMPLOYMENT_STATUSES} />
                                         <div className="col-span-2 sm:col-span-3">
-                                            <DetailItem label="Address" value={patient.address} name="address" />
+                                            <DetailItem {...detailItemProps} label="Address" value={patient.address} name="address" />
                                         </div>
                                     </div>
                                 </div>
@@ -449,17 +503,17 @@ export function PatientDetailModal({
                                 <div className={sectionCls}>
                                     <div className={headerCls}>Coverage & Patient Category</div>
                                     <div className="patient-chart-section-body grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        <DetailItem label="PhilHealth No." value={patient.philhealthNo} name="philhealthNo" />
-                                        <DetailItem label="PhilHealth Status" value={patient.philhealthStatus} name="philhealthStatus" type="select" options={['Member', 'Dependent', '4Ps', 'None']} />
+                                        <DetailItem {...detailItemProps} label="PhilHealth No." value={patient.philhealthNo} name="philhealthNo" />
+                                        <DetailItem {...detailItemProps} label="PhilHealth Status" value={patient.philhealthStatus} name="philhealthStatus" type="select" options={['Member', 'Dependent', '4Ps', 'None']} />
                                         {isEditing ? (
                                             <>
-                                                <DetailItem label="Category" value={editForm.category} name="category" type="select" options={['4Ps', 'Other/s']} />
+                                                <DetailItem {...detailItemProps} label="Category" value={editForm.category} name="category" type="select" options={['4Ps', 'Other/s']} />
                                                 {editForm.category === 'Other/s' && (
-                                                    <DetailItem label="Specify Category" value={editForm.categoryOthers} name="categoryOthers" />
+                                                    <DetailItem {...detailItemProps} label="Specify Category" value={editForm.categoryOthers} name="categoryOthers" />
                                                 )}
                                             </>
                                         ) : (
-                                            <DetailItem label="Category" value={displayCategory()} name="category" />
+                                            <DetailItem {...detailItemProps} label="Category" value={displayCategory()} name="category" />
                                         )}
                                     </div>
                                 </div>
@@ -470,14 +524,14 @@ export function PatientDetailModal({
                                             <button
                                                 type="button"
                                                 onClick={() => setShowAddVaccine(!showAddVaccine)}
-                                                className={`text-xs font-bold text-[#147EC1] hover:text-[#0F3154] bg-[#EAF6FF] hover:bg-[#DDE7EF] px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${focusCls}`}
+                                                className={`text-xs font-bold text-[var(--brand-active)] hover:text-[var(--text)] bg-[var(--surface-muted)] hover:bg-[var(--brand-accent-surface)] px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${focusCls}`}
                                             >
                                                 {showAddVaccine ? 'Cancel' : 'Add Vaccine'}
                                             </button>
                                         </div>
 
                                         {showAddVaccine && (
-                                            <div className="bg-[#F8FAFC] border border-[#BFE3F7] rounded-lg p-3 mb-3">
+                                            <div className="bg-[var(--bg)] border border-[var(--brand-accent-surface)] rounded-lg p-3 mb-3">
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                                     <div>
                                                         <label className="clinical-field-label">Vaccine Name *</label>
@@ -510,7 +564,7 @@ export function PatientDetailModal({
                                                             type="text"
                                                             value={newVaccine.vaccine_category || 'Select a vaccine'}
                                                             readOnly
-                                                            className="w-full rounded-lg border border-[#DDE7EF] bg-[#F3F7FA] px-3 py-2 text-sm font-semibold text-[#0F3154]"
+                                                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--disabled-bg)] px-3 py-2 text-sm font-semibold text-[var(--text)]"
                                                         />
                                                     </div>
                                                     <div>
@@ -586,7 +640,7 @@ export function PatientDetailModal({
                                                     type="button"
                                                     onClick={handleAddVaccine}
                                                     disabled={vaccineSaving || !navigator.onLine}
-                                                    className={`bg-[#2E9FE6] hover:bg-[#147EC1] text-white font-bold text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                                    className={`bg-[var(--brand-primary-hover)] hover:bg-[var(--brand-active)] text-white font-bold text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                                                 >
                                                     {vaccineSaving ? 'Saving...' : 'Save Vaccine Record'}
                                                 </button>
@@ -602,20 +656,15 @@ export function PatientDetailModal({
                                                 </button>
                                             </div>
                                         ) : vaccineLoading ? (
-                                            <div className="py-4 flex justify-center">
-                                                <svg className="animate-spin w-5 h-5 text-[#2E9FE6]" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                                </svg>
-                                            </div>
+                                            <SkeletonList rows={3} />
                                         ) : vaccineRecords.length === 0 ? (
-                                            <p className="text-sm text-[#7BA1C3] italic text-center py-4 bg-white rounded-lg border border-[#DDE7EF]">
+                                            <p className="text-sm text-[var(--border-strong)] italic text-center py-4 bg-white rounded-lg border border-[var(--border)]">
                                                 No vaccination records found.
                                             </p>
                                         ) : (
                                             <div className="flex flex-col gap-2">
                                                 {vaccineRecords.map((vr) => (
-                                                    <div key={vr.id} className="bg-white border border-[#DDE7EF] rounded-lg p-3 shadow-sm hover:border-[#83C9F2] transition-colors relative">
+                                                    <div key={vr.id} className="bg-white border border-[var(--border)] rounded-lg p-3 shadow-sm hover:border-[var(--brand-primary)] transition-colors relative">
                                                         <button
                                                             type="button"
                                                             onClick={() => setPendingRemoveVaccine(vr)}
@@ -629,39 +678,39 @@ export function PatientDetailModal({
                                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pr-6">
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Vaccine</div>
-                                                                <div className="text-sm font-bold text-slate-800">{getVaccineDisplayName(vr)}</div>
+                                                                <div className="text-sm font-bold text-[var(--text)]">{getVaccineDisplayName(vr)}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Category</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.vaccine_category || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.vaccine_category || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Dose</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.dose_label || '—'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.dose_label || '—'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Date Given</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.date_given || '—'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.date_given || '—'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Remarks</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.remarks || '—'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.remarks || '—'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Next Due</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.next_due_date || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.next_due_date || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Administered By</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.administered_by || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.administered_by || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Facility</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.facility || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.facility || '-'}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="clinical-field-label mb-0.5">Lot No.</div>
-                                                                <div className="text-sm font-semibold text-slate-700">{vr.lot_number || '-'}</div>
+                                                                <div className="text-sm font-semibold text-[var(--text-2)]">{vr.lot_number || '-'}</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -673,10 +722,10 @@ export function PatientDetailModal({
                                 <div className={sectionCls}>
                                     <div className={headerCls}>Emergency Contact</div>
                                     <div className="patient-chart-section-body grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        <DetailItem label="Relative's Name" value={patient.relativeName} name="relativeName" />
-                                        <DetailItem label="Relationship" value={patient.relativeRelation} name="relativeRelation" />
+                                        <DetailItem {...detailItemProps} label="Relative's Name" value={patient.relativeName} name="relativeName" />
+                                        <DetailItem {...detailItemProps} label="Relationship" value={patient.relativeRelation} name="relativeRelation" />
                                         <div className="col-span-2 sm:col-span-3">
-                                            <DetailItem label="Relative's Address" value={patient.relativeAddress} name="relativeAddress" />
+                                            <DetailItem {...detailItemProps} label="Relative's Address" value={patient.relativeAddress} name="relativeAddress" />
                                         </div>
                                     </div>
                                 </div>
@@ -687,7 +736,7 @@ export function PatientDetailModal({
                                             type="button"
                                             onClick={handleSave}
                                             disabled={isSaving}
-                                            className={`flex-1 bg-[#2E9FE6] hover:bg-[#147EC1] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                            className={`flex-1 bg-[var(--brand-primary-hover)] hover:bg-[var(--brand-active)] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                                         >
                                             {isSaving ? 'Saving...' : 'Save Changes'}
                                         </button>
@@ -696,7 +745,7 @@ export function PatientDetailModal({
                                     <button
                                         type="button"
                                         onClick={loadHistory}
-                                        className={`w-full bg-[#2E9FE6] hover:bg-[#147EC1] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 mt-2 ${focusCls}`}
+                                        className={`w-full bg-[var(--brand-primary-hover)] hover:bg-[var(--brand-active)] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 mt-2 ${focusCls}`}
                                     >
                                         View Encounters & Transaction Timeline
                                     </button>
@@ -708,17 +757,15 @@ export function PatientDetailModal({
                                 <button
                                     type="button"
                                     onClick={() => setShowHistory(false)}
-                                    className={`mb-4 flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors ${focusCls}`}
+                                    className={`mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-2)] hover:text-[var(--text)] transition-colors ${focusCls}`}
                                 >
                                     Back to Details
                                 </button>
 
-                                <div className={sectionCls}>
-                                    <div className={headerCls}>Encounters & Transaction Timeline</div>
-                                    <div className="patient-chart-section-body">
-                                        <PatientTransactionHistory patientId={patient.id} />
-                                    </div>
-                                </div>
+                                <PatientChartIdentityHeader patient={patient} compact className="mb-4" />
+                                <PatientHistoryPanel>
+                                    <PatientTransactionHistory patientId={patient.id} />
+                                </PatientHistoryPanel>
                             </>
                         )}
                     </div>
@@ -726,9 +773,9 @@ export function PatientDetailModal({
             </div>
             {pendingRemoveVaccine && (
                 <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-900/50 p-4">
-                    <div className="w-full max-w-sm rounded-lg border border-[#DDE7EF] bg-white p-4 shadow-lg">
-                        <h3 className="text-lg font-semibold text-[#0F3154]">Remove Vaccine Record?</h3>
-                        <p className="mt-2 text-sm font-medium text-[#456987]">
+                    <div className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-white p-4 shadow-lg">
+                        <h3 className="text-lg font-semibold text-[var(--text)]">Remove Vaccine Record?</h3>
+                        <p className="mt-2 text-sm font-medium text-[var(--text-secondary)]">
                             This will remove {getVaccineDisplayName(pendingRemoveVaccine)} from this patient record.
                         </p>
                         <div className="mt-6 flex gap-3">
@@ -736,7 +783,7 @@ export function PatientDetailModal({
                                 type="button"
                                 onClick={() => setPendingRemoveVaccine(null)}
                                 disabled={Boolean(removingVaccineId)}
-                                className={`flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                className={`flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                             >
                                 Cancel
                             </button>

@@ -6,5 +6,6 @@ export { EmptyState } from './EmptyState';
 export { Input } from './Input';
 export { LoadingState } from './LoadingState';
 export { Modal } from './Modal';
+export { Skeleton, SkeletonKpiGrid, SkeletonList, SkeletonTable, SkeletonText } from './Skeleton';
 export { Toast } from './Toast';
 export { cn } from './utils';

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { Icon } from '../../components/shared/Icon';
+import { SkeletonTable } from '../../components/ui/Skeleton';
 
 const MALVAR_BARANGAYS = [
     'Bagong Pook, Malvar, Batangas',
@@ -21,6 +22,8 @@ const MALVAR_BARANGAYS = [
 ] as const;
 
 const OUTSIDE_MALVAR = '__outside__';
+const PATIENT_REGISTRY_LIMIT = 1000;
+const PATIENT_REGISTRY_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at, archive_status, archive_protected';
 
 interface Patient {
     id: string;
@@ -46,6 +49,8 @@ interface Patient {
     relativeName?: string;
     relativeRelation?: string;
     relativeAddress?: string;
+    archive_status?: 'active' | 'archived' | null;
+    archive_protected?: boolean | null;
 }
 
 export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient: Patient) => void } = {}) {
@@ -54,16 +59,22 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
     const [search, setSearch] = useState('');
     const [selectedBarangay, setSelectedBarangay] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     const fetchPatients = useCallback(async () => {
         setLoading(true);
+        setLoadError(false);
         const { data, error } = await supabase
             .from('patients')
-            .select('*')
-            .order('lastName', { ascending: true });
+            .select(PATIENT_REGISTRY_COLUMNS)
+            .or('archive_status.eq.active,archive_status.is.null')
+            .order('lastName', { ascending: true })
+            .limit(PATIENT_REGISTRY_LIMIT);
 
         if (error) {
             console.error('Database Error:', error);
+            // A failed load must not be presented as an empty registry.
+            setLoadError(true);
             setLoading(false);
             return;
         }
@@ -106,14 +117,14 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                 <div className="clinical-table-titlebar">
                     <div>
                         <h2 className="clinical-table-title">Patient Registry</h2>
-                        <p className="clinical-table-subtitle">{patients.length} registered patient{patients.length !== 1 ? 's' : ''}</p>
+                        <p className="clinical-table-subtitle">{allPatients.length} registered patient{allPatients.length !== 1 ? 's' : ''}</p>
                     </div>
                     <span className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</span>
                 </div>
 
                 <div className="clinical-toolbar">
                     <div className="clinical-search">
-                        <Icon name="search" className="h-4 w-4 text-[#5F82A3]" />
+                        <Icon name="search" className="h-4 w-4 text-[var(--text-secondary)]" />
                         <input
                             type="text"
                             aria-label="Search patient records by name"
@@ -153,51 +164,57 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                 )}
 
                 <div className="clinical-table-scroll">
-                    <table className="clinical-table min-w-[760px]">
+                    <table className="clinical-table patient-records-table min-w-[760px]">
                         <thead>
                             <tr>
-                                <th>Patient</th>
-                                <th>Age / Sex</th>
-                                <th>Barangay</th>
-                                <th>Classification</th>
-                                <th>Contact</th>
-                                <th className="text-right">Action</th>
+                                <th className="patient-records-col-patient">Patient</th>
+                                <th className="patient-records-col-demographics">Age / Sex</th>
+                                <th className="patient-records-col-barangay">Barangay</th>
+                                <th className="patient-records-col-classification">Classification</th>
+                                <th className="patient-records-col-contact">Contact</th>
+                                <th className="patient-records-col-action text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr>
+                                <tr className="patient-records-state-row">
                                     <td colSpan={6}>
-                                        <div className="clinical-table-state">
-                                            <svg className="h-5 w-5 animate-spin text-[#2E9FE6]" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                            </svg>
-                                            Loading patient records...
+                                        <SkeletonTable rows={6} columns={6} />
+                                    </td>
+                                </tr>
+                            ) : loadError ? (
+                                <tr className="patient-records-state-row">
+                                    <td colSpan={6}>
+                                        <div className="clinical-table-state" role="alert">
+                                            <Icon name="alert-triangle" className="h-5 w-5 text-[var(--border-strong)]" />
+                                            Patient records could not be loaded.
+                                            <button type="button" className="clinical-link-action" onClick={() => void fetchPatients()}>Retry</button>
                                         </div>
                                     </td>
                                 </tr>
                             ) : patients.length === 0 ? (
-                                <tr>
+                                <tr className="patient-records-state-row">
                                     <td colSpan={6}>
                                         <div className="clinical-table-state">
-                                            <Icon name="inbox" className="h-5 w-5 text-[#7BA1C3]" />
-                                            No patients found.
+                                            <Icon name="inbox" className="h-5 w-5 text-[var(--border-strong)]" />
+                                            {allPatients.length === 0 ? 'No patients are registered yet.' : 'No patients match the current search or filter.'}
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 patients.map(p => (
                                     <tr key={p.id} onClick={() => handleRowClick(p)} className="cursor-pointer">
-                                        <td>
-                                            <div className="clinical-primary">{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</div>
-                                            <div className="clinical-secondary">ID: {p.id}</div>
+                                        <td className="patient-records-col-patient">
+                                            <div className="patient-records-primary-cell">
+                                                <div className="clinical-primary">{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</div>
+                                                <div className="clinical-secondary">Patient record no. {p.id}</div>
+                                            </div>
                                         </td>
-                                        <td>{p.age ?? '-'} / {p.sex || '-'}</td>
-                                        <td>{p.address?.split(',')[0] || '-'}</td>
-                                        <td><span className="clinical-neutral-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</span></td>
-                                        <td>{p.contactNumber || '-'}</td>
-                                        <td className="text-right">
+                                        <td className="patient-records-col-demographics">{p.age ?? '-'} / {p.sex || '-'}</td>
+                                        <td className="patient-records-col-barangay">{p.address?.split(',')[0] || '-'}</td>
+                                        <td className="patient-records-col-classification"><span className="clinical-neutral-badge patient-records-classification-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</span></td>
+                                        <td className="patient-records-col-contact">{p.contactNumber || '-'}</td>
+                                        <td className="patient-records-col-action text-right">
                                             <button
                                                 type="button"
                                                 onClick={(event) => {
@@ -206,7 +223,7 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                                                 }}
                                                 className="clinical-link-action"
                                             >
-                                                View
+                                                View Chart
                                             </button>
                                         </td>
                                     </tr>
