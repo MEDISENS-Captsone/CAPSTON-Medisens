@@ -198,20 +198,6 @@ textarea {
 /* ══════════════════════════════════════════════════════════════
    LAYOUT: SIDEBAR & MAIN
 ══════════════════════════════════════════════════════════════ */
-.sidebar {
-    width: var(--sidebar-w);
-    min-height: 100vh;
-    background: var(--white);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 0; left: 0;
-    z-index: 200;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.3s ease;
-}
-
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -277,30 +263,6 @@ textarea {
         margin-left: 0;
     }
 }
-
-/* ── Topbar ── */
-.topbar {
-    height: var(--topbar-h);
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    /* clamp ensures padding scales smoothly from mobile to desktop */
-    padding: 0 clamp(0.75rem, 2vw, 1.25rem);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: var(--shadow-sm);
-}
-.topbar-left { display: flex; align-items: center; gap: 0.5rem; }
-.topbar-page {
-    color: var(--text);
-    font-size: var(--type-card-title-size);
-    font-weight: var(--font-weight-semibold);
-    line-height: var(--type-card-title-line);
-}
-.topbar-right { display: flex; align-items: center; gap: 0.5rem; }
 
 /* System Online pill */
 .online-pill {
@@ -3496,42 +3458,6 @@ button.clinical-worklist-row {
     padding: 1rem 1.25rem;
 }
 
-.pharmacy-preview-modal {
-    display: flex;
-    width: min(100%, 44rem);
-    max-width: 44rem;
-    max-height: min(90dvh, 48rem);
-    flex-direction: column;
-}
-
-.pharmacy-preview-header {
-    display: flex;
-    flex-shrink: 0;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface-subtle);
-    padding: 1rem 1.25rem;
-}
-
-.pharmacy-preview-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 1.25rem;
-}
-
-.pharmacy-preview-footer {
-    display: flex;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    border-top: 1px solid var(--border);
-    background: var(--surface-subtle);
-    padding: 1rem 1.25rem;
-}
-
 .patient-chart-modal {
     display: flex;
     width: min(100%, 64rem);
@@ -3812,20 +3738,22 @@ button.clinical-worklist-row {
         align-items: stretch;
     }
 
-    /* overflow-x: auto clips vertically too, so leave room for the focus ring
-       (2px outline + 2px offset) instead of shaving it off. */
+    /* overflow-x: auto clips on every edge, so reserve room for the focus ring
+       (2px outline + 2px offset). The negative inline margin cancels the inline
+       padding so the first and last chip stay visually flush. */
     .clinical-toolbar .clinical-filter-group {
         width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding-block: 0.3rem;
+        padding: 0.3rem;
+        margin-inline: -0.3rem;
     }
 }
 
 @media (max-width: 560px) {
     .doctor-analytics-period { align-items: flex-start; }
     .doctor-analytics-controls { width: 100%; justify-content: flex-start; }
-    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-block: 0.3rem; }
+    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding: 0.3rem; margin-inline: -0.3rem; }
     .doctor-workspace-tabs { flex-wrap: nowrap; overflow-x: auto; }
     .doctor-operational-grid,
     .doctor-staff-metrics,
@@ -3838,7 +3766,8 @@ button.clinical-worklist-row {
         width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding-block: 0.3rem;
+        padding: 0.3rem;
+        margin-inline: -0.3rem;
     }
     .doctor-geographic-command {
         grid-template-areas:
@@ -4155,19 +4084,6 @@ button.clinical-worklist-row {
         padding-inline: 1rem;
     }
 
-    .pharmacy-preview-modal {
-        max-height: calc(100dvh - 1rem);
-    }
-
-    .pharmacy-preview-header,
-    .pharmacy-preview-body,
-    .pharmacy-preview-footer {
-        padding-inline: 1rem;
-    }
-
-    .pharmacy-preview-footer > button {
-        width: 100%;
-    }
 
     .patient-chart-modal {
         max-height: calc(100dvh - 0.75rem);

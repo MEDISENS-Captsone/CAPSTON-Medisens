@@ -185,9 +185,10 @@ function PatientModal({
                             <button
                                 type="button"
                                 onClick={() => setStep('details')}
+                                aria-label="Back to patient details"
                                 className="h-10 w-10 -m-1 flex items-center justify-center rounded-full bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] font-bold text-sm transition-colors"
                             >
-                                ←
+                                <span aria-hidden="true">←</span>
                             </button>
                         )}
                         {/* Step pills */}
