@@ -101,18 +101,41 @@ async function fetchPatientIdsForSearch(search: string): Promise<string[]> {
     const trimmed = search.trim();
     if (!trimmed) return [];
 
+    const escaped = escapePostgrestSearch(trimmed);
+    if (!escaped) return [];
+
+    // patients.id is a bigint. `ilike` has no bigint operator (Postgres 42883), so the
+    // identifier is only ever matched with an equality comparison, and only when the
+    // search term is a safe integer. Free text matches the name columns instead.
+    const clauses = [
+        `firstName.ilike.%${escaped}%`,
+        `middleName.ilike.%${escaped}%`,
+        `lastName.ilike.%${escaped}%`,
+    ];
+    if (isSafePatientId(escaped)) {
+        clauses.unshift(`id.eq.${escaped}`);
+    }
+
     const { data, error } = await supabase
         .from('patients')
         .select('id')
-        .or(`id.ilike.%${escapePostgrestSearch(trimmed)}%,firstName.ilike.%${escapePostgrestSearch(trimmed)}%,middleName.ilike.%${escapePostgrestSearch(trimmed)}%,lastName.ilike.%${escapePostgrestSearch(trimmed)}%`)
+        .or(clauses.join(','))
         .limit(25);
 
     if (error) {
+        // A failed lookup must not be silently downgraded to "no matches", which would
+        // render a real failure as an empty audit result.
         logError('Failed to resolve patient search matches for audit logs', error);
-        return [];
+        throw error;
     }
 
     return (data || []).map(row => String(row.id)).filter(Boolean);
+}
+
+function isSafePatientId(value: string): boolean {
+    if (!/^\d+$/.test(value)) return false;
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0;
 }
 
 async function enrichAuditLogs(logs: AuditLog[]): Promise<AuditLog[]> {
