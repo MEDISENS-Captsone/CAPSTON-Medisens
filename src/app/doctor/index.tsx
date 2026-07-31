@@ -21,7 +21,7 @@ const TemplatesComponent = lazy(() => import('../patients/templates').then(modul
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
 
 const LazyPanelFallback = () => (
-    <div className="rounded-xl border border-slate-200 bg-white">
+    <div className="rounded-xl border border-[var(--border)] bg-white">
         <SkeletonList rows={4} />
     </div>
 );
@@ -521,7 +521,7 @@ const DoctorDashboard = () => {
                     onOpenNavigation={() => setIsMobileMenuOpen(true)}
                 />
 
-                <div className="w-full flex flex-col gap-5 ">
+                <div className="w-full flex flex-col gap-5">
 
                     {activePage === 'dashboard' && (
                         <>
@@ -550,15 +550,12 @@ const DoctorDashboard = () => {
                                 <div className="ops-grid">
 
                                     {/* ── Patient Queue ── */}
-                                    <div className="lg:col-span-5 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px] overflow-hidden">
-                                        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 shrink-0 flex items-center justify-between">
-                                            <h3 className="font-semibold text-slate-800 text-[0.95rem]">Waiting Patients</h3>
-                                            <div className="flex items-center gap-2">
-                                                {/* queue count badge */}
-                                                {queue.length > 0 && (
-                                                    <span className="text-[10px] font-black bg-slate-700 text-white px-2 py-0.5 rounded-full">{queue.length}</span>
-                                                )}
-                                            </div>
+                                    <div className="lg:col-span-5 ops-panel flex flex-col h-[380px]">
+                                        <div className="ops-panel-header shrink-0">
+                                            <h3 className="ops-panel-title">Waiting Patients</h3>
+                                            {queue.length > 0 && (
+                                                <span className="clinical-count-badge">{queue.length}</span>
+                                            )}
                                         </div>
                                         <div className="flex-1 overflow-y-auto">
                                             {queue.length === 0 ? (
@@ -568,31 +565,31 @@ const DoctorDashboard = () => {
                                                     {queue.map((q, index) => (
                                                         <div key={q.initialconsultation_id}
                                                             onClick={() => handleConsultNavigate(q.patient_id, q.initialconsultation_id.toString())}
-                                                            className="clinical-worklist-row cursor-pointer group">
+                                                            className="clinical-worklist-row cursor-pointer">
                                                             <div className="flex items-center gap-3">
-                                                                <span className="text-xs font-black text-slate-300 w-5 text-center">{index + 1}</span>
+                                                                <span className="text-xs font-semibold text-[var(--text-muted)] w-5 text-center tabular-nums">{index + 1}</span>
                                                                 <div className="flex flex-col gap-0.5">
-                                                                    <p className="font-bold text-slate-800 text-[0.9rem] group-hover:text-slate-700">{q.patients?.lastName}, {q.patients?.firstName}</p>
-                                                                    <p className="text-xs text-slate-500 font-medium">{q.patients?.sex} • {q.patients?.bloodType || '—'}</p>
+                                                                    <p className="clinical-primary">{q.patients?.lastName}, {q.patients?.firstName}</p>
+                                                                    <p className="clinical-secondary">{q.patients?.sex} • {q.patients?.bloodType || '—'}</p>
                                                                 </div>
                                                             </div>
-                                                            <p className="text-xs font-bold text-slate-700">{formatTime(q.consultation_time)}</p>
+                                                            <p className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums">{formatTime(q.consultation_time)}</p>
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
                                         </div>
                                         {queue.length > 0 && (
-                                            <button type="button" onClick={() => setActivePage('records')} className="p-4 text-xs font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors text-center shrink-0">
-                                                View all patients →
+                                            <button type="button" onClick={() => setActivePage('records')} className="clinical-link-action w-full rounded-none border-t border-[var(--border-soft)] py-3 shrink-0 transition-colors">
+                                                View all patients
                                             </button>
                                         )}
                                     </div>
 
                                     {/* Visit Trends */}
-                                    <div className="lg:col-span-7 bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px]">
-                                        <div className="flex justify-between items-center mb-4 shrink-0">
-                                            <h3 className="font-bold text-slate-800 text-[0.95rem]">Visit Trends</h3>
+                                    <div className="lg:col-span-7 ops-panel p-4 flex flex-col h-[380px]">
+                                        <div className="flex justify-between items-center gap-3 flex-wrap mb-4 shrink-0">
+                                            <h3 className="ops-panel-title">Visit Trends</h3>
                                             <FilterTabs value={trendFilter} onChange={setTrendFilter} />
                                         </div>
                                         <div className="flex-1 relative w-full h-full">
@@ -605,9 +602,9 @@ const DoctorDashboard = () => {
                                 <div className="ops-grid">
 
                                     {/* Morbidity */}
-                                    <div className="lg:col-span-7 bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px]">
-                                        <div className="flex justify-between items-center mb-2 shrink-0">
-                                            <h3 className="font-bold text-slate-800 text-[0.95rem]">Morbidity Analytics</h3>
+                                    <div className="lg:col-span-7 ops-panel p-4 flex flex-col h-[380px]">
+                                        <div className="flex justify-between items-center gap-3 flex-wrap mb-2 shrink-0">
+                                            <h3 className="ops-panel-title">Top Morbidities</h3>
                                             <FilterTabs value={morbFilter} onChange={setMorbFilter} />
                                         </div>
                                         <div className="flex-1 relative w-full h-full">
@@ -616,29 +613,32 @@ const DoctorDashboard = () => {
                                     </div>
 
                                     {/* ── Upcoming Follow-ups ── */}
-                                    <div className="lg:col-span-5 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col h-[380px] overflow-hidden">
-                                        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 flex justify-between items-center shrink-0">
-                                            <h3 className="font-semibold text-slate-800 text-[0.95rem]">Follow-ups Due</h3>
+                                    <div className="lg:col-span-5 ops-panel flex flex-col h-[380px]">
+                                        <div className="ops-panel-header shrink-0">
+                                            <h3 className="ops-panel-title">Follow-ups Due</h3>
+                                            {followUps.length > 0 && (
+                                                <span className="clinical-count-badge">{followUps.length}</span>
+                                            )}
                                         </div>
                                         <div className="flex-1 overflow-y-auto">
                                             {followUps.length === 0 ? (
-                                                <p className="text-center text-slate-400 py-16 text-sm">No follow-ups scheduled</p>
+                                                <div className="clinical-table-state">No follow-ups scheduled</div>
                                             ) : (
-                                                <div className="divide-y divide-slate-100">
+                                                <div>
                                                     {followUps.map(f => {
                                                         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
                                                         const isToday = f.visit_date === today;
                                                         return (
                                                             <div key={f.followup_id}
                                                                 onClick={() => handleConsultNavigate(f.patient_id)}
-                                                                className="cursor-pointer px-5 py-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                                                                <div className="flex flex-col gap-0.5">
-                                                                    <p className="font-bold text-slate-800 text-[0.9rem] truncate group-hover:text-slate-700 transition-colors">{f.patients?.lastName}, {f.patients?.firstName}</p>
-                                                                    <p className="text-[11px] text-slate-500 font-medium">Return Visit</p>
+                                                                className="clinical-worklist-row cursor-pointer">
+                                                                <div className="flex flex-col gap-0.5 min-w-0">
+                                                                    <p className="clinical-primary truncate">{f.patients?.lastName}, {f.patients?.firstName}</p>
+                                                                    <p className="clinical-secondary">Return Visit</p>
                                                                 </div>
-                                                                <p className={`text-[10px] font-bold px-2.5 py-1 rounded-md whitespace-nowrap ml-2 shrink-0 ${isToday ? 'text-slate-700 bg-slate-50' : 'text-amber-600 bg-amber-50'}`}>
-                                                                    {isToday ? 'Today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                                </p>
+                                                                <span className={`clinical-status-badge shrink-0 ${isToday ? 'warning' : ''}`}>
+                                                                    {isToday ? 'Due today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                </span>
                                                             </div>
                                                         );
                                                     })}
@@ -646,8 +646,8 @@ const DoctorDashboard = () => {
                                             )}
                                         </div>
                                         {followUps.length > 0 && (
-                                            <button type="button" onClick={loadAllFollowUps} className="p-4 text-xs font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors text-center shrink-0">
-                                                View all follow-ups →
+                                            <button type="button" onClick={loadAllFollowUps} className="clinical-link-action w-full rounded-none border-t border-[var(--border-soft)] py-3 shrink-0 transition-colors">
+                                                View all follow-ups
                                             </button>
                                         )}
                                     </div>
@@ -708,47 +708,45 @@ const DoctorDashboard = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
                     onClick={(e) => { if (e.target === e.currentTarget) setShowFollowUpsModal(false); }}>
                     <Modal labelledBy="followups-dialog-title" onClose={() => setShowFollowUpsModal(false)} className="max-h-[80vh] max-w-lg flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
+                        <div className="flex items-center justify-between p-6 border-b border-[var(--border)] shrink-0">
                             <div>
-                                <div className="flex items-center gap-2">
-                                    <h2 id="followups-dialog-title" className="text-lg font-semibold text-slate-800">All Upcoming Follow-ups</h2>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-0.5">{allFollowUps.length} pending • sorted by date</p>
+                                <h2 id="followups-dialog-title" className="text-lg font-semibold text-[var(--text)]">All Upcoming Follow-ups</h2>
+                                <p className="text-xs text-[var(--text-muted)] mt-0.5">{allFollowUps.length} pending • sorted by date</p>
                             </div>
                             <button type="button" onClick={() => setShowFollowUpsModal(false)}
-                                aria-label="Close follow-up dialog" className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors font-bold text-base"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
+                                aria-label="Close follow-up dialog" className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)] transition-colors"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {allFollowUps.length === 0 ? (
-                                <p className="text-center text-slate-400 py-16 text-sm">No upcoming follow-ups</p>
+                                <div className="clinical-table-state">No upcoming follow-ups</div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div>
                                     {allFollowUps.map((f, idx) => {
                                         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
                                         const isToday = f.visit_date === today;
                                         return (
                                             <div key={f.followup_id}
                                                 onClick={() => { setShowFollowUpsModal(false); handleConsultNavigate(f.patient_id); }}
-                                                className="cursor-pointer px-6 py-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-black text-slate-300 w-5 text-center">{idx + 1}</span>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <p className="font-bold text-slate-800 text-[0.9rem] group-hover:text-slate-700 transition-colors">{f.patients?.lastName}, {f.patients?.firstName}</p>
-                                                        <p className="text-[11px] text-slate-400 font-medium">{f.patients?.sex} • Return Visit</p>
+                                                className="clinical-worklist-row cursor-pointer">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <span className="text-xs font-semibold text-[var(--text-muted)] w-5 text-center tabular-nums">{idx + 1}</span>
+                                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                                        <p className="clinical-primary truncate">{f.patients?.lastName}, {f.patients?.firstName}</p>
+                                                        <p className="clinical-secondary">{f.patients?.sex} • Return Visit</p>
                                                     </div>
                                                 </div>
-                                                <p className={`text-[10px] font-bold px-2.5 py-1 rounded-md whitespace-nowrap shrink-0 ml-3 ${isToday ? 'text-slate-700 bg-slate-50' : 'text-amber-600 bg-amber-50'}`}>
-                                                    {isToday ? 'Today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                </p>
+                                                <span className={`clinical-status-badge shrink-0 ${isToday ? 'warning' : ''}`}>
+                                                    {isToday ? 'Due today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </span>
                                             </div>
                                         );
                                     })}
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-100 shrink-0">
+                        <div className="p-4 border-t border-[var(--border)] shrink-0">
                             <button type="button" onClick={() => setShowFollowUpsModal(false)}
-                                className="w-full py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Close</button>
+                                className="clinical-secondary-action w-full">Close</button>
                         </div>
                     </Modal>
                 </div>
