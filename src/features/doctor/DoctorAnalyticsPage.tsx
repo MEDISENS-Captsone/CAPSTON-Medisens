@@ -595,7 +595,10 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
                         <path className="doctor-line-path is-previous" d={svgPath(previousPoints)} />
                         <path className="doctor-line-path is-current" d={svgPath(currentPoints)} />
                     </svg>
-                    <div className="doctor-line-hitpoints">
+                    <div
+                        className="doctor-line-hitpoints"
+                        style={{ '--doctor-point-gap': `${100 / Math.max(rows.length - 1, 1)}%` } as React.CSSProperties}
+                    >
                         {rows.map((row, index) => {
                             const current = row.current_count ?? 0;
                             const previous = row.previous_count ?? 0;
@@ -615,7 +618,11 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
                     </div>
                     <div className="doctor-line-x-axis">
                         {rows.map((row, index) => (
-                            <span key={`${row.bucket_start ?? 'period'}-${index}`} className={index % labelStride === 0 || index === rows.length - 1 ? '' : 'is-hidden'}>
+                            <span
+                                key={`${row.bucket_start ?? 'period'}-${index}`}
+                                className={index % labelStride === 0 || index === rows.length - 1 ? '' : 'is-hidden'}
+                                style={{ left: `${(index / Math.max(rows.length - 1, 1)) * 100}%` }}
+                            >
                                 {formatBucketDate(row.bucket_start, bucket)}
                             </span>
                         ))}
@@ -1663,7 +1670,10 @@ function StaffOperationsTrendChart({
                             <path key={item.label} className={`doctor-line-path ${item.variant}`} d={svgPath(item.points)} />
                         ))}
                     </svg>
-                    <div className="doctor-line-hitpoints">
+                    <div
+                        className="doctor-line-hitpoints"
+                        style={{ '--doctor-point-gap': `${100 / Math.max(buckets.length - 1, 1)}%` } as React.CSSProperties}
+                    >
                         {buckets.map((bucketStart, index) => (
                             <span
                                 key={bucketStart}
@@ -1678,7 +1688,11 @@ function StaffOperationsTrendChart({
                     </div>
                     <div className="doctor-line-x-axis">
                         {buckets.map((bucketStart, index) => (
-                            <span key={bucketStart} className={index % labelStride === 0 || index === buckets.length - 1 ? '' : 'is-hidden'}>
+                            <span
+                                key={bucketStart}
+                                className={index % labelStride === 0 || index === buckets.length - 1 ? '' : 'is-hidden'}
+                                style={{ left: `${(index / Math.max(buckets.length - 1, 1)) * 100}%` }}
+                            >
                                 {formatBucketDate(bucketStart, bucket)}
                             </span>
                         ))}

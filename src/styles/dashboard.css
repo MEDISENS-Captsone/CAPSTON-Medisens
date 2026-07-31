@@ -3660,8 +3660,23 @@ button.clinical-worklist-row {
     inset: 0 0 1.65rem;
 }
 
+/* The span is a transparent hit box; the visible dot is drawn by ::before. The box
+   grows toward the 24px target minimum (WCAG 2.5.8) but is never wider than the gap
+   to the next bucket, so on dense charts one point cannot cover its neighbour's dot.
+   --doctor-point-gap is set inline from the bucket count. */
 .doctor-line-point {
     position: absolute;
+    width: min(1.5rem, var(--doctor-point-gap, 1.5rem));
+    height: 1.5rem;
+    transform: translate(-50%, -50%);
+    background: none;
+    border: 0;
+}
+
+.doctor-line-point::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 0.62rem;
     height: 0.62rem;
     transform: translate(-50%, -50%);
@@ -3669,26 +3684,19 @@ button.clinical-worklist-row {
     border-radius: 999px;
     background: var(--brand-primary);
     box-shadow: 0 0 0 1px rgba(90, 129, 250, 0.24);
-}
-
-/* Expands the pointer/touch hit area to the 24px minimum (WCAG 2.5.8) without
-   changing the plotted dot's visual size. */
-.doctor-line-point::before {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 1.5rem;
-    height: 1.5rem;
-    transform: translate(-50%, -50%);
     content: '';
 }
 
-.doctor-line-point:hover,
-.doctor-line-point:focus-visible {
+.doctor-line-point:hover::before,
+.doctor-line-point:focus-visible::before {
     width: 0.8rem;
     height: 0.8rem;
-    outline: 2px solid var(--brand-primary);
+}
+
+.doctor-line-point:focus-visible {
+    outline: 2px solid var(--focus-color);
     outline-offset: 1px;
+    border-radius: var(--radius-control);
 }
 
 .doctor-line-point::after {
@@ -3721,19 +3729,33 @@ button.clinical-worklist-row {
     right: 0;
     bottom: 0;
     left: 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
+    height: 1.65rem;
     overflow: hidden;
     color: var(--text-secondary);
     font-size: var(--type-category-size);
     font-weight: var(--font-weight-medium);
 }
 
+/* Each label is anchored to the same percentage as its data point. Even distribution
+   would drift once intermediate labels are hidden on dense charts, because the kept
+   labels are not evenly spaced in index terms. */
 .doctor-line-x-axis span {
-    flex: 0 0 auto;
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
     text-align: center;
     white-space: nowrap;
+}
+
+/* Keep the end labels inside the plot instead of half-clipping them. */
+.doctor-line-x-axis span:first-child {
+    transform: none;
+}
+
+/* :not(:first-child) so a single-bucket period keeps its one label left-aligned
+   instead of being shifted off the plot. */
+.doctor-line-x-axis span:last-child:not(:first-child) {
+    transform: translateX(-100%);
 }
 
 .doctor-line-x-axis span.is-hidden {
@@ -3790,18 +3812,20 @@ button.clinical-worklist-row {
         align-items: stretch;
     }
 
+    /* overflow-x: auto clips vertically too, so leave room for the focus ring
+       (2px outline + 2px offset) instead of shaving it off. */
     .clinical-toolbar .clinical-filter-group {
         width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding-bottom: 0.125rem;
+        padding-block: 0.3rem;
     }
 }
 
 @media (max-width: 560px) {
     .doctor-analytics-period { align-items: flex-start; }
     .doctor-analytics-controls { width: 100%; justify-content: flex-start; }
-    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.125rem; }
+    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-block: 0.3rem; }
     .doctor-workspace-tabs { flex-wrap: nowrap; overflow-x: auto; }
     .doctor-operational-grid,
     .doctor-staff-metrics,
@@ -3814,7 +3838,7 @@ button.clinical-worklist-row {
         width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding-bottom: 0.125rem;
+        padding-block: 0.3rem;
     }
     .doctor-geographic-command {
         grid-template-areas:
