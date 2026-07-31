@@ -1026,15 +1026,15 @@ export function ConsultationPage({
     const RadioGroup = ({ name, options, value }: { name: string; options: string[]; value: string }) => (
         <div className="flex gap-3 flex-wrap">
             {options.map(opt => (
-                <label key={opt} className={`cursor-pointer px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${value === opt ? 'bg-[var(--brand-active)] text-white border-[var(--brand-active)]' : 'bg-white text-[var(--text-2)] border-[var(--border)] hover:border-[var(--border)]'}`}>
-                    <input type="radio" name={name} value={opt} checked={value === opt} onChange={handleRadioChange} className="hidden" />{opt}
+                <label key={opt} className={`clinical-choice-label cursor-pointer px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${value === opt ? 'bg-[var(--brand-active)] text-white border-[var(--brand-active)]' : 'bg-white text-[var(--text-2)] border-[var(--border)] hover:border-[var(--border)]'}`}>
+                    <input type="radio" name={name} value={opt} checked={value === opt} onChange={handleRadioChange} className="sr-only" />{opt}
                 </label>
             ))}
         </div>
     );
 
     const renderCheckbox = (key: keyof typeof formData.labTests, label: string) => (
-        <label key={key} className="flex items-center gap-3 cursor-pointer group min-h-[40px]">
+        <label key={key} className="clinical-choice-label flex items-center gap-3 cursor-pointer group min-h-[40px]">
             <div className="relative flex items-center justify-center w-5 h-5 border-2 border-[var(--border)] rounded bg-white shrink-0 transition-colors group-hover:border-[var(--border-strong)]">
                 <input type="checkbox" checked={formData.labTests[key]} onChange={() => handleLabTestChange(key)} className="absolute opacity-0 w-0 h-0" />
                 {formData.labTests[key] && <svg className="w-3.5 h-3.5 text-[var(--text-2)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}

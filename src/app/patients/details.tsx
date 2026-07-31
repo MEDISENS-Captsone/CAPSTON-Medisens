@@ -108,8 +108,8 @@ function DetailItem({ label, value }: { label: string; value?: string | number |
 
 function RadioOption({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }) {
     return (
-        <label className={`cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)] shadow-sm' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)]'}`}>
-            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="hidden" />
+        <label className={`clinical-choice-label cursor-pointer px-4 py-2 border rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${checked ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)] shadow-sm' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)]'}`}>
+            <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
             <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${checked ? 'border-[var(--brand-primary)]' : 'border-[var(--border)]'}`}>
                 {checked && <div className="w-1.5 h-1.5 bg-[var(--brand-active)] rounded-full" />}
             </div>

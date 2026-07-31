@@ -53,15 +53,42 @@ export function Sidebar({
     
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const cancelLogoutRef = useRef<HTMLButtonElement>(null);
+    const logoutDialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!showLogoutModal) return;
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         cancelLogoutRef.current?.focus();
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setShowLogoutModal(false);
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setShowLogoutModal(false);
+                return;
+            }
+            // Contain Tab / Shift+Tab inside the confirmation dialog
+            if (event.key !== 'Tab') return;
+            const dialog = logoutDialogRef.current;
+            if (!dialog) return;
+            const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled])'));
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const active = document.activeElement;
+            if (!(active instanceof HTMLElement) || !dialog.contains(active)) {
+                event.preventDefault();
+                first.focus();
+            } else if (event.shiftKey && active === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && active === last) {
+                event.preventDefault();
+                first.focus();
+            }
         };
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            previouslyFocused?.focus({ preventScroll: true });
+        };
     }, [showLogoutModal]);
 
     const logoBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
@@ -165,7 +192,7 @@ export function Sidebar({
             {/* Custom Logout Modal */}
             {showLogoutModal && (
                 <div onClick={() => setShowLogoutModal(false)} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-opacity" role="presentation">
-                    <div onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-white p-4 text-center shadow-sm">
+                    <div ref={logoutDialogRef} onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-white p-4 text-center shadow-sm">
                         <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600"><Icon name="logout" className="h-5 w-5" /></div>
                         <h3 id="logout-dialog-title" className="text-[length:var(--type-section-title-size)] font-semibold leading-[var(--type-section-title-line)] text-[var(--text)] tracking-[var(--tracking-normal)]">Log out</h3>
                         <p id="logout-dialog-description" className="mb-4 mt-2 text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--text-secondary)]">Are you sure you want to end your session?</p>

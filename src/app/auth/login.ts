@@ -26,6 +26,7 @@ window.handleLogin = async function (): Promise<void> {
     const errorMsg = document.getElementById('errorMsg')!;
 
     errorMsg.style.display = 'none';
+    setFieldsInvalid(false);
 
     if (!email || !password) {
         showError('Please enter your email and password.');
@@ -82,6 +83,16 @@ function showError(msg: string): void {
     const el = document.getElementById('errorMsg')!;
     el.textContent = msg;
     el.style.display = 'block';
+    setFieldsInvalid(true);
+}
+
+function setFieldsInvalid(invalid: boolean): void {
+    for (const id of ['emailInput', 'passwordInput']) {
+        const input = document.getElementById(id);
+        if (!input) continue;
+        if (invalid) input.setAttribute('aria-invalid', 'true');
+        else input.removeAttribute('aria-invalid');
+    }
 }
 
 function stopLoading(): void {
@@ -90,8 +101,10 @@ function stopLoading(): void {
     document.getElementById('spinner')!.style.display = 'none';
 }
 
-document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Enter') (window as any).handleLogin();
+// Native form submission (submit button click or Enter in a field) drives login.
+document.getElementById('loginForm')?.addEventListener('submit', (e: Event) => {
+    e.preventDefault();
+    void window.handleLogin();
 });
 
 declare global {

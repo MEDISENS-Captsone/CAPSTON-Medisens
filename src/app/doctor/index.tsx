@@ -563,9 +563,11 @@ const DoctorDashboard = () => {
                                             ) : (
                                                 <div>
                                                     {queue.map((q, index) => (
-                                                        <div key={q.initialconsultation_id}
+                                                        <button key={q.initialconsultation_id}
+                                                            type="button"
                                                             onClick={() => handleConsultNavigate(q.patient_id, q.initialconsultation_id.toString())}
-                                                            className="clinical-worklist-row cursor-pointer">
+                                                            aria-label={`Start consultation for ${q.patients?.lastName}, ${q.patients?.firstName}`}
+                                                            className="clinical-worklist-row cursor-pointer w-full text-left">
                                                             <div className="flex items-center gap-3">
                                                                 <span className="text-xs font-semibold text-[var(--text-muted)] w-5 text-center tabular-nums">{index + 1}</span>
                                                                 <div className="flex flex-col gap-0.5">
@@ -574,7 +576,7 @@ const DoctorDashboard = () => {
                                                                 </div>
                                                             </div>
                                                             <p className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums">{formatTime(q.consultation_time)}</p>
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             )}
@@ -629,9 +631,11 @@ const DoctorDashboard = () => {
                                                         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
                                                         const isToday = f.visit_date === today;
                                                         return (
-                                                            <div key={f.followup_id}
+                                                            <button key={f.followup_id}
+                                                                type="button"
                                                                 onClick={() => handleConsultNavigate(f.patient_id)}
-                                                                className="clinical-worklist-row cursor-pointer">
+                                                                aria-label={`Open follow-up consultation for ${f.patients?.lastName}, ${f.patients?.firstName}`}
+                                                                className="clinical-worklist-row cursor-pointer w-full text-left">
                                                                 <div className="flex flex-col gap-0.5 min-w-0">
                                                                     <p className="clinical-primary truncate">{f.patients?.lastName}, {f.patients?.firstName}</p>
                                                                     <p className="clinical-secondary">Return Visit</p>
@@ -639,7 +643,7 @@ const DoctorDashboard = () => {
                                                                 <span className={`clinical-status-badge shrink-0 ${isToday ? 'warning' : ''}`}>
                                                                     {isToday ? 'Due today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                                 </span>
-                                                            </div>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>
@@ -725,9 +729,11 @@ const DoctorDashboard = () => {
                                         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
                                         const isToday = f.visit_date === today;
                                         return (
-                                            <div key={f.followup_id}
+                                            <button key={f.followup_id}
+                                                type="button"
                                                 onClick={() => { setShowFollowUpsModal(false); handleConsultNavigate(f.patient_id); }}
-                                                className="clinical-worklist-row cursor-pointer">
+                                                aria-label={`Open follow-up consultation for ${f.patients?.lastName}, ${f.patients?.firstName}`}
+                                                className="clinical-worklist-row cursor-pointer w-full text-left">
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <span className="text-xs font-semibold text-[var(--text-muted)] w-5 text-center tabular-nums">{idx + 1}</span>
                                                     <div className="flex flex-col gap-0.5 min-w-0">
@@ -738,7 +744,7 @@ const DoctorDashboard = () => {
                                                 <span className={`clinical-status-badge shrink-0 ${isToday ? 'warning' : ''}`}>
                                                     {isToday ? 'Due today' : new Date(f.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                 </span>
-                                            </div>
+                                            </button>
                                         );
                                     })}
                                 </div>

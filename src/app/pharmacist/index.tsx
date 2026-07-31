@@ -383,7 +383,16 @@ function PharmacyDashboard() {
                                                             </td>
                                                             <td>{new Date(rx.prescription_date).toLocaleDateString('en-PH')}</td>
                                                             <td><span className="clinical-status-badge warning"><Icon name="clock" className="h-3 w-3" /> Pending</span></td>
-                                                            <td className="text-right"><span className="clinical-link-action">Review</span></td>
+                                                            <td className="text-right">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleRxSelect(rx); }}
+                                                                    aria-label={`Review prescription for ${rx.patients?.lastName}, ${rx.patients?.firstName}`}
+                                                                    className="clinical-link-action"
+                                                                >
+                                                                    Review
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 )}

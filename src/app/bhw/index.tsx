@@ -202,7 +202,9 @@ const BhwDashboard = () => {
                                                 <div className="ops-empty">No recent registrations.</div>
                                             ) : (
                                                 recentPatients.map(p => (
-                                                    <div key={p.id} onClick={() => setSelectedPatient(p)} className="ops-row bhw-recent-registration-row cursor-pointer">
+                                                    <button key={p.id} type="button" onClick={() => setSelectedPatient(p)}
+                                                        aria-label={`Open chart for ${p.lastName}, ${p.firstName}`}
+                                                        className="ops-row bhw-recent-registration-row cursor-pointer w-full text-left bg-transparent border-0">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="ops-row-title">{p.lastName}, {p.firstName}</div>
                                                             <div className="ops-row-meta">{p.sex || '-'} | {p.bloodType || '-'} | {p.address || 'No address'}</div>
@@ -211,7 +213,7 @@ const BhwDashboard = () => {
                                                             <div className="ops-row-meta">{p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</div>
                                                             <div className="ops-action">Open Chart</div>
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 ))
                                             )}
                                         </div>

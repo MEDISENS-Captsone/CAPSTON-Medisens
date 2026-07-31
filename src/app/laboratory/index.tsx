@@ -674,7 +674,14 @@ const LaboratoryDashboard = () => {
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-3 text-right">
-                                                            <span className="clinical-link-action">Review</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); }}
+                                                                aria-label={`Review lab request for ${name}`}
+                                                                className="clinical-link-action"
+                                                            >
+                                                                Review
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 );

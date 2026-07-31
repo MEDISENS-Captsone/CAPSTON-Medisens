@@ -164,8 +164,18 @@ textarea {
 ::selection { background: var(--blue-light); color: var(--text); }
 
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-    outline: 3px solid var(--focus-ring);
+    /* Solid high-contrast indicator (WCAG 2.4.7 / 1.4.11); soft ring kept as secondary glow */
+    outline: 2px solid var(--focus-color);
     outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--focus-ring);
+}
+
+/* Styled radio/checkbox option labels: show focus on the label when the
+   visually-hidden native input inside receives keyboard focus. */
+.clinical-choice-label:focus-within {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--focus-ring);
 }
 
 :where(button, a, input, select, textarea, summary, [role="button"]) {
@@ -1416,6 +1426,17 @@ td {
     gap: 0.875rem;
     border-bottom: 1px solid var(--border-soft);
     padding: 0.75rem 1rem;
+}
+
+button.clinical-worklist-row {
+    width: 100%;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
 }
 
 .clinical-worklist-row:last-child {
