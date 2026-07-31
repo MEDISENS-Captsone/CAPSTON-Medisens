@@ -275,10 +275,11 @@ export function ConsultationComponent() {
                 <div className="w-full pwa-dense-panel">
                     <div className="w-full">
                         <div className="relative mb-6">
+                            <label htmlFor="ic-patient-search" className="sr-only">Search consented patients by name</label>
                             <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
                             <input
                                 type="text"
-                                aria-label="Search consented patients by name"
+                                id="ic-patient-search"
                                 placeholder="Search consented patients by name..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
@@ -323,14 +324,14 @@ export function ConsultationComponent() {
                         <div className={legendClasses}><span className="text-[var(--text-2)]">①</span> General Information</div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                                <div><label className={labelClasses}>Date of Consultation</label><input type="date" name="dateOfConsultation" value={formData.dateOfConsultation} onChange={handleChange} className={inputClasses} required /></div>
-                                <div><label className={labelClasses}>Consultation Time</label><input type="time" name="consultationTime" value={formData.consultationTime} onChange={handleChange} className={inputClasses} /></div>
-                                <div><label className={labelClasses}>Referred From / By</label><input type="text" name="referredBy" value={formData.referredBy} onChange={handleChange} className={inputClasses} placeholder="Name or Department" /></div>
+                                <div><label htmlFor="ic-dateOfConsultation" className={labelClasses}>Date of Consultation</label><input id="ic-dateOfConsultation" type="date" name="dateOfConsultation" value={formData.dateOfConsultation} onChange={handleChange} className={inputClasses} required /></div>
+                                <div><label htmlFor="ic-consultationTime" className={labelClasses}>Consultation Time</label><input id="ic-consultationTime" type="time" name="consultationTime" value={formData.consultationTime} onChange={handleChange} className={inputClasses} /></div>
+                                <div><label htmlFor="ic-referredBy" className={labelClasses}>Referred From / By</label><input id="ic-referredBy" type="text" name="referredBy" value={formData.referredBy} onChange={handleChange} className={inputClasses} placeholder="Name or Department" /></div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
                                 <div>
-                                    <label className={labelClasses}>Mode of Transaction</label>
-                                    <div className="flex flex-wrap gap-3 mt-2">
+                                    <span id="ic-modeOfTransaction-label" className={labelClasses}>Mode of Transaction</span>
+                                    <div className="flex flex-wrap gap-3 mt-2" role="radiogroup" aria-labelledby="ic-modeOfTransaction-label">
                                         {['Walk in', 'Referral'].map(v => (
                                             <label key={v} className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransaction === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
                                                 <input type="radio" name="modeOfTransaction" value={v} onChange={handleRadioChange} checked={formData.modeOfTransaction === v} className="sr-only" />{v}
@@ -339,8 +340,8 @@ export function ConsultationComponent() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Mode of Transfer</label>
-                                    <div className="flex flex-wrap gap-3 mt-2">
+                                    <span id="ic-modeOfTransfer-label" className={labelClasses}>Mode of Transfer</span>
+                                    <div className="flex flex-wrap gap-3 mt-2" role="radiogroup" aria-labelledby="ic-modeOfTransfer-label">
                                         {['Ambulatory', 'Via Wheelchair'].map(v => (
                                             <label key={v} className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${formData.modeOfTransfer === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
                                                 <input type="radio" name="modeOfTransfer" value={v} onChange={handleRadioChange} checked={formData.modeOfTransfer === v} className="sr-only" />{v}
@@ -356,22 +357,22 @@ export function ConsultationComponent() {
                         <div className={legendClasses}><Icon name="file-text" className="h-4 w-4 text-[var(--text-2)]" /> Clinical Notes</div>
                         <div className="p-6 flex flex-col gap-5">
                             <div>
-                                <label className={labelClasses}>Chief Complaints</label>
-                                <textarea name="chiefComplaints" value={formData.chiefComplaints} onChange={handleChange} rows={3} className={`${inputClasses} resize-y min-h-[80px]`} placeholder="Describe the patient's primary symptoms..."></textarea>
+                                <label htmlFor="ic-chiefComplaints" className={labelClasses}>Chief Complaints</label>
+                                <textarea id="ic-chiefComplaints" name="chiefComplaints" value={formData.chiefComplaints} onChange={handleChange} rows={3} className={`${inputClasses} resize-y min-h-[80px]`} placeholder="Describe the patient's primary symptoms..."></textarea>
                             </div>
                             <div>
-                                <label className={labelClasses}>Diagnosis</label>
-                                <select name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={inputClasses}>
+                                <label htmlFor="ic-diagnosis" className={labelClasses}>Diagnosis</label>
+                                <select id="ic-diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={inputClasses}>
                                     <option value="">Select a diagnosis</option>
                                     {DIAGNOSIS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                 </select>
                                 {formData.diagnosis === 'Others' && (
-                                    <div className="mt-3"><input type="text" name="diagnosisOther" value={formData.diagnosisOther} onChange={handleChange} className={inputClasses} placeholder="Please specify diagnosis..." autoFocus /></div>
+                                    <div className="mt-3"><label htmlFor="ic-diagnosisOther" className="sr-only">Specify diagnosis</label><input id="ic-diagnosisOther" type="text" name="diagnosisOther" value={formData.diagnosisOther} onChange={handleChange} className={inputClasses} placeholder="Please specify diagnosis..." autoFocus /></div>
                                 )}
                             </div>
                             <div>
-                                <label className={labelClasses}>History of Present Illnesses</label>
-                                <textarea name="historyOfPresentIllness" value={formData.historyOfPresentIllness} onChange={handleChange} rows={3} className={`${inputClasses} resize-y min-h-[80px]`} placeholder="Relevant medical history leading up to today..."></textarea>
+                                <label htmlFor="ic-historyOfPresentIllness" className={labelClasses}>History of Present Illnesses</label>
+                                <textarea id="ic-historyOfPresentIllness" name="historyOfPresentIllness" value={formData.historyOfPresentIllness} onChange={handleChange} rows={3} className={`${inputClasses} resize-y min-h-[80px]`} placeholder="Relevant medical history leading up to today..."></textarea>
                             </div>
                         </div>
                     </fieldset>
@@ -382,8 +383,9 @@ export function ConsultationComponent() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                                 {VITAL_FIELDS.map(f => (
                                     <div key={f.name} className="bg-white p-3 rounded-lg border border-[var(--border)] shadow-sm">
-                                        <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">{f.label}</label>
+                                        <label htmlFor={`ic-${f.name}`} className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">{f.label}</label>
                                         <input
+                                            id={`ic-${f.name}`}
                                             type={f.type} name={f.name} value={formData[f.name]} onChange={handleChange} readOnly={f.readOnly || false} step={f.step} placeholder={f.placeholder || ''}
                                             onKeyDown={f.type === 'number' ? (e) => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); } : undefined}
                                             onBeforeInput={f.allowedPattern ? (e: any) => { if (e.data && !f.allowedPattern!.test(e.data)) e.preventDefault(); } : undefined}
@@ -394,8 +396,8 @@ export function ConsultationComponent() {
                                 ))}
                             </div>
                             <div className="mt-8 pt-6 border-t border-[var(--border)]">
-                                <label className={labelClasses}>General Survey Status</label>
-                                <div className="flex flex-wrap gap-3 mt-3">
+                                <span id="ic-generalSurvey-label" className={labelClasses}>General Survey Status</span>
+                                <div className="flex flex-wrap gap-3 mt-3" role="radiogroup" aria-labelledby="ic-generalSurvey-label">
                                     {['Awake and Alert', 'Altered Sensorium'].map(v => (
                                         <label key={v} className={`clinical-choice-label cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors ${formData.generalSurvey === v ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
                                             <input type="radio" name="generalSurvey" value={v} onChange={handleRadioChange} checked={formData.generalSurvey === v} className="sr-only" />{v}

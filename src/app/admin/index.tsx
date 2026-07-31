@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { supabase } from '../../lib/supabase/client';
 import { requireRole } from '../../lib/auth/roles';
@@ -15,6 +15,7 @@ import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { safeTrim } from '../../lib/utils/strings';
 import { AuditLogPage } from '../../features/audit/AuditLogPage';
 import { logAuditEvent } from '../../features/audit/services';
+import { useDialogFocus } from '../../components/ui/useDialogFocus';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserProfile {
@@ -152,6 +153,12 @@ const AdminDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
 
+    // Modal focus targets
+    const userDialogRef = useRef<HTMLDivElement>(null);
+    const deleteDialogRef = useRef<HTMLDivElement>(null);
+    const fullNameInputRef = useRef<HTMLInputElement>(null);
+    const cancelDeleteRef = useRef<HTMLButtonElement>(null);
+
     // Modal States
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -268,11 +275,11 @@ const AdminDashboard = () => {
         document.body.style.overflow = 'hidden';
     };
 
-    const closeUserModal = () => {
+    const closeUserModal = useCallback(() => {
         setIsUserModalOpen(false);
         setEditingUserId(null);
         document.body.style.overflow = '';
-    };
+    }, []);
 
     const handleSaveUser = async () => {
         if (!isOnline) {
@@ -352,11 +359,27 @@ const AdminDashboard = () => {
         document.body.style.overflow = 'hidden';
     };
 
-    const closeConfirmModal = () => {
+    const closeConfirmModal = useCallback(() => {
         setIsConfirmModalOpen(false);
         setUserToDelete(null);
         document.body.style.overflow = '';
-    };
+    }, []);
+
+    // Modal keyboard behaviour matches the Sidebar logout dialog: focus moves in on open,
+    // Tab is contained, Escape closes without acting, and focus returns to the trigger.
+    useDialogFocus({
+        isOpen: isUserModalOpen,
+        dialogRef: userDialogRef,
+        initialFocusRef: fullNameInputRef,
+        onClose: closeUserModal,
+    });
+
+    useDialogFocus({
+        isOpen: isConfirmModalOpen,
+        dialogRef: deleteDialogRef,
+        initialFocusRef: cancelDeleteRef,
+        onClose: closeConfirmModal,
+    });
 
     const handleDeleteUser = async () => {
         if (!userToDelete) return;
@@ -580,7 +603,7 @@ const AdminDashboard = () => {
             {/* ─── Add/Edit User Modal ─── */}
             {isUserModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget) closeUserModal(); }}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="user-dialog-title" className="bg-white w-full max-w-md rounded-2xl shadow-sm flex flex-col  overflow-hidden">
+                    <div ref={userDialogRef} role="dialog" aria-modal="true" aria-labelledby="user-dialog-title" className="bg-white w-full max-w-md rounded-2xl shadow-sm flex flex-col  overflow-hidden">
                         <div className="p-6 border-b border-[var(--border-soft)] flex justify-between items-center bg-[var(--surface-subtle)]/50">
                             <div>
                                 <h3 id="user-dialog-title" className="text-xl font-bold text-[var(--text)]">{isEditMode ? `Edit: ${fFullName}` : 'Add New User'}</h3>
@@ -591,7 +614,7 @@ const AdminDashboard = () => {
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Full Name</label>
-                                <input type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} placeholder="e.g. Dr. Juan Dela Cruz" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
+                                <input ref={fullNameInputRef} type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} placeholder="e.g. Dr. Juan Dela Cruz" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
                             </div>
 
                             {!isEditMode && (
@@ -646,7 +669,7 @@ const AdminDashboard = () => {
             {/* ─── Confirm Delete Modal ─── */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget && !isSaving) closeConfirmModal(); }}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-lg border border-[var(--border)] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
+                    <div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-lg border border-[var(--border)] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
                         <div className="w-16 h-16 bg-red-50 text-red-500 rounded-lg flex items-center justify-center mb-5"><Icon name="trash" className="h-8 w-8" /></div>
                         <h3 id="delete-user-dialog-title" className="text-xl font-bold text-[var(--text)] mb-2">Delete User?</h3>
@@ -654,7 +677,7 @@ const AdminDashboard = () => {
                             Are you sure you want to permanently delete <strong className="text-[var(--text)] font-bold">{userToDelete?.name}</strong>? This action cannot be undone.
                         </p>
                         <div className="flex w-full gap-3">
-                            <button type="button" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 py-3 bg-[var(--surface-subtle)] text-[var(--text-2)] rounded-xl font-bold text-sm hover:bg-[var(--border-soft)] transition-colors disabled:opacity-50">Cancel</button>
+                            <button ref={cancelDeleteRef} type="button" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 py-3 bg-[var(--surface-subtle)] text-[var(--text-2)] rounded-xl font-bold text-sm hover:bg-[var(--border-soft)] transition-colors disabled:opacity-50">Cancel</button>
                             <button type="button" onClick={handleDeleteUser} disabled={isSaving} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 shadow-sm transition-colors disabled:opacity-50">
                                 {isSaving ? 'Deleting...' : 'Delete'}
                             </button>

@@ -123,6 +123,59 @@ Do not “correct” this value to `laboratory` in authorization logic, database
 
 ---
 
+## MediSens UI work
+
+Before implementing any visible UI change, read:
+
+- `docs/SKILL-UI.md`
+- `docs/UI-CLINICAL-PATTERNS.md` when the task involves patient or clinical interfaces
+- `docs/PWA-OFFLINE-TARGET.md` only when the task explicitly involves offline or synchronization behavior
+
+Before modifying visible UI, inspect:
+
+- `docs/design/medisens-ui-reference.png`
+
+This image is the **canonical visual source of truth** for MediSens.
+
+The reference defines the application's visual language, not its functionality. Adapt its hierarchy, spacing, typography, proportions, component quality, card treatment, restrained claymorphism, layout rhythm, and visual density to MediSens.
+
+Do not copy its:
+
+- Branding
+- Logo
+- Financial terminology
+- Dashboard content
+- Charts
+- Widgets
+- Product-specific workflows
+
+Do not replace existing layouts merely to resemble the reference. Adapt the reference's design language to the verified MediSens structure and workflows.
+
+Preserve existing:
+
+- Workflows
+- Features
+- Permissions
+- Role guards
+- RPCs
+- Database behavior
+- Validation
+- Clinical rules
+- Business logic
+
+When redesigning:
+
+- Prefer updating shared components and centralized tokens before modifying individual pages.
+- Reuse existing shared components instead of creating duplicate visual variants.
+- Check every role shell that consumes a changed shared component.
+- Keep module-specific changes scoped to the requested module.
+- Do not alter shared application shells unless the task explicitly includes them.
+- Do not implement future PWA or offline behavior merely because it appears in a planning document.
+
+If the reference conflicts with accessibility, clinical safety, confirmed MediSens requirements, or existing business logic, preserve MediSens behavior and adapt only the presentation.
+
+---
+
 ## Product Workflows
 
 MediSens includes role-based workflows for:
@@ -308,7 +361,7 @@ Display reliability or attribution limitations when the backend provides them.
 
 ## UI and UX
 
-Follow `UI-SKILL.md` when present.
+Follow `docs/SKILL-UI.md`.
 
 Design direction:
 
@@ -321,7 +374,75 @@ Design direction:
 - No decorative charts without decision value
 - No emojis inside the interface
 
-### Current design palette
+### Shared components first
+
+When redesigning:
+
+- Update shared components before applying one-off page styling.
+- Extend an existing component when it already solves most of the requirement.
+- Avoid role-specific visual forks for controls that should look and behave consistently.
+- Check all consumers before changing a shared component.
+- Preserve established keyboard, focus, loading, responsive, and mobile-drawer behavior.
+
+### Shared component library
+
+Treat the following as shared across role shells unless the verified implementation documents a necessary exception:
+
+- Application shell
+- Sidebar
+- Header
+- Mobile navigation drawer
+- Page layout
+- Page header
+- Buttons
+- Inputs
+- Selects
+- Search fields
+- Filters
+- Cards and summary surfaces
+- Tables and list rows
+- Status badges
+- Tabs
+- Dialogs
+- Drawers and slide-overs
+- Toasts and alerts
+- Skeletons
+- Empty states
+- Error states
+- Loading and updating indicators
+
+Do not create a new visual variant merely because a component appears in a different role.
+
+### Design tokens
+
+`docs/SKILL-UI.md` is authoritative for the visual token system.
+
+All new or revised:
+
+- Colors
+- Spacing
+- Typography
+- Border radii
+- Borders
+- Shadows
+- Elevation
+- Focus treatments
+- Motion values
+
+must come from centralized design tokens.
+
+Reuse the existing token source. If a required token does not exist, add it to the existing theme or token file rather than introducing a parallel system or a one-off value inside a component.
+
+Preserve semantic color meaning:
+
+- Green for success, online, and completed states
+- Amber for warning, pending, due, and offline-related attention states
+- Red for errors, destructive actions, urgent states, and critical clinical values
+- Navy/blue for brand, selection, focus, navigation, and informational states
+
+Do not recolor medical or workflow statuses in ways that make them ambiguous.
+
+### Typography
 
 Use centralized design tokens. The current blue-indigo foundation is:
 
@@ -453,8 +574,7 @@ Optimize for:
 
 - Desktop
 - Tablet
-- Mobile PWA
-- iPhone 15 Pro Max-sized screens
+- Mobile PWA across common phone widths
 
 Rules:
 

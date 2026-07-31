@@ -210,6 +210,7 @@ export function AuditLogPage() {
     const [filters, setFilters] = useState<AuditLogFilters>({ pageSize: PAGE_SIZE });
     const [datePreset, setDatePreset] = useState<DatePreset>('all');
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+    const [reloadToken, setReloadToken] = useState(0);
 
     const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1);
     const queryFilters = useMemo(() => ({ ...filters, page, pageSize: PAGE_SIZE }), [filters, page]);
@@ -235,7 +236,7 @@ export function AuditLogPage() {
         }
         void loadLogs();
         return () => { cancelled = true; };
-    }, [queryFilters]);
+    }, [queryFilters, reloadToken]);
 
     const setFilter = (key: keyof AuditLogFilters, value: string) => {
         setPage(0);
@@ -356,7 +357,17 @@ export function AuditLogPage() {
                         </table>
                     </div>
                 ) : error ? (
-                    <div className="m-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>
+                    <div role="alert" className="m-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                        <p>{error}</p>
+                        <button
+                            type="button"
+                            onClick={() => setReloadToken(value => value + 1)}
+                            disabled={isLoading}
+                            className="mt-3 rounded-lg bg-[var(--brand-active)] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-active-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] disabled:opacity-50"
+                        >
+                            Retry
+                        </button>
+                    </div>
                 ) : logs.length === 0 ? (
                     <EmptyState title="No audit logs found" description="Try adjusting the filters or date range." />
                 ) : (
