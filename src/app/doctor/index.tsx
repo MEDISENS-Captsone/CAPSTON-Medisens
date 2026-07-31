@@ -447,8 +447,8 @@ const DoctorDashboard = () => {
                         responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: {
-                            x: { grid: { display: false }, ticks: { color: '#A8B1CE', font: { size: 10 } } },
-                            y: { grid: { color: '#EEF1FB' }, ticks: { stepSize: 1, precision: 0, color: '#A8B1CE', font: { size: 10 } }, beginAtZero: true }
+                            x: { grid: { display: false }, ticks: { color: '#6A6E83', font: { size: 10 } } },
+                            y: { grid: { color: '#EEF1FB' }, ticks: { stepSize: 1, precision: 0, color: '#6A6E83', font: { size: 10 } }, beginAtZero: true }
                         }
                     }
                 });
@@ -469,7 +469,7 @@ const DoctorDashboard = () => {
                             tooltip: { callbacks: { label: (ctx) => { const item = morbidityData[ctx.dataIndex]; return ` ${item.percentage}%  (${item.count} cases)`; } } }
                         },
                         scales: {
-                            x: { grid: { color: '#EEF1FB' }, ticks: { color: '#A8B1CE', font: { size: 10 }, callback: (v) => `${v}%` }, beginAtZero: true, max: 100 },
+                            x: { grid: { color: '#EEF1FB' }, ticks: { color: '#6A6E83', font: { size: 10 }, callback: (v) => `${v}%` }, beginAtZero: true, max: 100 },
                             y: { grid: { display: false }, ticks: { color: '#6A6E83', font: { size: 11 } } }
                         }
                     }
@@ -483,6 +483,17 @@ const DoctorDashboard = () => {
             cancelled = true;
         };
     }, [trendData, morbidityData, activePage]);
+
+    // Accessible text alternatives for the canvas charts (WCAG 1.1.1)
+    const trendTotal = trendData.reduce((s, d) => s + d.count, 0);
+    const trendPeak = trendData.reduce((max, d) => (d.count > (max?.count ?? 0) ? d : max), trendData[0]);
+    const trendPeriodLabel = FILTER_OPTIONS.find(o => o.value === trendFilter)?.label.toLowerCase() ?? trendFilter;
+    const trendSummary = trendData.length === 0
+        ? 'Visit trends chart: no visit data for the selected period.'
+        : `Visit trends chart, ${trendPeriodLabel}: ${trendTotal} completed visit${trendTotal === 1 ? '' : 's'}; highest ${trendPeak.count} on ${trendPeak.date}.`;
+    const morbiditySummary = morbidityData.length === 0
+        ? 'Top morbidities chart: no diagnoses recorded for the selected period.'
+        : `Top morbidities chart: ${morbidityData.slice(0, 3).map(m => `${m.label} ${m.percentage}%`).join(', ')}.`;
 
     const handleConsultNavigate = (patientId: string, icid?: string) => {
         setSelectedPatient(null);
@@ -595,7 +606,7 @@ const DoctorDashboard = () => {
                                             <FilterTabs value={trendFilter} onChange={setTrendFilter} />
                                         </div>
                                         <div className="flex-1 relative w-full h-full">
-                                            <canvas ref={trendChartRef} />
+                                            <canvas ref={trendChartRef} role="img" aria-label={trendSummary} />
                                         </div>
                                     </div>
                                 </div>
@@ -610,7 +621,7 @@ const DoctorDashboard = () => {
                                             <FilterTabs value={morbFilter} onChange={setMorbFilter} />
                                         </div>
                                         <div className="flex-1 relative w-full h-full">
-                                            <canvas ref={morbChartRef} />
+                                            <canvas ref={morbChartRef} role="img" aria-label={morbiditySummary} />
                                         </div>
                                     </div>
 

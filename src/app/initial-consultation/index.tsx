@@ -276,9 +276,10 @@ export function ConsultationComponent() {
                     <div className="w-full">
                         <div className="relative mb-6">
                             <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
-                            <input 
-                                type="text" 
-                                placeholder="Search consented patients by name..." 
+                            <input
+                                type="text"
+                                aria-label="Search consented patients by name"
+                                placeholder="Search consented patients by name..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 className="w-full pl-12 pr-4 py-3 rounded-lg border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] bg-white text-[var(--text)] font-medium"

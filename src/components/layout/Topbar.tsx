@@ -49,7 +49,7 @@ export function Topbar({
                 </div>
             </div>
             <div className="flex min-w-0 items-center gap-2">
-                <NetworkBadge isOnline={isOnline} compact className="hidden sm:inline-flex lg:hidden" />
+                <NetworkBadge isOnline={isOnline} compact className="inline-flex lg:hidden" />
                 <NetworkBadge isOnline={isOnline} className="hidden lg:inline-flex" />
                 <div className="hidden h-6 w-px bg-[var(--border)] sm:block" />
                 <UserMenu userName={userName} userInitials={userInitials} userRole={userRole} isOnline={isOnline} onLogoutClick={onUserMenuClick} />

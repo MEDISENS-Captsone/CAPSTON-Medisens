@@ -9,7 +9,7 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ userName, userInitials, userRole, isOnline = true, onLogoutClick }: UserMenuProps) {
-    const avatarColor = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
+    const avatarColor = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500';
     const content = (
         <>
             <div className="hidden min-w-0 text-right sm:block">

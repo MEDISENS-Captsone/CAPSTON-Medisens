@@ -483,9 +483,10 @@ table {
 
 .ds-button-primary,
 .btn-primary {
-    background: var(--focus-color);
+    /* --brand-primary-hover keeps white text at >= 4.5:1 (WCAG 1.4.3) */
+    background: var(--brand-primary-hover);
     color: var(--white);
-    border: 1px solid var(--focus-color);
+    border: 1px solid var(--brand-primary-hover);
     box-shadow: var(--shadow-sm);
 }
 
@@ -1047,8 +1048,9 @@ td {
 
 .clinical-filter-button.is-active,
 .clinical-filter-button[aria-pressed="true"] {
-    border-color: var(--focus-color);
-    background: var(--focus-color);
+    /* --brand-primary-hover keeps white text at >= 4.5:1 (WCAG 1.4.3) */
+    border-color: var(--brand-primary-hover);
+    background: var(--brand-primary-hover);
     color: #FFFFFF;
     box-shadow: var(--shadow-sm);
 }
@@ -1433,6 +1435,16 @@ button.clinical-worklist-row {
     border-top: 0;
     border-left: 0;
     border-right: 0;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+/* Shared reset for list rows rendered as real <button> elements */
+.clinical-row-button {
+    width: 100%;
+    border: 0;
     background: transparent;
     text-align: left;
     font: inherit;

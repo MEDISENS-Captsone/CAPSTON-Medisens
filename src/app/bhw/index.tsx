@@ -204,7 +204,7 @@ const BhwDashboard = () => {
                                                 recentPatients.map(p => (
                                                     <button key={p.id} type="button" onClick={() => setSelectedPatient(p)}
                                                         aria-label={`Open chart for ${p.lastName}, ${p.firstName}`}
-                                                        className="ops-row bhw-recent-registration-row cursor-pointer w-full text-left bg-transparent border-0">
+                                                        className="ops-row bhw-recent-registration-row clinical-row-button">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="ops-row-title">{p.lastName}, {p.firstName}</div>
                                                             <div className="ops-row-meta">{p.sex || '-'} | {p.bloodType || '-'} | {p.address || 'No address'}</div>

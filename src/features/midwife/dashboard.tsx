@@ -129,7 +129,7 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
                                     type="button"
                                     onClick={() => onPatientClick?.(p)}   // ← opens modal, no redirect
                                     aria-label={`Open patient details for ${p.lastName}, ${p.firstName}`}
-                                    className="flex items-center justify-between px-4 py-3 hover:bg-[var(--surface-subtle)] cursor-pointer transition-colors group w-full text-left bg-transparent border-0"
+                                    className="clinical-row-button flex items-center justify-between px-4 py-3 hover:bg-[var(--surface-subtle)] transition-colors group"
                                 >
                                     <div className="flex items-center gap-4 min-w-0">
                                         <div className="hidden">

@@ -410,7 +410,7 @@ export function PatientDetailModal({
                                         <button
                                             type="button"
                                             onClick={() => onConsult(patient)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] ${focusCls}`}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--brand-primary-hover)] text-white hover:bg-[var(--brand-active)] ${focusCls}`}
                                         >
                                             <Icon name="clipboard" className="h-3.5 w-3.5" />
                                             Consult
@@ -640,7 +640,7 @@ export function PatientDetailModal({
                                                     type="button"
                                                     onClick={handleAddVaccine}
                                                     disabled={vaccineSaving || !navigator.onLine}
-                                                    className={`bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                                    className={`bg-[var(--brand-primary-hover)] hover:bg-[var(--brand-active)] text-white font-bold text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                                                 >
                                                     {vaccineSaving ? 'Saving...' : 'Save Vaccine Record'}
                                                 </button>
@@ -736,7 +736,7 @@ export function PatientDetailModal({
                                             type="button"
                                             onClick={handleSave}
                                             disabled={isSaving}
-                                            className={`flex-1 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                            className={`flex-1 bg-[var(--brand-primary-hover)] hover:bg-[var(--brand-active)] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                                         >
                                             {isSaving ? 'Saving...' : 'Save Changes'}
                                         </button>
@@ -745,7 +745,7 @@ export function PatientDetailModal({
                                     <button
                                         type="button"
                                         onClick={loadHistory}
-                                        className={`w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 mt-2 ${focusCls}`}
+                                        className={`w-full bg-[var(--brand-primary-hover)] hover:bg-[var(--brand-active)] text-white font-semibold text-sm py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 mt-2 ${focusCls}`}
                                     >
                                         View Encounters & Transaction Timeline
                                     </button>

@@ -92,8 +92,8 @@ export function Sidebar({
     }, [showLogoutModal]);
 
     const logoBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
-    const avatarBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
-    const activeBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500/20';
+    const avatarBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500';
+    const activeBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500/20';
     const activeText = isOnline ? 'text-white' : 'text-amber-100';
     const activeIndicator = isOnline ? 'bg-[var(--brand-accent-surface)]' : 'bg-amber-300';
 
