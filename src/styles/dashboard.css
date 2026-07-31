@@ -2335,7 +2335,8 @@ button.clinical-worklist-row {
 .doctor-barangay-row:focus-visible {
     border-color: var(--brand-accent-surface);
     background: var(--surface-subtle);
-    outline: 0;
+    outline: 2px solid var(--focus-color);
+    outline-offset: -2px;
 }
 
 .doctor-barangay-row.is-selected {
@@ -2548,7 +2549,7 @@ button.clinical-worklist-row {
 }
 
 .doctor-map-metric-selector button {
-    min-height: 1.9rem;
+    min-height: 2.25rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
     background: var(--surface);
@@ -2559,12 +2560,18 @@ button.clinical-worklist-row {
     transition: border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
-.doctor-map-metric-selector button:hover,
+.doctor-map-metric-selector button:hover {
+    border-color: rgba(90, 129, 250, 0.36);
+    background: var(--brand-soft-surface);
+    color: var(--brand-active);
+}
+
 .doctor-map-metric-selector button:focus-visible {
     border-color: rgba(90, 129, 250, 0.36);
     background: var(--brand-soft-surface);
     color: var(--brand-active);
-    outline: 0;
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
 }
 
 .doctor-map-metric-selector button.is-active {
@@ -2635,12 +2642,21 @@ button.clinical-worklist-row {
 .doctor-map-barangay.is-high { fill-opacity: 0.88; }
 .doctor-map-barangay.is-highest { fill-opacity: 1; }
 
-.doctor-map-barangay:hover,
-.doctor-map-barangay:focus-visible {
+.doctor-map-barangay:hover {
     outline: none;
     fill-opacity: 0.96;
     stroke: var(--brand-soft-surface);
     stroke-width: 2.35;
+}
+
+/* Keyboard focus must be distinguishable from hover and stay readable against every
+   fill step, so it uses a dark brand stroke rather than the near-white hover stroke.
+   SVG outline support is inconsistent, hence stroke rather than outline. */
+.doctor-map-barangay:focus-visible {
+    outline: none;
+    fill-opacity: 0.96;
+    stroke: var(--brand-active);
+    stroke-width: 3.4;
 }
 
 .doctor-map-barangay:focus {
@@ -3653,6 +3669,18 @@ button.clinical-worklist-row {
     border-radius: 999px;
     background: var(--brand-primary);
     box-shadow: 0 0 0 1px rgba(90, 129, 250, 0.24);
+}
+
+/* Expands the pointer/touch hit area to the 24px minimum (WCAG 2.5.8) without
+   changing the plotted dot's visual size. */
+.doctor-line-point::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    transform: translate(-50%, -50%);
+    content: '';
 }
 
 .doctor-line-point:hover,
