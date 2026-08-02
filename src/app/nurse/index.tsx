@@ -9,6 +9,7 @@ import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { SkeletonList } from '../../components/ui/Skeleton';
+import { Badge, Button, Card, EmptyState, Input } from '../../components/ui';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -180,9 +181,9 @@ const NurseDashboard = () => {
                                 <PageHeader
                                     title="Nursing Intake Queue"
                                     subtitle="Patients with signed consent are ready for vitals and initial consultation."
-                                    meta={<span className="rounded-md border border-[var(--green-border)] bg-[var(--green-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--green-dark)]">
+                                    meta={<Badge tone="green">
                                         {stats.consented} ready for vitals
-                                    </span>}
+                                    </Badge>}
                                 />
 
                                 <div className="pwa-page-pad flex flex-col pwa-panel-gap patient-list-page-shell">
@@ -193,11 +194,11 @@ const NurseDashboard = () => {
                                             ['Female', stats.female, 'Registered patients'],
                                             ['Male', stats.male, 'Registered patients'],
                                         ].map(([label, value, note]) => (
-                                            <div key={label} className="ops-summary-card">
+                                            <Card key={label} className="ops-summary-card">
                                                 <div className="ops-summary-label">{label}</div>
                                                 <div className="ops-summary-value tabular-nums">{value}</div>
                                                 <div className="ops-summary-note">{note}</div>
-                                            </div>
+                                            </Card>
                                         ))}
                                     </div>
 
@@ -207,28 +208,28 @@ const NurseDashboard = () => {
                                             <h2 className="clinical-table-title">Consented Patients</h2>
                                             <p className="clinical-table-subtitle">Open a patient to continue the RHU consultation workflow.</p>
                                         </div>
-                                        <span className="clinical-count-badge">{filteredPatients.length} result{filteredPatients.length !== 1 ? 's' : ''}</span>
+                                        <Badge tone="slate" className="clinical-count-badge">{filteredPatients.length} result{filteredPatients.length !== 1 ? 's' : ''}</Badge>
                                     </div>
 
                                     <div className="clinical-toolbar">
-                                        <div className="clinical-search">
-                                            <Icon name="search" className="h-4 w-4 text-[var(--text-secondary)]" />
-                                            <input
-                                                type="text"
-                                                aria-label="Search consented patients by name"
-                                                placeholder="Search by name..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                            />
-                                        </div>
+                                        <Input
+                                            type="text"
+                                            aria-label="Search consented patients by name"
+                                            placeholder="Search by name..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            leadingIcon={<Icon name="search" className="h-4 w-4" />}
+                                            containerClassName="min-w-[min(100%,18rem)] flex-1"
+                                        />
                                     </div>
 
                                     <div className="clinical-table-scroll">
                                         {filteredPatients.length === 0 ? (
-                                            <div className="text-center py-12">
-                                                <Icon name="clock" className="h-8 w-8 mx-auto mb-3 text-[var(--text-muted)]" />
-                                                <p className="text-[var(--text-secondary)] font-medium">No consented patients found.</p>
-                                            </div>
+                                            <EmptyState
+                                                icon={<Icon name="clock" className="h-5 w-5" />}
+                                                title="No consented patients found."
+                                                className="rounded-none border-0 py-12"
+                                            />
                                         ) : (
                                             <table className="clinical-table nurse-consented-table min-w-[820px]">
                                                 <thead>
@@ -258,13 +259,15 @@ const NurseDashboard = () => {
                                                                 <td className="nurse-col-address">{p.address || 'No address'}</td>
                                                                 <td className="nurse-col-date">{date}</td>
                                                                 <td className="nurse-col-action text-right">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={(e) => { e.stopPropagation(); handleConsultNavigate(p.id); }}
                                                                         className="clinical-row-action"
                                                                     >
                                                                         Initial Intake
-                                                                    </button>
+                                                                    </Button>
                                                                 </td>
                                                             </tr>
                                                         );
