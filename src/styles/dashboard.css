@@ -112,7 +112,7 @@ textarea {
 
 .sidebar-nav-heading {
     padding: 0.45rem 0.75rem 0.18rem;
-    color: rgba(209, 221, 255, 0.72);
+    color: var(--sidebar-text-muted);
     font-size: var(--type-category-size);
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-nav-category);

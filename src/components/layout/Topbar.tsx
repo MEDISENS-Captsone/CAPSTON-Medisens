@@ -34,7 +34,7 @@ export function Topbar({
     onUserMenuClick,
 }: TopbarProps) {
     return (
-        <header className="sticky top-0 z-30 flex h-[52px] w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-white px-3 backdrop-blur md:h-[56px] md:px-5">
+        <header className="sticky top-0 z-30 flex h-[52px] w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 backdrop-blur md:h-[56px] md:px-5">
             <div className="flex min-w-0 items-center gap-2">
                 <button
                     type="button"

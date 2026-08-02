@@ -160,4 +160,10 @@
 
     --overlay: rgba(15, 23, 42, 0.5);
     --overlay-soft: rgba(15, 23, 42, 0.4);
+
+    /* Sidebar chrome — hairline dividers and secondary labels against the
+       navy sidebar surface, expressed relative to white since they sit on
+       a dark fill rather than the light canvas. */
+    --sidebar-divider: rgba(255, 255, 255, 0.1);
+    --sidebar-text-muted: rgba(255, 255, 255, 0.55);
 }
