@@ -50,12 +50,12 @@ const TYPE_MARK_CLASS: Record<PatientTransaction['type'], string> = {
     consent: 'bg-[var(--amber-surface)] text-[var(--amber-text-dark)] ring-[var(--amber-border)]',
     initial_consultation: 'bg-[var(--surface-subtle)] text-[var(--text)] ring-[var(--border)]',
     doctor_consultation: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border)]',
-    lab_request: 'bg-violet-50 text-violet-800 ring-violet-200',
+    lab_request: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]',
     lab_result: 'bg-[var(--green-surface)] text-[var(--green-ink-strong)] ring-[var(--green-border-soft)]',
-    prescription: 'bg-rose-50 text-rose-800 ring-rose-200',
+    prescription: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]',
     pharmacy: 'bg-[var(--green-surface)] text-[var(--green-ink-strong)] ring-[var(--green-border-soft)]',
-    vaccine: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
-    follow_up: 'bg-purple-50 text-purple-800 ring-purple-200',
+    vaccine: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]',
+    follow_up: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]',
 };
 
 function formatDate(value?: string | null) {
@@ -308,13 +308,13 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                                 transaction.type === 'lab_result' || transaction.type === 'pharmacy'
                                     ? 'bg-[var(--green-accent)]'
                                     : transaction.type === 'vaccine'
-                                        ? 'bg-indigo-500'
+                                        ? 'bg-[var(--brand-primary)]'
                                         : transaction.type === 'registration'
                                             ? 'bg-[var(--brand-active)]'
                                             : transaction.type === 'consent'
                                                 ? 'bg-[var(--amber-accent)]'
                                                 : transaction.type === 'follow_up'
-                                                    ? 'bg-purple-500'
+                                                    ? 'bg-[var(--brand-primary)]'
                                                     : 'bg-[var(--text-muted)]'
                             }`} />
                         </div>

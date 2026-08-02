@@ -484,7 +484,7 @@ function DetailsPage() {
 
                                     {/* Nurse / Doctor / any role action */}
                                     {(role === 'nurse' || role === 'doctor' || role === 'midwives' || role === 'BHW') && (
-                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
+                                        <button onClick={handleOpenHistory} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
                                             View Complete Transaction History
                                         </button>
                                     )}

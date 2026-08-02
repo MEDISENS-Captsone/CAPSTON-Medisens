@@ -245,7 +245,7 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                         ) : (
                             <>
                                 {(activeSection === 'all' || activeSection === 'initial') && initialConsults.map((rec) => (
-                                    <RecordCard key={`initial-${rec.initialconsultation_id}`} id={`initial-${rec.initialconsultation_id}`} badge="Initial" badgeColor="bg-purple-100 text-purple-700" date={formatDate(rec.consultation_date)} title={rec.chief_complaint || 'Initial Consultation'} subtitle={rec.diagnosis}>
+                                    <RecordCard key={`initial-${rec.initialconsultation_id}`} id={`initial-${rec.initialconsultation_id}`} badge="Initial" badgeColor="bg-[var(--brand-soft-surface)] text-[var(--brand-active)]" date={formatDate(rec.consultation_date)} title={rec.chief_complaint || 'Initial Consultation'} subtitle={rec.diagnosis}>
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                             <Field label="Date" value={formatDate(rec.consultation_date)} />
                                             <Field label="Time" value={rec.consultation_time} />

@@ -407,7 +407,7 @@ export function TemplatesComponent() {
 
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
-                            <span className="text-pink-600">②</span> PhilHealth & Categorization
+                            <span className="text-[var(--text-2)]">②</span> PhilHealth & Categorization
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -457,7 +457,7 @@ export function TemplatesComponent() {
 
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
-                            <span className="text-green-600">③</span> Emergency Contact
+                            <span className="text-[var(--text-2)]">③</span> Emergency Contact
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-5">

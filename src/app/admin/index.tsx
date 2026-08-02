@@ -82,12 +82,12 @@ async function getFunctionErrorMessage(error: unknown, data?: { error?: string }
 const RoleBadge = ({ role }: { role: string }) => {
     const roleColors: Record<string, string> = {
         doctor: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
-        nurse: 'bg-green-50 text-green-600',
-        BHW: 'bg-orange-50 text-orange-600',
-        midwives: 'bg-[var(--pink-light)] text-[var(--pink)]',
-        pharmacist: 'bg-[var(--green-surface)] text-[var(--green-text)]',
-        laboratory: 'bg-indigo-50 text-indigo-700',
-        admin: 'bg-[var(--surface-subtle)] text-[var(--text-2)]'
+        nurse: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        BHW: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        midwives: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        pharmacist: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        laboratory: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        admin: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)]'
     };
 
     const roleLabels: Record<string, string> = {
@@ -115,11 +115,11 @@ const getAvatarColor = (role: string): string => {
     const normalizedRole = role === 'labaratory' ? 'laboratory' : role;
     const map: Record<string, string> = {
         doctor: 'bg-[var(--brand-active)]',
-        nurse: 'bg-green-600',
-        BHW: 'bg-orange-600',
-        midwives: 'bg-[var(--pink)]',
-        pharmacist: 'bg-[var(--green-text)]',
-        laboratory: 'bg-indigo-600',
+        nurse: 'bg-[var(--brand-active)]',
+        BHW: 'bg-[var(--brand-active)]',
+        midwives: 'bg-[var(--brand-active)]',
+        pharmacist: 'bg-[var(--brand-active)]',
+        laboratory: 'bg-[var(--brand-active)]',
         admin: 'bg-[var(--brand-active)]'
     };
     return map[normalizedRole] || 'bg-[var(--brand-active)]';

@@ -51,9 +51,9 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
             <div className="ops-summary-grid mb-5 w-full">
                 {[
                     { icon: 'users', label: 'Master Registry',      value: totalPatients, bg: 'bg-[var(--surface-subtle)]',    text: 'text-[var(--text-2)]'   },
-                    { icon: 'heart-pulse', label: 'Maternal Care',        value: maternalCount, bg: 'bg-[var(--pink-light)]',    text: 'text-pink-600'   },
-                    { icon: 'baby', label: 'Child Care (Immu)',    value: childCount,    bg: 'bg-[var(--green-surface)]', text: 'text-emerald-600'},
-                    { icon: 'pill', label: 'Family Planning',      value: fpCount,       bg: 'bg-purple-50',  text: 'text-purple-600' },
+                    { icon: 'heart-pulse', label: 'Maternal Care',        value: maternalCount, bg: 'bg-[var(--brand-soft-surface)]',    text: 'text-[var(--brand-active)]'   },
+                    { icon: 'baby', label: 'Child Care (Immu)',    value: childCount,    bg: 'bg-[var(--brand-soft-surface)]', text: 'text-[var(--brand-active)]'},
+                    { icon: 'pill', label: 'Family Planning',      value: fpCount,       bg: 'bg-[var(--brand-soft-surface)]',  text: 'text-[var(--brand-active)]' },
                 ].map(({ icon, label, value, bg, text }) => (
                     <div key={label} className="ops-summary-card flex items-center gap-3 w-full">
                         <div className={`w-8 h-8 rounded-lg ${bg} ${text} flex items-center justify-center text-2xl shadow-inner shrink-0`}><Icon name={icon} className="h-6 w-6" /></div>

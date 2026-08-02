@@ -28,24 +28,24 @@ const DATE_PRESETS: Array<{ id: DatePreset; label: string }> = [
 const actionStyles: Record<string, { label: string; icon: string; className: string }> = {
     create: { label: 'Create', icon: 'plus', className: 'border-[var(--green-border-soft)] bg-[var(--green-surface)] text-[var(--green-text)]' },
     update: { label: 'Update', icon: 'edit', className: 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-2)]' },
-    login: { label: 'Login', icon: 'lock', className: 'border-violet-200 bg-violet-50 text-violet-700' },
+    login: { label: 'Login', icon: 'lock', className: 'border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]' },
     logout: { label: 'Logout', icon: 'logout', className: 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-2)]' },
-    generate: { label: 'Generate Report', icon: 'printer', className: 'border-orange-200 bg-orange-50 text-orange-700' },
+    generate: { label: 'Generate Report', icon: 'printer', className: 'border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]' },
     delete: { label: 'Delete', icon: 'trash', className: 'border-[var(--coral-border)] bg-[var(--coral-tint)] text-[var(--coral-dark)]' },
     archive: { label: 'Archive', icon: 'inbox', className: 'border-[var(--coral-border)] bg-[var(--coral-tint)] text-[var(--coral-dark)]' },
-    dispense: { label: 'Dispense', icon: 'pill', className: 'border-teal-200 bg-teal-50 text-teal-700' },
+    dispense: { label: 'Dispense', icon: 'pill', className: 'border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]' },
     view: { label: 'View', icon: 'file-text', className: 'border-[var(--border)] bg-white text-[var(--text-2)]' },
 };
 
 const moduleStyles: Record<string, { icon: string; className: string }> = {
-    Authentication: { icon: 'lock', className: 'bg-violet-50 text-violet-700 ring-violet-100' },
+    Authentication: { icon: 'lock', className: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]' },
     Administration: { icon: 'shield-plus', className: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border)]' },
     'Patient Records': { icon: 'id-card', className: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border-soft)]' },
-    Consultation: { icon: 'stethoscope', className: 'bg-teal-50 text-teal-700 ring-teal-100' },
+    Consultation: { icon: 'stethoscope', className: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]' },
     'Census Entry': { icon: 'clipboard', className: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border-soft)]' },
-    Laboratory: { icon: 'flask', className: 'bg-purple-50 text-purple-700 ring-purple-100' },
-    Pharmacy: { icon: 'pill', className: 'bg-teal-50 text-teal-700 ring-teal-100' },
-    Reports: { icon: 'chart', className: 'bg-orange-50 text-orange-700 ring-orange-100' },
+    Laboratory: { icon: 'flask', className: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]' },
+    Pharmacy: { icon: 'pill', className: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]' },
+    Reports: { icon: 'chart', className: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-[var(--brand-accent-surface)]' },
 };
 
 function formatTimestamp(value: string) {
