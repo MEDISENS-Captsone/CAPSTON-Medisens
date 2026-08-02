@@ -13,6 +13,7 @@ interface ClinicalDrawerProps {
     footer?: ReactNode;
     className?: string;
     initialFocusRef?: RefObject<HTMLElement>;
+    closeLabel?: string;
 }
 
 export function ClinicalDrawer({
@@ -25,12 +26,15 @@ export function ClinicalDrawer({
     footer,
     className,
     initialFocusRef,
+    closeLabel,
 }: ClinicalDrawerProps) {
+    const resolvedCloseLabel = closeLabel ?? `Close ${title}`;
+
     return (
         <>
             <button
                 type="button"
-                aria-label={`Close ${title}`}
+                aria-label={resolvedCloseLabel}
                 className="clinical-drawer-backdrop"
                 onClick={onClose}
             />
@@ -50,7 +54,7 @@ export function ClinicalDrawer({
                         <button
                             type="button"
                             onClick={onClose}
-                            aria-label={`Close ${title}`}
+                            aria-label={resolvedCloseLabel}
                             className="h-10 w-10 -m-1 flex items-center justify-center rounded-lg hover:bg-[var(--brand-soft-surface)] text-[var(--text-secondary)] transition-colors"
                         >
                             <Icon name="close" className="h-4 w-4" />
