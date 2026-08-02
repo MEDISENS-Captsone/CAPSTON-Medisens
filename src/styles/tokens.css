@@ -103,15 +103,22 @@
     --text-muted: #63727C;
     --focus-ring: rgba(29, 78, 104, 0.28);
     --focus-color: var(--brand-primary);
-    --disabled-bg: #DCEAF0;
-    --disabled-text: #C7D0D5;
-    --disabled-border: #BCD4DF;
+    --disabled-bg: #EEF2F3;
+    --disabled-text: #63727C;
+    --disabled-border: #A8B5BC;
+    --control-border: #7A8A93;
+    --control-height-sm: 2.75rem;
+    --control-height-md: 2.75rem;
+    --control-height-lg: 3rem;
     --space-1: 0.25rem;
     --space-2: 0.5rem;
     --space-3: 0.75rem;
     --space-4: 1rem;
     --space-6: 1.5rem;
-    --radius-control: 0.5rem;
+    --radius-control: 0.625rem;
+    --radius-card: 0.75rem;
+    --radius-badge: 0.5rem;
+    --shadow-surface: 0 1px 2px rgba(13, 33, 44, 0.04), 0 8px 24px -20px rgba(13, 33, 44, 0.28);
     --motion-fast: 160ms;
     --motion-base: 220ms;
 

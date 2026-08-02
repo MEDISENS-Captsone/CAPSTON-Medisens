@@ -11,8 +11,8 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, className = '' }: EmptyStateProps) {
     return (
-        <div role="status" className={cn('flex min-w-0 max-w-full flex-col items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-5 text-center sm:px-4 sm:py-6', className)}>
-            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-md border border-[var(--brand-accent-surface)] bg-white text-[var(--brand-active)]">
+        <div role="status" className={cn('flex min-w-0 max-w-full flex-col items-center justify-center rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-6 text-center sm:px-5 sm:py-7', className)}>
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--brand-accent-surface)] bg-[var(--surface)] text-[var(--brand-active)]">
                 {icon ?? <Icon name="inbox" className="h-5 w-5" />}
             </div>
             <h3 className="max-w-full break-words text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">{title}</h3>

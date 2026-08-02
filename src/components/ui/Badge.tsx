@@ -23,7 +23,7 @@ export function Badge({ children, tone = 'slate', className, ...props }: BadgePr
     return (
         <span
             className={cn(
-                'inline-flex min-h-6 max-w-full items-center justify-center rounded-md border px-2 py-0.5 text-center text-[length:var(--type-caption-size)] font-semibold leading-[var(--type-caption-line)]',
+                'inline-flex min-h-6 max-w-full items-center justify-center rounded-[var(--radius-badge)] border px-2 py-0.5 text-center text-[length:var(--type-caption-size)] font-semibold leading-[var(--type-caption-line)]',
                 toneClasses[tone],
                 className,
             )}

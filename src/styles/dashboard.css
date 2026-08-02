@@ -1462,7 +1462,7 @@ button.clinical-worklist-row {
 .doctor-analytics-skeleton-line {
     display: block;
     min-height: 0.75rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: linear-gradient(90deg, var(--border-soft) 0%, var(--surface-subtle) 45%, var(--border-soft) 100%);
     background-size: 220% 100%;
     animation: clinical-skeleton 1.3s ease-in-out infinite;

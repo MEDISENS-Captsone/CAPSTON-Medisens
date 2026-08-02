@@ -16,15 +16,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variantClasses: Record<ButtonVariant, string> = {
     primary: 'border-[var(--brand-primary-hover)] bg-[var(--brand-primary-hover)] text-white shadow-sm hover:border-[var(--brand-active)] hover:bg-[var(--brand-active)]',
     secondary: 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white shadow-sm hover:border-[var(--brand-active-hover)] hover:bg-[var(--brand-active-hover)]',
-    outline: 'border-[var(--border-strong)] bg-white text-[var(--text)] shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
+    outline: 'border-[var(--control-border)] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-sm)] hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
     ghost: 'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
     danger: 'border-[var(--coral)] bg-[var(--coral)] text-white shadow-sm hover:border-[var(--coral-hover)] hover:bg-[var(--coral-hover)]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-    sm: 'min-h-8 rounded-md px-3 py-1 text-[length:var(--type-caption-size)]',
-    md: 'min-h-9 rounded-lg px-3 py-2 text-[length:var(--type-button-size)]',
-    lg: 'min-h-10 rounded-lg px-4 py-2 text-[length:var(--type-button-size)]',
+    sm: 'min-h-[var(--control-height-sm)] rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-caption-size)]',
+    md: 'min-h-[var(--control-height-md)] rounded-[var(--radius-control)] px-4 py-2 text-[length:var(--type-button-size)]',
+    lg: 'min-h-[var(--control-height-lg)] rounded-[var(--radius-control)] px-5 py-2.5 text-[length:var(--type-button-size)]',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
@@ -44,8 +44,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             ref={ref}
             type={type}
             disabled={disabled || isLoading}
+            aria-busy={isLoading || undefined}
             className={cn(
-                'inline-flex max-w-full items-center justify-center gap-2 border font-semibold leading-[var(--type-button-line)] tracking-[var(--tracking-normal)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)] disabled:shadow-none',
+                'inline-flex max-w-full items-center justify-center gap-2 border font-semibold leading-[var(--type-button-line)] tracking-[var(--tracking-normal)] transition-colors duration-[var(--motion-fast)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)] disabled:shadow-none',
                 sizeClasses[size],
                 variantClasses[variant],
                 className,
