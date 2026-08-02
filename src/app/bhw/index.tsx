@@ -149,7 +149,7 @@ const BhwDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
+            <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 
                 <Topbar
                     title={activePage === 'dashboard' ? 'Dashboard' : activePage === 'records' ? 'Patient Records' : activePage === 'reports' ? 'OCR Reports' : activePage.replace(/-/g, ' ')}
@@ -162,7 +162,7 @@ const BhwDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
+                <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full ">
                         
                         {/* ─── DASHBOARD VIEW ─── */}

@@ -9,15 +9,17 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, meta }: PageHeaderProps) {
     return (
-        <section className="flex flex-col gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5 xl:px-6">
-            <div className="min-w-0">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <h2 className="truncate text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] tracking-[var(--tracking-normal)] text-[var(--text)]">{title}</h2>
-                    {meta}
+        <section className="app-page-header border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:px-5 lg:px-6">
+            <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h2 className="truncate text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] tracking-[var(--tracking-normal)] text-[var(--text)]">{title}</h2>
+                        {meta}
+                    </div>
+                    {subtitle && <p className="mt-1.5 max-w-3xl text-[length:var(--type-supporting-size)] font-normal leading-[var(--type-supporting-line)] text-[var(--text-secondary)]">{subtitle}</p>}
                 </div>
-                {subtitle && <p className="mt-1 text-[length:var(--type-supporting-size)] font-normal leading-[var(--type-supporting-line)] text-[var(--text-secondary)]">{subtitle}</p>}
+                {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
             </div>
-            {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
         </section>
     );
 }

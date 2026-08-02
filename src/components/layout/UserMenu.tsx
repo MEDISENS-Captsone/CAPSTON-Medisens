@@ -16,7 +16,7 @@ export function UserMenu({ userName, userInitials, userRole, isOnline = true, on
                 <div className="truncate text-[length:var(--type-label-size)] font-semibold leading-[var(--type-label-line)] text-[var(--text)]">{userName}</div>
                 <div className="truncate text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)] text-[var(--brand-active)]">{userRole}</div>
             </div>
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[length:var(--type-label-size)] font-semibold text-white shadow-sm ${avatarColor}`}>
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[length:var(--type-label-size)] font-semibold text-white shadow-[var(--shadow-sm)] ${avatarColor}`}>
                 {userInitials}
             </div>
             {onLogoutClick && <Icon name="logout" className="hidden h-4 w-4 text-[var(--text-muted)] transition-colors group-hover:text-[var(--coral)] sm:block" />}
@@ -31,7 +31,7 @@ export function UserMenu({ userName, userInitials, userRole, isOnline = true, on
         <button
             type="button"
             onClick={onLogoutClick}
-            className="group flex min-w-0 items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
+            className="group flex min-h-11 min-w-0 items-center gap-2 rounded-[var(--radius-control)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
             title="Log out"
             aria-label={`Log out — signed in as ${userName}, ${userRole}`}
             aria-haspopup="dialog"

@@ -164,9 +164,9 @@ export function Sidebar({
 
     const logoBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-[var(--amber-accent)]';
     const avatarBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-[var(--amber-accent)]';
-    const activeBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500/20';
-    const activeText = isOnline ? 'text-white' : 'text-[var(--amber-tint)]';
-    const activeIndicator = isOnline ? 'bg-[var(--brand-accent-surface)]' : 'bg-[var(--amber-tint-strong)]';
+    const activeBg = isOnline ? 'bg-[var(--surface)]' : 'bg-[var(--amber-surface)]';
+    const activeText = isOnline ? 'text-[var(--brand-active)]' : 'text-[var(--amber-text-dark)]';
+    const activeIndicator = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-[var(--amber)]';
 
     return (
         <>
@@ -187,11 +187,11 @@ export function Sidebar({
                 id="primary-navigation"
                 aria-label="Primary navigation"
                 inert={isDrawerHidden}
-                className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] md:w-[240px] bg-[var(--brand-active)] border-r border-white/15 flex flex-col transform transition-transform duration-300 ease-in-out print:hidden ${isMobileMenuOpen ? 'translate-x-0 shadow-[var(--shadow-lg)]' : '-translate-x-full md:translate-x-0'}`}
+                className={`app-sidebar fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col border-r border-[var(--sidebar-divider)] bg-[var(--brand-active)] transform transition-transform duration-[var(--motion-base)] ease-in-out md:w-[var(--sidebar-w)] print:hidden ${isMobileMenuOpen ? 'translate-x-0 shadow-[var(--shadow-lg)]' : '-translate-x-full md:translate-x-0'}`}
             >
 
                 {/* Brand Header */}
-                <div className="flex min-h-[56px] items-center justify-between border-b border-[var(--sidebar-divider)] p-3 shrink-0">
+                <div className="flex min-h-16 shrink-0 items-center justify-between border-b border-[var(--sidebar-divider)] px-4 py-3">
                     <div className="flex items-center gap-2.5">
                         <div className={`w-8 h-8 rounded-md flex items-center justify-center shadow-sm ring-1 ring-white/15 shrink-0 transition-colors duration-200 ${logoBg}`} aria-hidden="true">
                             {isOnline ? <img src={medisensLogo} alt="" className="h-5 w-5 object-contain brightness-0 invert" /> : <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="currentColor"><path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z" /></svg>}
@@ -201,13 +201,13 @@ export function Sidebar({
                             <div className="text-[length:var(--type-category-size)] font-semibold uppercase leading-[var(--type-category-line)] tracking-[var(--tracking-nav-category)] text-[var(--brand-accent-surface)]">RHU Information System</div>
                         </div>
                     </div>
-                    <button type="button" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close navigation menu" className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--brand-accent-surface)] hover:bg-white/10 hover:text-white md:hidden">
+                    <button type="button" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close navigation menu" className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] text-[var(--brand-accent-surface)] transition-colors hover:bg-white/10 hover:text-white md:hidden">
                         <Icon name="close" className="h-5 w-5" />
                     </button>
                 </div>
             
                 {/* Navigation Section */}
-                <nav aria-label="Main menu" className="sidebar-nav flex-1 overflow-y-auto scrollbar-hide px-2 py-3">
+                <nav aria-label="Main menu" className="sidebar-nav scrollbar-hide flex-1 overflow-y-auto px-3 py-4">
                     {groupNavItems(navItems).map((group) => (
                         <section key={group.label} className="sidebar-nav-group" aria-label={group.label}>
                             <div className="sidebar-nav-heading" aria-hidden="true">{group.label}</div>
@@ -225,12 +225,12 @@ export function Sidebar({
                                             }}
                                             disabled={item.disabled}
                                             aria-current={isActive ? 'page' : undefined}
-                                            className={`sidebar-nav-item relative flex min-h-10 items-center w-full text-left gap-3 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--brand-accent-surface)] ${
+                                            className={`sidebar-nav-item relative flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-control)] px-3 text-left transition-colors duration-[var(--motion-fast)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--brand-accent-surface)] ${
                                                 item.disabled
-                                                ? 'cursor-not-allowed rounded-md px-3 text-[var(--text-3)] opacity-70'
+                                                ? 'cursor-not-allowed text-[var(--sidebar-text-muted)] opacity-70'
                                                 : isActive
-                                                ? `font-semibold ${activeBg} ${activeText} rounded-md relative px-3`
-                                                : 'font-medium text-[var(--brand-accent-surface)] hover:bg-white/10 hover:text-white rounded-md px-3'
+                                                ? `relative font-semibold shadow-[var(--shadow-sm)] ${activeBg} ${activeText}`
+                                                : 'font-medium text-[var(--brand-accent-surface)] hover:bg-white/10 hover:text-white'
                                             }`}
                                         >
                                             {isActive && (
@@ -250,7 +250,7 @@ export function Sidebar({
                 <button
                     type="button"
                     onClick={() => setShowLogoutModal(true)}
-                    className="mt-auto w-full shrink-0 border-t border-white/15 p-3 text-left transition-colors hover:bg-[var(--brand-active-hover)] group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white"
+                    className="group mt-auto min-h-16 w-full shrink-0 border-t border-[var(--sidebar-divider)] p-4 text-left transition-colors hover:bg-[var(--brand-active-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white"
                     title="Log out"
                     aria-label={`Log out — signed in as ${userName}, ${userRole}`}
                     aria-haspopup="dialog"
@@ -286,7 +286,7 @@ export function Sidebar({
                                     e.stopPropagation();
                                     setShowLogoutModal(false);
                                 }}
-                                className="min-h-10 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
+                                className="min-h-11 flex-1 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
                             >
                                 Cancel
                             </button>
@@ -296,7 +296,7 @@ export function Sidebar({
                                     e.stopPropagation();
                                     await logout();
                                 }}
-                                className="min-h-10 flex-1 rounded-lg bg-[var(--coral)] px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-white shadow-sm transition-colors hover:bg-[var(--coral-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--coral)]"
+                                className="min-h-11 flex-1 rounded-[var(--radius-control)] bg-[var(--coral)] px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-white shadow-sm transition-colors hover:bg-[var(--coral-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--coral)]"
                             >
                                 Log Out
                             </button>

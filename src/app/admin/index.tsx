@@ -437,7 +437,7 @@ const AdminDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 min-w-0 overflow-auto md:ml-[240px] w-full">
+            <main className="app-shell-main flex-1 min-w-0 overflow-auto md:ml-[240px] w-full">
                 {/* ─── Topbar ─── */}
                 <Topbar
                     title={activePage === 'audit-log' ? 'Audit Log' : 'User Management'}
@@ -451,7 +451,7 @@ const AdminDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="w-full flex flex-col gap-5 ">
+                <div className="app-content-canvas w-full flex flex-col gap-5">
                     {activePage === 'audit-log' ? (
                         <>
                             <PageHeader

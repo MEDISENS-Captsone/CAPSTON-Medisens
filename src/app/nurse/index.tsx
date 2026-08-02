@@ -160,7 +160,7 @@ const NurseDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
+            <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
 
                 <Topbar
                     title={pageTitles[activePage] || 'Nurse Dashboard'}
@@ -173,7 +173,7 @@ const NurseDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
+                <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full flex flex-col gap-5">
 
                         {activePage === 'dashboard' && (
