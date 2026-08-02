@@ -29,14 +29,14 @@ export function Input({ label, error, hint, leadingIcon, className, containerCla
                     className={cn(
                         'min-h-9 w-full rounded-lg border bg-white px-3 py-1.5 text-[length:var(--type-body-size)] font-normal leading-[var(--type-body-line)] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--border-strong)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)]',
                         leadingIcon ? 'pl-10' : '',
-                        error ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--brand-accent-surface)]',
+                        error ? 'border-[var(--coral-border)] bg-[var(--coral-light)] focus:border-[var(--coral)] focus:ring-[var(--coral-border)]' : 'border-[var(--brand-accent-surface)]',
                         className,
                     )}
                     {...props}
                 />
             </div>
             {(error || hint) && (
-                <p id={descriptionId} className={cn('text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)]', error ? 'text-red-600' : 'text-[var(--text-secondary)]')}>
+                <p id={descriptionId} className={cn('text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)]', error ? 'text-[var(--coral)]' : 'text-[var(--text-secondary)]')}>
                     {error || hint}
                 </p>
             )}

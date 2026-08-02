@@ -10,13 +10,13 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const toneClasses: Record<BadgeTone, string> = {
     blue: 'border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]',
-    green: 'border-green-200 bg-green-50 text-green-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
-    red: 'border-red-200 bg-red-50 text-red-700',
+    green: 'border-[var(--green-border)] bg-[var(--green-light)] text-[var(--green)]',
+    amber: 'border-[var(--amber-border)] bg-[var(--amber-surface)] text-[var(--amber-text)]',
+    red: 'border-[var(--coral-border)] bg-[var(--coral-light)] text-[var(--coral)]',
     slate: 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-secondary)]',
-    pink: 'border-pink-200 bg-pink-50 text-pink-700',
+    pink: 'border-[var(--pink-border)] bg-[var(--pink-light)] text-[var(--pink)]',
     indigo: 'border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]',
-    teal: 'border-green-200 bg-green-50 text-green-700',
+    teal: 'border-[var(--green-border)] bg-[var(--green-light)] text-[var(--green)]',
 };
 
 export function Badge({ children, tone = 'slate', className, ...props }: BadgeProps) {

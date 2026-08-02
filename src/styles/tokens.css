@@ -31,11 +31,13 @@
     --green:       #126B3D;
     --green-light: #E7F4EC;
     --pink:        #BE185D;
+    --pink-border: #FBCFE8;
     --pink-light:  #FDF2F8;
     --slate:       #102E40;
     --indigo:      var(--brand-active);
     --indigo-light:var(--brand-soft-surface);
     --coral:       #B42318;
+    --coral-hover: #941D14;
     --coral-light: #FDECEA;
 
     --bg:          #F3F5F6;

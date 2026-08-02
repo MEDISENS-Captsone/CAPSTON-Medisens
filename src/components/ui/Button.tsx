@@ -18,7 +18,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     secondary: 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white shadow-sm hover:border-[var(--brand-active-hover)] hover:bg-[var(--brand-active-hover)]',
     outline: 'border-[var(--border-strong)] bg-white text-[var(--text)] shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
     ghost: 'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--brand-soft-surface)] hover:text-[var(--brand-active)]',
-    danger: 'border-red-600 bg-red-600 text-white shadow-sm shadow-red-600/20 hover:border-red-700 hover:bg-red-700',
+    danger: 'border-[var(--coral)] bg-[var(--coral)] text-white shadow-sm hover:border-[var(--coral-hover)] hover:bg-[var(--coral-hover)]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
