@@ -48,14 +48,14 @@ function SigPad({ label, sigRef, penColor = PEN_INK(), onClear }: SigPadProps) {
 
     return (
         <div className="flex min-w-0 flex-col gap-2">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[var(--text-3)]">{label}</div>
             <div
-                className={`relative overflow-hidden rounded-xl border-2 border-dashed bg-slate-50 transition-colors ${
-                    active ? 'border-slate-500 bg-slate-50/70' : 'border-slate-300'
+                className={`relative overflow-hidden rounded-xl border-2 border-dashed bg-[var(--bg)] transition-colors ${
+                    active ? 'border-[var(--neutral-500)] bg-[var(--neutral-50-70)]' : 'border-[var(--neutral-300)]'
                 }`}
             >
                 {!hasContent && (
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-xs font-semibold text-slate-400">
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-xs font-semibold text-[var(--text-3)]">
                         <Icon name="edit" className="h-5 w-5" />
                         <span>Sign here</span>
                     </div>
@@ -143,40 +143,40 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
             <ToastComponent />
             <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
                 <Card>
-                    <CardHeader className="flex flex-wrap items-center gap-3 bg-slate-50">
+                    <CardHeader className="flex flex-wrap items-center gap-3 bg-[var(--bg)]">
                         <SectionIcon name="clipboard" />
-                        <CardTitle className="text-sm text-slate-700">IV. Patient Consent &amp; Data Privacy</CardTitle>
+                        <CardTitle className="text-sm text-[var(--text-2)]">IV. Patient Consent &amp; Data Privacy</CardTitle>
                         <Badge tone="blue" className="ml-auto gap-1.5">
                             <Icon name="lock" className="h-3.5 w-3.5" /> RA 10173
                         </Badge>
                     </CardHeader>
                     <CardBody>
-                        <p className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium leading-7 text-slate-600">
-                            I hereby give my consent to the <span className="font-bold text-slate-900">Malvar Rural Health Unit</span> to collect,
+                        <p className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-5 py-4 text-sm font-medium leading-7 text-[var(--text-2)]">
+                            I hereby give my consent to the <span className="font-bold text-[var(--text)]">Malvar Rural Health Unit</span> to collect,
                             process, and store my personal and medical information for the purpose of healthcare delivery, diagnosis, treatment,
                             and referral. I understand that my records will be kept confidential in accordance with the{' '}
-                            <span className="font-bold text-slate-900">Data Privacy Act of 2012 (RA 10173)</span>. I certify that the information
+                            <span className="font-bold text-[var(--text)]">Data Privacy Act of 2012 (RA 10173)</span>. I certify that the information
                             provided is true and correct to the best of my knowledge.
                         </p>
                     </CardBody>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex items-center gap-3 bg-slate-50">
+                    <CardHeader className="flex items-center gap-3 bg-[var(--bg)]">
                         <SectionIcon name="lock" />
-                        <CardTitle className="text-sm text-slate-800">Privacy Notice</CardTitle>
+                        <CardTitle className="text-sm text-[var(--text)]">Privacy Notice</CardTitle>
                     </CardHeader>
                     <CardBody>
-                        <p className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium leading-7 text-slate-900">
+                        <p className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-5 py-4 text-sm font-medium leading-7 text-[var(--text)]">
                             MEDISENS handles personal and health information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173). Patient information is collected, stored, accessed, and processed only for authorized healthcare services of the Rural Health Unit.
                         </p>
                     </CardBody>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex items-center gap-3 bg-slate-50">
+                    <CardHeader className="flex items-center gap-3 bg-[var(--bg)]">
                         <SectionIcon name="edit" />
-                        <CardTitle className="text-sm text-slate-700">Signatures</CardTitle>
+                        <CardTitle className="text-sm text-[var(--text-2)]">Signatures</CardTitle>
                     </CardHeader>
                     <CardBody>
                         <div className="grid gap-6 md:grid-cols-2">
@@ -197,9 +197,9 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex items-center gap-3 bg-slate-50">
+                    <CardHeader className="flex items-center gap-3 bg-[var(--bg)]">
                         <SectionIcon name="id-card" />
-                        <CardTitle className="text-sm text-slate-700">Printed Names</CardTitle>
+                        <CardTitle className="text-sm text-[var(--text-2)]">Printed Names</CardTitle>
                     </CardHeader>
                     <CardBody>
                         <div className="grid gap-5 md:grid-cols-2">

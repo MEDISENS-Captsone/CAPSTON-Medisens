@@ -27,7 +27,7 @@
             inset: 0;
             z-index: 0;
             overflow: hidden;
-            background: #1F1F1F;
+            background: var(--text);
         }
 
         .bg::before,
@@ -183,7 +183,7 @@
             height: 8px;
             flex: 0 0 auto;
             border-radius: 999px;
-            background: #5A81FA;
+            background: var(--brand-primary);
             box-shadow: 0 0 0 4px rgba(90, 129, 250, 0.16);
         }
 
@@ -245,7 +245,7 @@
         .field label {
             display: block;
             margin-bottom: 7px;
-            color: #1F1F1F;
+            color: var(--text);
             font-size: 0.76rem;
             font-weight: 700;
             letter-spacing: 0.08em;
@@ -266,11 +266,11 @@
         }
 
         .field input:focus {
-            border-color: #5A81FA;
+            border-color: var(--brand-primary);
             box-shadow: 0 0 0 3px rgba(90, 129, 250, 0.18);
         }
 
-        .field input::placeholder { color: #A8B1CE; }
+        .field input::placeholder { color: var(--border-strong); }
 
         .login-btn {
             width: 100%;
@@ -290,11 +290,11 @@
         }
 
         .login-btn:hover {
-            background: #1F1F1F;
+            background: var(--text);
             box-shadow: 0 4px 12px rgba(43, 49, 138, 0.18);
         }
 
-        .login-btn:active { background: #1F1F1F; }
+        .login-btn:active { background: var(--text); }
         .login-btn.loading { pointer-events: none; opacity: 0.7; }
 
         .spinner {
@@ -325,7 +325,7 @@
             margin-top: 18px;
             padding-top: 14px;
             border-top: 1px solid var(--border-strong);
-            color: #6A6E83;
+            color: var(--text-secondary);
             font-size: 0.76rem;
             line-height: 1.55;
         }

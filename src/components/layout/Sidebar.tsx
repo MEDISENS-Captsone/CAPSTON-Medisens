@@ -177,7 +177,7 @@ export function Sidebar({
             {isMobileMenuOpen && (
                 <div
                     aria-hidden="true"
-                    className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[2px] transition-opacity md:hidden"
+                    className="fixed inset-0 z-40 bg-[var(--overlay)] backdrop-blur-[2px] transition-opacity md:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
@@ -227,7 +227,7 @@ export function Sidebar({
                                             aria-current={isActive ? 'page' : undefined}
                                             className={`sidebar-nav-item relative flex min-h-10 items-center w-full text-left gap-3 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--brand-accent-surface)] ${
                                                 item.disabled
-                                                ? 'cursor-not-allowed rounded-md px-3 text-slate-500 opacity-70'
+                                                ? 'cursor-not-allowed rounded-md px-3 text-[var(--text-3)] opacity-70'
                                                 : isActive
                                                 ? `font-semibold ${activeBg} ${activeText} rounded-md relative px-3`
                                                 : 'font-medium text-[var(--brand-accent-surface)] hover:bg-white/10 hover:text-white rounded-md px-3'
@@ -273,7 +273,7 @@ export function Sidebar({
 
             {/* Custom Logout Modal */}
             {showLogoutModal && (
-                <div onClick={() => setShowLogoutModal(false)} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-opacity" role="presentation">
+                <div onClick={() => setShowLogoutModal(false)} className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--overlay)] p-4 backdrop-blur-sm transition-opacity" role="presentation">
                     <div ref={logoutDialogRef} onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-white p-4 text-center shadow-sm">
                         <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600"><Icon name="logout" className="h-5 w-5" /></div>
                         <h3 id="logout-dialog-title" className="text-[length:var(--type-section-title-size)] font-semibold leading-[var(--type-section-title-line)] text-[var(--text)] tracking-[var(--tracking-normal)]">Log out</h3>

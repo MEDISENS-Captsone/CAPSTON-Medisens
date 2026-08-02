@@ -175,7 +175,7 @@ function PatientModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 ">
+        <div className="fixed inset-0 bg-[var(--overlay)] backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 ">
             <div className="bg-[var(--bg)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-sm flex flex-col max-h-[92vh] sm:max-h-[88vh]">
 
                 {/* Modal Header */}

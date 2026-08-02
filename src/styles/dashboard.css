@@ -167,13 +167,13 @@ textarea {
 /* System Online pill */
 .online-pill {
     display: flex; align-items: center; gap: 0.5rem;
-    background: #F0FDF4;
-    border: 1px solid #BBF7D0;
+    background: var(--green-light);
+    border: 1px solid var(--green-border);
     border-radius: 1.25rem;
     padding: 0.25rem 0.75rem;
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-medium);
-    color: #16A34A;
+    color: var(--green);
 }
 
 /* ── Content ── */
@@ -279,8 +279,8 @@ table {
 
 .ds-button-primary:hover,
 .btn-primary:hover {
-    background: #1D4ED8;
-    border-color: #1D4ED8;
+    background: var(--blue-strong);
+    border-color: var(--blue-strong);
 }
 
 .ds-input,
@@ -327,9 +327,9 @@ textarea:focus {
 }
 
 .ds-badge-green {
-    background: #F0FDF4;
-    border-color: #BBF7D0;
-    color: #15803D;
+    background: var(--green-light);
+    border-color: var(--green-border);
+    color: var(--green-dark);
 }
 
 .ds-empty,
@@ -837,7 +837,7 @@ td {
     /* --brand-primary-hover keeps white text at >= 4.5:1 (WCAG 1.4.3) */
     border-color: var(--brand-primary-hover);
     background: var(--brand-primary-hover);
-    color: #FFFFFF;
+    color: var(--white);
     box-shadow: var(--shadow-sm);
 }
 
@@ -1167,9 +1167,9 @@ td {
 }
 
 .clinical-row-action.danger:hover {
-    border-color: #FECACA;
-    background: #FEF2F2;
-    color: #B91C1C;
+    border-color: var(--coral-border);
+    background: var(--coral-light);
+    color: var(--coral-dark);
 }
 
 .clinical-status-badge {
@@ -1190,21 +1190,21 @@ td {
 }
 
 .clinical-status-badge.success {
-    border-color: #A7F3D0;
-    background: #ECFDF5;
-    color: #047857;
+    border-color: var(--green-border-soft);
+    background: var(--green-surface);
+    color: var(--green-text);
 }
 
 .clinical-status-badge.warning {
-    border-color: #FDE68A;
-    background: #FFFBEB;
-    color: #B45309;
+    border-color: var(--amber-border);
+    background: var(--amber-surface);
+    color: var(--amber-text);
 }
 
 .clinical-status-badge.error {
-    border-color: #FECACA;
-    background: #FEF2F2;
-    color: #B91C1C;
+    border-color: var(--coral-border);
+    background: var(--coral-light);
+    color: var(--coral-dark);
 }
 
 .clinical-worklist-row {
@@ -1423,11 +1423,11 @@ button.clinical-worklist-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    border: 1px solid #FDE68A;
+    border: 1px solid var(--amber-border);
     border-radius: var(--radius);
-    background: #FFFBEB;
+    background: var(--amber-surface);
     padding: 0.75rem 0.875rem;
-    color: #92400E;
+    color: var(--amber-text-dark);
     font-size: var(--type-body-size);
     font-weight: var(--font-weight-semibold);
 }
@@ -1762,15 +1762,15 @@ button.clinical-worklist-row {
 }
 
 .doctor-comparison-badge.is-up {
-    border-color: #A7F3D0;
-    background: #ECFDF5;
-    color: #047857;
+    border-color: var(--green-border-soft);
+    background: var(--green-surface);
+    color: var(--green-text);
 }
 
 .doctor-comparison-badge.is-down {
-    border-color: #FDE68A;
-    background: #FFFBEB;
-    color: #B45309;
+    border-color: var(--amber-border);
+    background: var(--amber-surface);
+    color: var(--amber-text);
 }
 
 .doctor-signal-stack {
@@ -1880,9 +1880,9 @@ button.clinical-worklist-row {
 
 .doctor-service-card {
     min-width: 0;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--neutral-border-soft);
     border-radius: var(--radius-control);
-    background: #FFFFFF;
+    background: var(--white);
     padding: 0.75rem;
 }
 
@@ -2005,7 +2005,7 @@ button.clinical-worklist-row {
     justify-content: center;
     border: 1px solid var(--brand-accent-surface);
     border-radius: 999px;
-    background: #FFFFFF;
+    background: var(--white);
     color: var(--brand-active);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
@@ -2240,7 +2240,7 @@ button.clinical-worklist-row {
     place-items: center;
     border-radius: 999px;
     background:
-        radial-gradient(circle at center, #FFFFFF 0 61%, transparent 62%),
+        radial-gradient(circle at center, var(--white) 0 61%, transparent 62%),
         conic-gradient(var(--brand-primary) 0 var(--doctor-coverage-rate), var(--border) var(--doctor-coverage-rate) 100%);
 }
 
@@ -2252,7 +2252,7 @@ button.clinical-worklist-row {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: #FFFFFF;
+    background: var(--white);
     text-align: center;
 }
 
@@ -2657,11 +2657,11 @@ button.clinical-worklist-row {
 }
 
 .doctor-geo-detail-error {
-    border: 1px solid #F0C9C9;
+    border: 1px solid var(--coral-border-soft);
     border-radius: var(--radius);
-    background: #FFF7F7;
+    background: var(--coral-surface-soft);
     padding: 0.55rem 0.7rem;
-    color: #9F3A3A;
+    color: var(--coral-text-soft);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
     line-height: var(--type-label-line);
@@ -2692,7 +2692,7 @@ button.clinical-worklist-row {
     gap: 0.25rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #FFFFFF;
+    background: var(--white);
     padding: 0.6rem 0.65rem;
 }
 
@@ -2863,7 +2863,7 @@ button.clinical-worklist-row {
 }
 
 .doctor-status-bar .is-completed { background: var(--brand-primary); }
-.doctor-status-bar .is-pending { background: #D9A441; }
+.doctor-status-bar .is-pending { background: var(--amber); }
 
 .doctor-status-bar-legend {
     display: grid;
@@ -2889,7 +2889,7 @@ button.clinical-worklist-row {
 }
 
 .doctor-status-bar-item.is-completed::before { background: var(--brand-primary); }
-.doctor-status-bar-item.is-pending::before { background: #D9A441; }
+.doctor-status-bar-item.is-pending::before { background: var(--amber); }
 
 .doctor-status-bar-item strong {
     color: var(--text);
@@ -3121,8 +3121,8 @@ button.clinical-worklist-row {
     font-weight: var(--font-weight-semibold);
 }
 
-.doctor-reliability-text.is-green { color: #38765a; }
-.doctor-reliability-text.is-amber { color: #8a6414; }
+.doctor-reliability-text.is-green { color: var(--green-text-muted); }
+.doctor-reliability-text.is-amber { color: var(--amber-text-muted); }
 
 .ops-list {
     display: flex;
@@ -3144,7 +3144,7 @@ button.clinical-worklist-row {
 }
 
 .ops-row:hover {
-    background: #F7FBFF;
+    background: var(--blue-surface-faint);
 }
 
 .bhw-recent-registration-row {
@@ -3430,7 +3430,7 @@ button.clinical-worklist-row {
     width: 0.62rem;
     height: 0.62rem;
     transform: translate(-50%, -50%);
-    border: 2px solid #FFFFFF;
+    border: 2px solid var(--white);
     border-radius: 999px;
     background: var(--brand-primary);
     box-shadow: 0 0 0 1px rgba(90, 129, 250, 0.24);

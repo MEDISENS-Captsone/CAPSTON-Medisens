@@ -772,7 +772,7 @@ export function PatientDetailModal({
                 </Modal>
             </div>
             {pendingRemoveVaccine && (
-                <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-900/50 p-4">
+                <div className="fixed inset-0 z-[260] flex items-center justify-center bg-[var(--overlay)] p-4">
                     <div className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-white p-4 shadow-lg">
                         <h3 className="text-lg font-semibold text-[var(--text)]">Remove Vaccine Record?</h3>
                         <p className="mt-2 text-sm font-medium text-[var(--text-secondary)]">

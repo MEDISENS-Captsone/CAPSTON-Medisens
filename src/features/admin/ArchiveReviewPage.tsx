@@ -321,7 +321,7 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
             </section>
 
             {!readOnly && selectedPatient && action && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={(event) => { if (event.target === event.currentTarget && !isSaving) closeAction(); }}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--overlay-soft)] p-4 backdrop-blur-sm" onClick={(event) => { if (event.target === event.currentTarget && !isSaving) closeAction(); }}>
                     <div role="dialog" aria-modal="true" aria-labelledby="archive-action-title" className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-white shadow-sm">
                         <div className="border-b border-[var(--border-soft)] p-5">
                             <h3 id="archive-action-title" className="text-lg font-semibold text-[var(--text)]">{action === 'archive' ? 'Archive Patient Record' : 'Restore Patient Record'}</h3>

@@ -110,4 +110,47 @@
     --radius-control: 0.5rem;
     --motion-fast: 160ms;
     --motion-base: 220ms;
+
+    /* Status accents — additional shades of --green/--coral/amber used by
+       badges, pills, and inline alerts. Values preserved from prior inline
+       usage; kept distinct from --green/--coral because they are not the
+       same shade. */
+    --green-border: #BBF7D0;
+    --green-border-soft: #A7F3D0;
+    --green-surface: #ECFDF5;
+    --green-text: #047857;
+    --green-dark: #15803D;
+    --green-text-muted: #38765a;
+
+    --amber: #D9A441;
+    --amber-border: #FDE68A;
+    --amber-surface: #FFFBEB;
+    --amber-text: #B45309;
+    --amber-text-dark: #92400E;
+    --amber-text-muted: #8a6414;
+
+    --coral-border: #FECACA;
+    --coral-dark: #B91C1C;
+    --coral-border-soft: #F0C9C9;
+    --coral-surface-soft: #FFF7F7;
+    --coral-text-soft: #9F3A3A;
+
+    --blue-strong: #1D4ED8;
+    --blue-surface-faint: #F7FBFF;
+
+    --neutral-border-soft: #E2E8F0;
+
+    /* Neutral scale — exact values of the raw Tailwind slate/gray utilities
+       these replace, kept distinct from the MediSens text/border palette so
+       computed appearance does not shift until the navy redesign batch. */
+    --neutral-50-70: rgba(248, 250, 252, 0.7);
+    --neutral-100: #F1F5F9;
+    --neutral-300: #CBD5E1;
+    --neutral-400: #94A3B8;
+    --neutral-500: #64748B;
+    --neutral-700: #334155;
+    --neutral-800: #1E293B;
+
+    --overlay: rgba(15, 23, 42, 0.5);
+    --overlay-soft: rgba(15, 23, 42, 0.4);
 }
