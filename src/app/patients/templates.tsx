@@ -13,8 +13,8 @@ const inputClasses = clinicalInputClass;
 const inputErrorClasses = clinicalInputErrorClass;
 const readOnlyInputClasses = "w-full border border-[var(--neutral-300)] rounded-lg px-3 py-2.5 text-sm text-left bg-[var(--neutral-100)] text-[var(--text-2)] font-semibold cursor-not-allowed select-none";
 const labelClasses = clinicalLabelClass;
-const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-[var(--border)] mb-4 overflow-hidden";
-const legendClasses = "w-full px-4 py-3 border-b border-[var(--border)] text-sm font-semibold text-[var(--text)] uppercase tracking-wide bg-[var(--neutral-50-70)] flex items-center gap-2";
+const fieldsetClasses = "overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]";
+const legendClasses = "flex w-full items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)] sm:px-5 lg:px-6";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PatientForm = PatientRegistrationForm;
@@ -222,26 +222,26 @@ export function TemplatesComponent() {
     };
 
     return (
-        <div className="w-full relative">
+        <div className="relative mx-auto w-full max-w-[72rem] px-3 pb-12 sm:px-5 lg:px-6">
             <ToastComponent />
 
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="mb-5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:mb-6 sm:p-5 lg:p-6">
                 <div>
-                    <h2 className="text-2xl font-extrabold text-[var(--text)] flex items-center gap-2">
+                    <h2 className="flex items-center gap-2 text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)]">
                         Patient Registration
                     </h2>
-                    <p className="text-sm text-[var(--text-3)] mt-1">Register a new patient into the system for initial triage.</p>
+                    <p className="mt-1.5 text-[length:var(--type-supporting-size)] leading-[var(--type-supporting-line)] text-[var(--text-secondary)]">Register a new patient into the system for initial triage.</p>
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-6 items-start">
-                <form onSubmit={handleSubmit} className="flex-1 w-full min-w-0">
+            <div className="w-full">
+                <form onSubmit={handleSubmit} className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
                             <span className="text-[var(--text-2)]">①</span> Patient's Information Record
                         </div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+                        <div className="p-4 sm:p-5 lg:p-6">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-x-6">
                                 <div>
                                     <label className={labelClasses}>Last Name</label>
                                     <input
@@ -317,11 +317,11 @@ export function TemplatesComponent() {
                                         {CIVIL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
-                                <div className="col-span-1 sm:col-span-2 md:col-span-4">
+                                <div className="md:col-span-2">
                                     <label className={labelClasses}>Address (Brgy, Malvar)</label>
                                     <AddressField value={form.address} onChange={(val) => setForm(f => ({ ...f, address: val }))} />
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Contact # <span className="text-[var(--text-3)] font-normal normal-case tracking-normal">(11 digits)</span></label>
                                     <input
                                         type="text" id="contactNumber" value={form.contactNumber}
@@ -338,7 +338,7 @@ export function TemplatesComponent() {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Nationality</label>
                                     <input
                                         type="text" id="nationality" value={form.nationality}
@@ -349,7 +349,7 @@ export function TemplatesComponent() {
                                     />
                                     <FieldError message={errors['nationality']} />
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Religion</label>
                                     <select
                                         id="religion"
@@ -370,7 +370,7 @@ export function TemplatesComponent() {
                                         />
                                     )}
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Birth Place</label>
                                     <input
                                         type="text" id="birthPlace" value={form.birthPlace}
@@ -380,21 +380,21 @@ export function TemplatesComponent() {
                                     />
                                     <FieldError message={errors['birthPlace']} />
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Educational Attainment</label>
                                     <select id="educationalAttain" value={form.educationalAttain} onChange={handleChange} className={inputClasses} required>
                                         <option value="" disabled>Select</option>
                                         {EDUCATION_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                                     </select>
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Employment Status</label>
                                     <select id="employmentStatus" value={form.employmentStatus} onChange={handleChange} className={inputClasses} required>
                                         <option value="" disabled>Select</option>
                                         {EMPLOYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
-                                <div className="col-span-1 sm:col-span-2">
+                                <div>
                                     <label className={labelClasses}>Blood Type</label>
                                     <select id="bloodType" value={form.bloodType} onChange={handleChange} className={inputClasses} required>
                                         <option value="" disabled>Select Blood Type</option>
@@ -409,8 +409,8 @@ export function TemplatesComponent() {
                         <div className={legendClasses}>
                             <span className="text-[var(--text-2)]">②</span> PhilHealth & Categorization
                         </div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-4 sm:p-5 lg:p-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
                                     <label className={labelClasses}>PhilHealth No. <span className="text-[var(--text-3)] font-normal normal-case tracking-normal">(XX-XXXXXXXXX-X)</span></label>
                                     <input
@@ -459,8 +459,8 @@ export function TemplatesComponent() {
                         <div className={legendClasses}>
                             <span className="text-[var(--text-2)]">③</span> Emergency Contact
                         </div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        <div className="p-4 sm:p-5 lg:p-6">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-x-6">
                                 <div>
                                     <label className={labelClasses}>Relative's Name</label>
                                     <input
@@ -502,7 +502,7 @@ export function TemplatesComponent() {
                         </div>
                     </fieldset>
 
-                    <div className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--neutral-50-70)] px-4 py-3 text-sm font-medium leading-6 text-[var(--text)]">
+                    <div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-medium leading-6 text-[var(--text)] sm:px-5">
                         <div className="flex gap-3">
                             <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-2)]" />
                             <p>
@@ -511,7 +511,7 @@ export function TemplatesComponent() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-4 mt-4 mb-12 border-t border-[var(--border)] pt-6">
+                    <div className="flex justify-end gap-4 border-t border-[var(--border)] pt-5 sm:pt-6">
                         <button
                             type="submit"
                             disabled={saving}
