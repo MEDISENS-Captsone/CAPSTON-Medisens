@@ -166,4 +166,21 @@
        a dark fill rather than the light canvas. */
     --sidebar-divider: rgba(255, 255, 255, 0.1);
     --sidebar-text-muted: rgba(255, 255, 255, 0.55);
+
+    /* Batch 1B.1 — preservation aliases for hardcoded literals found in
+       pages/*.html and dashboard.css. Each value is copied byte-for-byte
+       from its prior raw usage so computed appearance is unchanged; they
+       are pre-navy legacy shades, not part of the canonical brand scale. */
+    --shadow-brand-legacy: rgba(43, 49, 138, 0.05);
+    --ring-brand-legacy: rgba(90, 129, 250, 0.18);
+    --ring-brand-legacy-soft: rgba(90, 129, 250, 0.16);
+    --shadow-neutral-xs: rgba(0, 0, 0, 0.05);
+    --ring-neutral-700-soft: rgba(51, 65, 85, 0.14);
+    --tap-highlight-legacy: rgba(46, 159, 230, 0.12);
+    --surface-translucent-96: rgba(255, 255, 255, 0.96);
+    --outline-neutral-700-soft: rgba(51, 65, 85, 0.28);
+    --overlay-navy-strong: rgba(15, 49, 84, 0.48);
+    --shadow-navy-drawer: rgba(15, 49, 84, 0.18);
+    --surface-translucent-chart: rgba(247, 250, 252, 0.96);
+    --ring-info-soft: rgba(66, 174, 232, 0.1);
 }
