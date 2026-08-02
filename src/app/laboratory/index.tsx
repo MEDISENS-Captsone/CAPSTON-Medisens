@@ -128,8 +128,8 @@ function LabRequestDetail({
         : '—';
 
     const statusColor = (s: string | null) => {
-        if (s === 'Completed') return 'bg-green-100 text-green-700 border-green-200';
-        return 'bg-amber-100 text-amber-700 border-amber-200';
+        if (s === 'Completed') return 'bg-[var(--green-tint-strong)] text-[var(--green-dark)] border-[var(--green-border)]';
+        return 'bg-[var(--amber-tint)] text-[var(--amber-text)] border-[var(--amber-border)]';
     };
 
     const tests: { label: string; value: boolean }[] = [
@@ -273,7 +273,7 @@ function LabRequestDetail({
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                         {fasting.map(t => (
                                                             <div key={t.label} className="flex items-center gap-2.5">
-                                                                <div className="w-4 h-4 rounded bg-orange-500 flex items-center justify-center shrink-0">
+                                                                <div className="w-4 h-4 rounded bg-[var(--status-caution)] flex items-center justify-center shrink-0">
                                                                     <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                                     </svg>
@@ -322,7 +322,7 @@ function LabRequestDetail({
                     <div>
                         <label className="clinical-field-label">
                             Lab Results / Findings
-                            {request.status === 'Completed' && <span className="ml-2 text-green-600 normal-case font-semibold inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Result recorded</span>}
+                            {request.status === 'Completed' && <span className="ml-2 text-[var(--green-accent-strong)] normal-case font-semibold inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Result recorded</span>}
                             {loadingLabResult && <span className="ml-2 text-[var(--text-2)] normal-case font-semibold">Loading recorded result...</span>}
                         </label>
                         <textarea
@@ -342,7 +342,7 @@ function LabRequestDetail({
                             type="button"
                             onClick={handleMarkCompleted}
                             disabled={saving}
-                            className="w-full font-semibold py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all  disabled:opacity-50 text-sm"
+                            className="w-full font-semibold py-2.5 px-4 rounded-lg bg-[var(--green-accent-strong)] hover:bg-[var(--green-dark)] text-white shadow-sm transition-all  disabled:opacity-50 text-sm"
                         >
                             {saving ? 'Recording Results...' : <span className="inline-flex items-center justify-center gap-1.5"><Icon name="check" className="h-4 w-4" /> Record Lab Results</span>}
                         </button>

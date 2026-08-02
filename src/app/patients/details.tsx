@@ -278,7 +278,7 @@ function DetailsPage() {
                 <main className="w-full flex-1 pwa-page-pad">
                     <div className="w-full">
                         {error ? (
-                            <div className="bg-red-50 text-red-700 p-6 rounded-xl border border-red-200 font-semibold text-center">{error}</div>
+                            <div className="bg-[var(--coral-tint)] text-[var(--coral-dark)] p-6 rounded-xl border border-[var(--coral-border)] font-semibold text-center">{error}</div>
                         ) : !patient ? (
                             <div className="rounded-xl border border-[var(--border)] bg-white p-5" role="status" aria-live="polite" aria-busy="true">
                                 <div className="mb-5 flex items-center gap-4">
@@ -427,9 +427,9 @@ function DetailsPage() {
                                         )}
 
                                         {patient.consent_signed ? (
-                                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Consent Signed</span>
+                                            <span className="bg-[var(--green-surface)] text-[var(--green-text)] border border-[var(--green-border-soft)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Consent Signed</span>
                                         ) : (
-                                            <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Pending Consent</span>
+                                            <span className="bg-[var(--amber-surface)] text-[var(--amber-text)] border border-[var(--amber-border)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Pending Consent</span>
                                         )}
                                     </div>
                                 </div>
@@ -484,7 +484,7 @@ function DetailsPage() {
 
                                     {/* Nurse / Doctor / any role action */}
                                     {(role === 'nurse' || role === 'doctor' || role === 'midwives' || role === 'BHW') && (
-                                        <button onClick={handleOpenHistory} className="w-full bg-teal-600 text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-teal-700 hover:shadow-teal-600/30 transition-all  flex items-center justify-center gap-3">
+                                        <button onClick={handleOpenHistory} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
                                             View Complete Transaction History
                                         </button>
                                     )}

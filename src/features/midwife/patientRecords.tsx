@@ -180,9 +180,9 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                         </span>
                                         {/* Reads pre-normalized consent_signed from useMidwifeData */}
                                         {patient.consent_signed ? (
-                                            <span className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.6rem] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1"><Icon name="check" className="h-3 w-3" /> SIGNED</span>
+                                            <span className="bg-[var(--green-surface)] border border-[var(--green-border-soft)] text-[var(--green-text)] text-[0.6rem] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1"><Icon name="check" className="h-3 w-3" /> SIGNED</span>
                                         ) : (
-                                            <span className="bg-amber-50 border border-amber-200 text-amber-700 text-[0.6rem] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1"><Icon name="alert-triangle" className="h-3 w-3" /> PENDING</span>
+                                            <span className="bg-[var(--amber-surface)] border border-[var(--amber-border)] text-[var(--amber-text)] text-[0.6rem] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1"><Icon name="alert-triangle" className="h-3 w-3" /> PENDING</span>
                                         )}
                                     </div>
 

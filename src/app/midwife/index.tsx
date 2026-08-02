@@ -86,9 +86,9 @@ function PatientDetailsPanel({
                         <Icon name="clock" className="mr-1 inline h-3.5 w-3.5" /> History
                     </button>
                     {consentSigned ? (
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.65rem] font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Icon name="check" className="h-3.5 w-3.5" /> Consent Signed</span>
+                        <span className="bg-[var(--green-surface)] text-[var(--green-text)] border border-[var(--green-border-soft)] text-[0.65rem] font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Icon name="check" className="h-3.5 w-3.5" /> Consent Signed</span>
                     ) : (
-                        <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[0.65rem] font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Icon name="alert-triangle" className="h-3.5 w-3.5" /> Pending Consent</span>
+                        <span className="bg-[var(--amber-surface)] text-[var(--amber-text)] border border-[var(--amber-border)] text-[0.65rem] font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Icon name="alert-triangle" className="h-3.5 w-3.5" /> Pending Consent</span>
                     )}
                 </div>
             </div>

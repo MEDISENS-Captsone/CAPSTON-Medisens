@@ -312,7 +312,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                             <h3 className="text-xl font-extrabold text-[var(--text)]">New {logbooks.find(l => l.id === activeLogbook)?.label} Entry</h3>
                         </div>
 
-                        {errorMsg && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm font-semibold flex items-start gap-2" role="alert"><Icon name="alert-triangle" className="h-5 w-5 shrink-0" /> {errorMsg}</div>}
+                        {errorMsg && <div className="mb-6 p-4 bg-[var(--coral-tint)] text-[var(--coral-dark)] rounded-xl text-sm font-semibold flex items-start gap-2" role="alert"><Icon name="alert-triangle" className="h-5 w-5 shrink-0" /> {errorMsg}</div>}
 
                         <div className="max-w-3xl">
                             {/* STEP 1: PATIENT SELECTION */}
@@ -400,7 +400,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                 {calculatedBMI && (
                                                     <div className="col-span-2 mt-2 p-3 bg-[var(--surface-subtle)] rounded-lg text-sm border border-[var(--border)] flex justify-between">
                                                         <span>Calculated BMI: <strong>{calculatedBMI.value}</strong></span>
-                                                        <span>Status: <strong className={calculatedBMI.status === 'Normal' ? 'text-green-600' : 'text-amber-600'}>{calculatedBMI.status}</strong></span>
+                                                        <span>Status: <strong className={calculatedBMI.status === 'Normal' ? 'text-[var(--green-accent-strong)]' : 'text-[var(--amber-accent-strong)]'}>{calculatedBMI.status}</strong></span>
                                                     </div>
                                                 )}
                                             </div>
@@ -477,7 +477,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                                         <input value={row.remarks || ''} onChange={e => updateVaccineRow(index, 'remarks', e.target.value)} placeholder="Optional" className="w-full p-2.5 border border-[var(--border)] rounded-lg text-left text-sm text-[var(--text)] bg-white shadow-sm" />
                                                                     </div>
                                                                     {vaccineRows.length > 1 && (
-                                                                        <button type="button" onClick={() => removeVaccineRow(index)} className="mb-0.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
+                                                                        <button type="button" onClick={() => removeVaccineRow(index)} className="mb-0.5 rounded-lg border border-[var(--coral-border)] bg-white px-3 py-2 text-xs font-bold text-[var(--coral-accent-strong)] hover:bg-[var(--coral-tint)]">
                                                                             Remove
                                                                         </button>
                                                                     )}
@@ -531,7 +531,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                 <span className="text-sm font-bold text-[var(--text)]">Received Basic Oral Health Care (BOHC)</span>
                                             </label>
                                             {formData.received_bohc && selectedPatient && (
-                                                <p className="text-xs text-emerald-600 mt-2 font-bold px-2">Patient auto-tagged to age bracket based on age {selectedPatient.age}.</p>
+                                                <p className="text-xs text-[var(--green-ink)] mt-2 font-bold px-2">Patient auto-tagged to age bracket based on age {selectedPatient.age}.</p>
                                             )}
                                         </div>
                                     )}
@@ -566,7 +566,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                 </select>
                                             </div>
                                             {selectedPatient?.age >= 60 && (
-                                                <p className="text-xs text-emerald-600 font-bold px-2">Auto-tagged as Senior Citizen.</p>
+                                                <p className="text-xs text-[var(--green-ink)] font-bold px-2">Auto-tagged as Senior Citizen.</p>
                                             )}
                                         </div>
                                     )}

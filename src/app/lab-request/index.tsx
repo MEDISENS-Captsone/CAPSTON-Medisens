@@ -142,7 +142,7 @@ function LabRequest() {
           <div className="mt-8 p-6 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-lg">
             <h3 className="font-bold text-[var(--text)] mb-4">Laboratory Results Entry</h3>
             <textarea className="w-full p-3 border rounded mb-4 h-32" placeholder="Enter findings or append link to result file..." value={formData.labNotes} onChange={e => setFormData({...formData, labNotes: e.target.value})}></textarea>
-            <label className="flex items-center gap-2 font-bold text-sm text-green-700">
+            <label className="flex items-center gap-2 font-bold text-sm text-[var(--green-dark)]">
               <input type="checkbox" checked={formData.status === 'Completed'} onChange={e => setFormData({...formData, status: e.target.checked ? 'Completed' : 'Pending'})} />
               Mark results as completed for doctor review
             </label>

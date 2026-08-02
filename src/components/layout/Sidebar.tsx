@@ -162,11 +162,11 @@ export function Sidebar({
         };
     }, [showLogoutModal]);
 
-    const logoBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-amber-500';
-    const avatarBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500';
+    const logoBg = isOnline ? 'bg-[var(--brand-primary)]' : 'bg-[var(--amber-accent)]';
+    const avatarBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-[var(--amber-accent)]';
     const activeBg = isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-amber-500/20';
-    const activeText = isOnline ? 'text-white' : 'text-amber-100';
-    const activeIndicator = isOnline ? 'bg-[var(--brand-accent-surface)]' : 'bg-amber-300';
+    const activeText = isOnline ? 'text-white' : 'text-[var(--amber-tint)]';
+    const activeIndicator = isOnline ? 'bg-[var(--brand-accent-surface)]' : 'bg-[var(--amber-tint-strong)]';
 
     return (
         <>

@@ -245,7 +245,7 @@ function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; 
                         ) : (
                             <>
                                 {(activeSection === 'all' || activeSection === 'initial') && initialConsults.map((rec) => (
-                                    <RecordCard key={`initial-${rec.initialconsultation_id}`} id={`initial-${rec.initialconsultation_id}`} badge="Initial" badgeColor="bg-purple-100 text-purple-700" date={formatDate(rec.consultation_date)} title={rec.chief_complaint || 'Initial Consultation'} subtitle={rec.diagnosis}>
+                                    <RecordCard key={`initial-${rec.initialconsultation_id}`} id={`initial-${rec.initialconsultation_id}`} badge="Initial" badgeColor="bg-[var(--brand-soft-surface)] text-[var(--brand-active)]" date={formatDate(rec.consultation_date)} title={rec.chief_complaint || 'Initial Consultation'} subtitle={rec.diagnosis}>
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                             <Field label="Date" value={formatDate(rec.consultation_date)} />
                                             <Field label="Time" value={rec.consultation_time} />
@@ -432,10 +432,10 @@ export function ConsultationPage({
         const h = parseFloat(formData.followUpHeight || '0');
         if (w > 0 && h > 0) {
             const bmiValue = parseFloat((w / ((h / 100) * (h / 100))).toFixed(1));
-            let status = 'Normal'; let color = 'text-emerald-600';
-            if (bmiValue < 18.5) { status = 'Underweight'; color = 'text-amber-500'; }
-            else if (bmiValue >= 25 && bmiValue < 29.9) { status = 'Overweight'; color = 'text-orange-500'; }
-            else if (bmiValue >= 30) { status = 'Obese'; color = 'text-red-500'; }
+            let status = 'Normal'; let color = 'text-[var(--green-ink)]';
+            if (bmiValue < 18.5) { status = 'Underweight'; color = 'text-[var(--amber-accent)]'; }
+            else if (bmiValue >= 25 && bmiValue < 29.9) { status = 'Overweight'; color = 'text-[var(--status-caution)]'; }
+            else if (bmiValue >= 30) { status = 'Obese'; color = 'text-[var(--coral-accent)]'; }
             return { value: bmiValue.toString(), status, color };
         }
         return null;
@@ -455,7 +455,7 @@ export function ConsultationPage({
     const [showHistory, setShowHistory] = useState(false);
 
     const { isOnline } = useNetworkSync();
-    const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20';
+    const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-[var(--amber-accent)] hover:bg-[var(--amber-accent-strong)] shadow-amber-500/20';
 
     const { showToast, ToastComponent } = useToast();
 
@@ -1053,7 +1053,7 @@ export function ConsultationPage({
 
     if (!patient) {
         return (
-            <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-8 mb-6 text-amber-700 flex flex-col items-center justify-center text-center">
+            <div className="w-full bg-[var(--amber-surface)] border border-[var(--amber-border)] rounded-xl p-8 mb-6 text-[var(--amber-text)] flex flex-col items-center justify-center text-center">
                 <Icon name="stethoscope" className="h-10 w-10 mb-4" />
                 <h2 className="text-xl font-bold mb-2">No patient selected</h2>
                 <p className="text-sm font-semibold mb-6">Select a patient from the clinical work queue to begin consultation.</p>
@@ -1228,7 +1228,7 @@ export function ConsultationPage({
                             Lab Results <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span>
                         </label>
                         <textarea rows={5} id="consult-followUpLabResults" name="followUpLabResults" value={formData.followUpLabResults} onChange={handleChange} className={textareaCls} placeholder="Auto-fetched when lab submits results..." />
-                        {formData.followUpLabResults && <p className="text-[10px] text-green-600 font-bold uppercase mt-2 inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Results Synced from Laboratory</p>}
+                        {formData.followUpLabResults && <p className="text-[10px] text-[var(--green-accent-strong)] font-bold uppercase mt-2 inline-flex items-center gap-1"><Icon name="check" className="h-3.5 w-3.5" /> Results Synced from Laboratory</p>}
                     </div>
                 </div>
             </div>
@@ -1241,7 +1241,7 @@ export function ConsultationPage({
                             <div className="absolute inset-0 flex items-center justify-center text-[var(--border)] font-bold text-[10px] pointer-events-none select-none uppercase tracking-wide">Sign Here</div>
                             <SignatureCanvas ref={followUpSigCanvas} canvasProps={{ className: 'w-full h-full relative z-10' }} />
                         </div>
-                        <button type="button" onClick={() => followUpSigCanvas.current?.clear()} className="text-[10px] font-bold text-[var(--text-muted)] hover:text-red-500 transition-colors uppercase tracking-wide">Clear Signature</button>
+                        <button type="button" onClick={() => followUpSigCanvas.current?.clear()} className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--coral-accent)] transition-colors uppercase tracking-wide">Clear Signature</button>
                     </div>
                     <div className="hidden md:block py-6">
                         <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-medium bg-[var(--surface-subtle)]/50 p-4 rounded-xl border border-[var(--border-soft)] border-dashed">
@@ -1255,11 +1255,11 @@ export function ConsultationPage({
                 <div className="order-1 sm:order-2 flex flex-col gap-3 w-full sm:w-auto bg-[var(--surface-subtle)] border border-[var(--border)] p-4 rounded-2xl shadow-sm">
                     <p className="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wide text-center mb-1">Follow-up Actions</p>
                     {!followUpDone ? (
-                        <button onClick={handleMarkFollowUpDone} disabled={loading || !patient?.id} className="w-full bg-white hover:bg-green-50 text-green-700 py-3 px-6 rounded-xl font-bold transition-colors border border-green-200 flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
+                        <button onClick={handleMarkFollowUpDone} disabled={loading || !patient?.id} className="w-full bg-white hover:bg-[var(--green-tint)] text-[var(--green-dark)] py-3 px-6 rounded-xl font-bold transition-colors border border-[var(--green-border)] flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
                             {loading ? 'Processing...' : <><Icon name="check" className="h-4 w-4" /> Mark Follow-up as Done</>}
                         </button>
                     ) : (
-                        <div className="w-full bg-green-100 text-green-700 py-3 px-6 rounded-xl font-bold border border-green-300 flex items-center justify-center gap-2 shadow-sm cursor-default"><Icon name="check" className="h-4 w-4" /> Follow-up Completed</div>
+                        <div className="w-full bg-[var(--green-tint-strong)] text-[var(--green-dark)] py-3 px-6 rounded-xl font-bold border border-[var(--green-border-strong)] flex items-center justify-center gap-2 shadow-sm cursor-default"><Icon name="check" className="h-4 w-4" /> Follow-up Completed</div>
                     )}
                     <button onClick={() => setActiveTab(5)} className={`w-full text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Clinical Notes</button>
                 </div>
@@ -1274,7 +1274,7 @@ export function ConsultationPage({
             </div>
             <div className="space-y-6">
                 <div>
-                    <label className={labelCls} htmlFor="consult-diagnosis">Diagnosis: <span className="text-rose-500">*</span></label>
+                    <label className={labelCls} htmlFor="consult-diagnosis">Diagnosis: <span className="text-[var(--marker-required)]">*</span></label>
                     <textarea id="consult-diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={`${textareaCls} min-h-[120px] border-l-4 border-l-blue-500`} placeholder="Enter final diagnosis for the Medical Certificate..." />
                 </div>
                 <div>
@@ -1349,7 +1349,7 @@ export function ConsultationPage({
             <div className="flex flex-col sm:flex-row justify-between gap-3 pt-8 mt-6 border-t border-[var(--border-soft)]">
                 <button onClick={() => setActiveTab(5)} className="order-2 sm:order-1 w-full sm:w-auto bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors">Back</button>
                 <div className="flex flex-col sm:flex-row gap-4 order-1 sm:order-2">
-                    <button onClick={handleSaveLabRequest} disabled={loading || !patient?.id} className={`w-full sm:w-auto py-3.5 px-6 rounded-xl font-extrabold transition-colors shadow-sm border-2 disabled:opacity-50 ${isOnline ? 'bg-white border-[var(--border-strong)] text-[var(--text-2)] hover:bg-[var(--surface-subtle)]' : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'}`}>
+                    <button onClick={handleSaveLabRequest} disabled={loading || !patient?.id} className={`w-full sm:w-auto py-3.5 px-6 rounded-xl font-extrabold transition-colors shadow-sm border-2 disabled:opacity-50 ${isOnline ? 'bg-white border-[var(--border-strong)] text-[var(--text-2)] hover:bg-[var(--surface-subtle)]' : 'bg-[var(--amber-surface)] border-[var(--amber-tint-strong)] text-[var(--amber-text)] hover:bg-[var(--amber-tint)]'}`}>
                         {loading ? 'Sending...' : <><Icon name="clipboard" className="inline h-4 w-4 mr-2" />Send to Laboratory</>}
                     </button>
                     <button onClick={() => setActiveTab(8)} className={`w-full sm:w-auto text-white py-2.5 px-6 rounded-lg font-semibold transition-colors ${primaryBtnBg}`}>Next: E-Prescription</button>
@@ -1367,7 +1367,7 @@ export function ConsultationPage({
                 {medications.map((med, i) => (
                     <div key={i} className="bg-[var(--surface-subtle)] border border-[var(--border)] rounded-2xl p-5 shadow-sm relative group transition-all hover:border-[var(--border)]">
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {medications.length > 1 && <button onClick={() => handleRemoveMed(i)} className="text-xs bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg font-bold transition-colors">Remove</button>}
+                            {medications.length > 1 && <button onClick={() => handleRemoveMed(i)} className="text-xs bg-white border border-[var(--coral-border)] text-[var(--coral-accent)] hover:bg-[var(--coral-tint)] px-3 py-1.5 rounded-lg font-bold transition-colors">Remove</button>}
                         </div>
                         <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-4">Medication {i + 1}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -1395,7 +1395,7 @@ export function ConsultationPage({
                             <div className="absolute inset-0 flex items-center justify-center text-[var(--border)] font-bold text-[10px] pointer-events-none select-none uppercase tracking-wide">Sign Here</div>
                             <SignatureCanvas ref={sigCanvas} canvasProps={{ className: 'w-full h-full relative z-10' }} />
                         </div>
-                        <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-[10px] font-bold text-[var(--text-muted)] hover:text-red-500 transition-colors uppercase tracking-wide">Clear Signature</button>
+                        <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--coral-accent)] transition-colors uppercase tracking-wide">Clear Signature</button>
                     </div>
                     <div className="hidden md:block">
                         <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-medium bg-white/50 p-4 rounded-xl border border-[var(--border-soft)] border-dashed">

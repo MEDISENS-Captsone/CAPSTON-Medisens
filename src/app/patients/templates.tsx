@@ -115,7 +115,7 @@ function RadioOption({ name, value, label, checked, onChange }: {
 
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
-    return <p className="mt-1.5 text-xs text-red-500 font-semibold flex items-center gap-1"><Icon name="alert-triangle" className="h-3.5 w-3.5 shrink-0" />{message}</p>;
+    return <p className="mt-1.5 text-xs text-[var(--coral-accent)] font-semibold flex items-center gap-1"><Icon name="alert-triangle" className="h-3.5 w-3.5 shrink-0" />{message}</p>;
 }
 
 // ─── Exported Pure Component ──────────────────────────────────────────────────
@@ -333,7 +333,7 @@ export function TemplatesComponent() {
                                     />
                                     <div className="flex items-center justify-between mt-1">
                                         <FieldError message={errors['contactNumber']} />
-                                        <span className={`text-xs ml-auto font-semibold ${form.contactNumber.length === 11 ? 'text-green-500' : 'text-[var(--text-3)]'}`}>
+                                        <span className={`text-xs ml-auto font-semibold ${form.contactNumber.length === 11 ? 'text-[var(--green-accent)]' : 'text-[var(--text-3)]'}`}>
                                             {form.contactNumber.length}/11
                                         </span>
                                     </div>
@@ -407,7 +407,7 @@ export function TemplatesComponent() {
 
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
-                            <span className="text-pink-600">②</span> PhilHealth & Categorization
+                            <span className="text-[var(--text-2)]">②</span> PhilHealth & Categorization
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -423,7 +423,7 @@ export function TemplatesComponent() {
                                     />
                                     <div className="flex items-center justify-between mt-1">
                                         <FieldError message={errors['philhealthNo']} />
-                                        <span className={`text-xs ml-auto font-semibold ${philhealthDigits(form.philhealthNo).length === 12 ? 'text-green-500' : 'text-[var(--text-3)]'}`}>
+                                        <span className={`text-xs ml-auto font-semibold ${philhealthDigits(form.philhealthNo).length === 12 ? 'text-[var(--green-accent)]' : 'text-[var(--text-3)]'}`}>
                                             {philhealthDigits(form.philhealthNo).length}/12 digits
                                         </span>
                                     </div>
@@ -457,7 +457,7 @@ export function TemplatesComponent() {
 
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
-                            <span className="text-green-600">③</span> Emergency Contact
+                            <span className="text-[var(--text-2)]">③</span> Emergency Contact
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-5">

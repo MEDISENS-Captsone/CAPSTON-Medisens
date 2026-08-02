@@ -82,12 +82,12 @@ async function getFunctionErrorMessage(error: unknown, data?: { error?: string }
 const RoleBadge = ({ role }: { role: string }) => {
     const roleColors: Record<string, string> = {
         doctor: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
-        nurse: 'bg-green-50 text-green-600',
-        BHW: 'bg-orange-50 text-orange-600',
-        midwives: 'bg-pink-50 text-pink-700',
-        pharmacist: 'bg-emerald-50 text-emerald-700',
-        laboratory: 'bg-indigo-50 text-indigo-700',
-        admin: 'bg-[var(--surface-subtle)] text-[var(--text-2)]'
+        nurse: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        BHW: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        midwives: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        pharmacist: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        laboratory: 'bg-[var(--surface-subtle)] text-[var(--text-2)]',
+        admin: 'bg-[var(--brand-soft-surface)] text-[var(--brand-active)]'
     };
 
     const roleLabels: Record<string, string> = {
@@ -115,11 +115,11 @@ const getAvatarColor = (role: string): string => {
     const normalizedRole = role === 'labaratory' ? 'laboratory' : role;
     const map: Record<string, string> = {
         doctor: 'bg-[var(--brand-active)]',
-        nurse: 'bg-green-600',
-        BHW: 'bg-orange-600',
-        midwives: 'bg-pink-700',
-        pharmacist: 'bg-emerald-700',
-        laboratory: 'bg-indigo-600',
+        nurse: 'bg-[var(--brand-active)]',
+        BHW: 'bg-[var(--brand-active)]',
+        midwives: 'bg-[var(--brand-active)]',
+        pharmacist: 'bg-[var(--brand-active)]',
+        laboratory: 'bg-[var(--brand-active)]',
         admin: 'bg-[var(--brand-active)]'
     };
     return map[normalizedRole] || 'bg-[var(--brand-active)]';
@@ -633,9 +633,9 @@ const AdminDashboard = () => {
                                             <input type="password" value={fConfirmPassword} onChange={e => setFConfirmPassword(e.target.value)} placeholder="Repeat password" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
                                         </div>
                                     </div>
-                                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-2">
-                                        <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Authorized Account Creation</div>
-                                        <p className="text-[11px] text-amber-800 font-medium leading-snug">
+                                    <div className="p-4 bg-[var(--amber-surface)] border border-[var(--amber-tint)] rounded-2xl space-y-2">
+                                        <div className="text-[10px] font-semibold text-[var(--amber-text)] uppercase tracking-wide">Authorized Account Creation</div>
+                                        <p className="text-[11px] text-[var(--amber-text-dark)] font-medium leading-snug">
                                             New accounts must be created only for approved RHU personnel. Assign the correct role before saving access.
                                         </p>
                                     </div>
@@ -670,15 +670,15 @@ const AdminDashboard = () => {
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[var(--overlay-soft)] backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget && !isSaving) closeConfirmModal(); }}>
                     <div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-lg border border-[var(--border)] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-lg flex items-center justify-center mb-5"><Icon name="trash" className="h-8 w-8" /></div>
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--coral-accent)]"></div>
+                        <div className="w-16 h-16 bg-[var(--coral-tint)] text-[var(--coral-accent)] rounded-lg flex items-center justify-center mb-5"><Icon name="trash" className="h-8 w-8" /></div>
                         <h3 id="delete-user-dialog-title" className="text-xl font-bold text-[var(--text)] mb-2">Delete User?</h3>
                         <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-8">
                             Are you sure you want to permanently delete <strong className="text-[var(--text)] font-bold">{userToDelete?.name}</strong>? This action cannot be undone.
                         </p>
                         <div className="flex w-full gap-3">
                             <button ref={cancelDeleteRef} type="button" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 py-3 bg-[var(--surface-subtle)] text-[var(--text-2)] rounded-xl font-bold text-sm hover:bg-[var(--border-soft)] transition-colors disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={handleDeleteUser} disabled={isSaving} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 shadow-sm transition-colors disabled:opacity-50">
+                            <button type="button" onClick={handleDeleteUser} disabled={isSaving} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-[var(--coral-accent)] text-white rounded-xl font-bold text-sm hover:bg-[var(--coral-accent-strong)] shadow-sm transition-colors disabled:opacity-50">
                                 {isSaving ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>

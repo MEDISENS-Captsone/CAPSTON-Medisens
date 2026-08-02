@@ -216,7 +216,7 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
                     </div>
                 ))}
             </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium leading-relaxed text-amber-900">
+            <div className="rounded-lg border border-[var(--amber-border)] bg-[var(--amber-surface)] px-4 py-3 text-sm font-medium leading-relaxed text-[var(--amber-ink)]">
                 Only patients with no activity for at least 5 years and no pending follow-ups, laboratory requests, or other ongoing care may be archived.
             </div>
 
@@ -343,7 +343,7 @@ export function ArchiveReviewPage({ isOnline, readOnly = false }: { isOnline: bo
                         </div>
                         <div className="flex justify-end gap-3 border-t border-[var(--border-soft)] bg-[var(--surface-subtle)] p-4">
                             <button type="button" onClick={closeAction} disabled={isSaving} className="rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-bold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={submitArchiveAction} disabled={isSaving} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ${action === 'archive' ? 'bg-red-600 hover:bg-red-700' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)]'}`}>
+                            <button type="button" onClick={submitArchiveAction} disabled={isSaving} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ${action === 'archive' ? 'bg-[var(--coral-accent-strong)] hover:bg-[var(--coral-dark)]' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)]'}`}>
                                 {isSaving ? 'Saving...' : action === 'archive' ? 'Archive Record' : 'Restore Record'}
                             </button>
                         </div>
