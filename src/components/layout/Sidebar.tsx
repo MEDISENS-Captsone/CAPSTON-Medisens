@@ -187,11 +187,11 @@ export function Sidebar({
                 id="primary-navigation"
                 aria-label="Primary navigation"
                 inert={isDrawerHidden}
-                className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] md:w-[240px] bg-[var(--brand-active)] border-r border-white/15 flex flex-col transform transition-transform duration-300 ease-in-out print:hidden ${isMobileMenuOpen ? 'translate-x-0 shadow-lg' : '-translate-x-full md:translate-x-0'}`}
+                className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] md:w-[240px] bg-[var(--brand-active)] border-r border-white/15 flex flex-col transform transition-transform duration-300 ease-in-out print:hidden ${isMobileMenuOpen ? 'translate-x-0 shadow-[var(--shadow-lg)]' : '-translate-x-full md:translate-x-0'}`}
             >
-                
+
                 {/* Brand Header */}
-                <div className="flex min-h-[56px] items-center justify-between border-b border-white/10 bg-[var(--brand-active-hover)] p-3 shrink-0">
+                <div className="flex min-h-[56px] items-center justify-between border-b border-[var(--sidebar-divider)] p-3 shrink-0">
                     <div className="flex items-center gap-2.5">
                         <div className={`w-8 h-8 rounded-md flex items-center justify-center shadow-sm ring-1 ring-white/15 shrink-0 transition-colors duration-200 ${logoBg}`} aria-hidden="true">
                             {isOnline ? <img src={medisensLogo} alt="" className="h-5 w-5 object-contain brightness-0 invert" /> : <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="currentColor"><path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z" /></svg>}
@@ -250,7 +250,7 @@ export function Sidebar({
                 <button
                     type="button"
                     onClick={() => setShowLogoutModal(true)}
-                    className="mt-auto w-full shrink-0 border-t border-white/15 bg-[var(--brand-active-hover)] p-3 text-left transition-colors hover:bg-[var(--brand-active)] group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white"
+                    className="mt-auto w-full shrink-0 border-t border-white/15 p-3 text-left transition-colors hover:bg-[var(--brand-active-hover)] group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white"
                     title="Log out"
                     aria-label={`Log out — signed in as ${userName}, ${userRole}`}
                     aria-haspopup="dialog"
@@ -274,8 +274,8 @@ export function Sidebar({
             {/* Custom Logout Modal */}
             {showLogoutModal && (
                 <div onClick={() => setShowLogoutModal(false)} className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--overlay)] p-4 backdrop-blur-sm transition-opacity" role="presentation">
-                    <div ref={logoutDialogRef} onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-white p-4 text-center shadow-sm">
-                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600"><Icon name="logout" className="h-5 w-5" /></div>
+                    <div ref={logoutDialogRef} onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-center shadow-[var(--shadow-lg)]">
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--coral-light)] text-[var(--coral)]"><Icon name="logout" className="h-5 w-5" /></div>
                         <h3 id="logout-dialog-title" className="text-[length:var(--type-section-title-size)] font-semibold leading-[var(--type-section-title-line)] text-[var(--text)] tracking-[var(--tracking-normal)]">Log out</h3>
                         <p id="logout-dialog-description" className="mb-4 mt-2 text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--text-secondary)]">Are you sure you want to end your session?</p>
                         <div className="flex w-full gap-3">
@@ -286,7 +286,7 @@ export function Sidebar({
                                     e.stopPropagation();
                                     setShowLogoutModal(false);
                                 }}
-                                className="min-h-10 flex-1 rounded-lg border border-[var(--border)] bg-white px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
+                                className="min-h-10 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--focus-color)]"
                             >
                                 Cancel
                             </button>
@@ -296,7 +296,7 @@ export function Sidebar({
                                     e.stopPropagation();
                                     await logout();
                                 }}
-                                className="min-h-10 flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-600"
+                                className="min-h-10 flex-1 rounded-lg bg-[var(--coral)] px-4 py-2.5 text-[length:var(--type-button-size)] font-semibold leading-[var(--type-button-line)] text-white shadow-sm transition-colors hover:bg-[var(--coral-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--coral)]"
                             >
                                 Log Out
                             </button>

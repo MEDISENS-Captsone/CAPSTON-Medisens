@@ -19,7 +19,7 @@ export function UserMenu({ userName, userInitials, userRole, isOnline = true, on
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[length:var(--type-label-size)] font-semibold text-white shadow-sm ${avatarColor}`}>
                 {userInitials}
             </div>
-            {onLogoutClick && <Icon name="logout" className="hidden h-4 w-4 text-[var(--text-muted)] transition-colors group-hover:text-red-600 sm:block" />}
+            {onLogoutClick && <Icon name="logout" className="hidden h-4 w-4 text-[var(--text-muted)] transition-colors group-hover:text-[var(--coral)] sm:block" />}
         </>
     );
 

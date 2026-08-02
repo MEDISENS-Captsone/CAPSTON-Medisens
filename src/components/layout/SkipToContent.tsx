@@ -22,7 +22,7 @@ export function SkipToContent() {
         <a
             href={`#${MAIN_CONTENT_ID}`}
             onClick={focusMainContent}
-            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:inline-flex focus:min-h-10 focus:items-center focus:rounded-lg focus:bg-[var(--brand-active)] focus:px-4 focus:py-2 focus:text-[length:var(--type-button-size)] focus:font-semibold focus:text-white focus:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-color)]"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:inline-flex focus:min-h-10 focus:items-center focus:rounded-lg focus:bg-[var(--brand-active)] focus:px-4 focus:py-2 focus:text-[length:var(--type-button-size)] focus:font-semibold focus:text-white focus:shadow-[var(--shadow-lg)] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-color)]"
         >
             Skip to main content
         </a>

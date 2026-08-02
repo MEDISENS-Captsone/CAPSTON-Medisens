@@ -9,7 +9,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, meta }: PageHeaderProps) {
     return (
-        <section className="flex flex-col gap-3 border-b border-[var(--border)] bg-white px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5 xl:px-6">
+        <section className="flex flex-col gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5 xl:px-6">
             <div className="min-w-0">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <h2 className="truncate text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] tracking-[var(--tracking-normal)] text-[var(--text)]">{title}</h2>
