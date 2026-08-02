@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ══════════════════════════════════════════════════════════════
+   MEDISENS DESIGN TOKENS — canonical source
+
+   Every entry page in pages/*.html links this file directly, so these
+   tokens resolve identically on all 15 documents regardless of whether
+   the page also loads dashboard.css.
+
+   This file declares custom properties and the font face only. It must
+   not contain reset, layout, or component rules: several pages link it
+   without dashboard.css and rely on their own layout.
+
+   Values here are the current runtime values, preserved exactly. The
+   approved navy target in docs/design/SKILL-UI.md is applied in a later
+   batch by editing this file alone.
+══════════════════════════════════════════════════════════════ */
+:root {
+    --brand-primary: #5A81FA;
+    --brand-primary-hover: #426BED;
+    --brand-active: #2B318A;
+    --brand-active-hover: #242970;
+    --brand-accent-surface: #D1DDFF;
+    --brand-soft-surface: #F2F3FF;
+
+    --blue:        var(--brand-primary);
+    --blue-light:  var(--brand-soft-surface);
+    --blue-hover:  var(--brand-active);
+    --green:       #16A34A;
+    --green-light: #F0FDF4;
+    --pink:        #BE185D;
+    --pink-light:  #FDF2F8;
+    --slate:       #2B318A;
+    --indigo:      var(--brand-active);
+    --indigo-light:var(--brand-soft-surface);
+    --coral:       #DC2626;
+    --coral-light: #FEF2F2;
+
+    --bg:          #F7F8FC;
+    --surface:     #FFFFFF;
+    --border:      #DDE3F5;
+    --border-soft: #EEF1FB;
+    --border-strong: #A8B1CE;
+    --text:        #1F1F1F;
+    --text-2:      #4F5368;
+    --text-3:      #6A6E83;
+    --text-secondary: #6A6E83;
+    --white:       #FFFFFF;
+
+    --shadow-sm:   0 1px 1px rgba(43,49,138,0.04);
+    --shadow-md:   0 1px 3px rgba(43,49,138,0.07);
+    --shadow-lg:   0 4px 12px rgba(43,49,138,0.10);
+
+    --radius-sm:   0.5rem;
+    --radius:      0.5rem;
+    --radius-lg:   0.5rem;
+
+    /* Responsive variables */
+    --sidebar-w:   240px;
+    --topbar-h:    3.25rem;
+
+    /* Shared semantic foundation */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --type-display-size: 1.5rem;
+    --type-display-line: 1.2;
+    --type-page-title-size: clamp(1.25rem, 1.05rem + 0.55vw, 1.5rem);
+    --type-page-title-line: 1.25;
+    --type-section-title-size: 1.0625rem;
+    --type-section-title-line: 1.35;
+    --type-card-title-size: 0.9375rem;
+    --type-card-title-line: 1.35;
+    --type-body-size: 0.875rem;
+    --type-body-line: 1.55;
+    --type-supporting-size: 0.8125rem;
+    --type-supporting-line: 1.45;
+    --type-label-size: 0.8125rem;
+    --type-label-line: 1.35;
+    --type-table-size: 0.8125rem;
+    --type-table-line: 1.45;
+    --type-button-size: 0.875rem;
+    --type-button-line: 1.2;
+    --type-nav-size: 0.875rem;
+    --type-nav-line: 1.25;
+    --type-category-size: 0.6875rem;
+    --type-category-line: 1.25;
+    --type-caption-size: 0.75rem;
+    --type-caption-line: 1.35;
+    --tracking-normal: 0;
+    --tracking-label: 0.01em;
+    --tracking-category: 0.08em;
+    --tracking-nav-category: 0.11em;
+    --surface-muted: #F2F3FF;
+    --surface-subtle: #F7F8FC;
+    --text-muted: #6A6E83;
+    --focus-ring: rgba(90, 129, 250, 0.28);
+    --focus-color: var(--brand-primary);
+    --disabled-bg: #F2F3FF;
+    --disabled-text: #A8B1CE;
+    --disabled-border: #D1DDFF;
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --radius-control: 0.5rem;
+    --motion-fast: 160ms;
+    --motion-base: 220ms;
+}

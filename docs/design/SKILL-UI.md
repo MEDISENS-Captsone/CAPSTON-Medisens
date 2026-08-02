@@ -12,7 +12,7 @@
 
 The file:
 
-design/medisens-ui-reference.png
+docs/design/medisens-ui-reference.png
 
 is the canonical visual reference for MediSens.
 
@@ -56,7 +56,7 @@ Priority order:
 2. Existing role permissions
 3. Existing workflows
 4. SKILL-UI.md
-5. design/medisens-ui-reference.png
+5. docs/design/medisens-ui-reference.png
 
 ---
 

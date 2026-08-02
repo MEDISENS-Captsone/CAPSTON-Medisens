@@ -5,9 +5,20 @@ import SignatureCanvas from 'react-signature-canvas';
 import { useToast } from '../../components/feedback/Toast';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Input } from '../../components/ui';
 import { Icon } from '../../components/shared/Icon';
-import { colors } from '../../design-system';
 import { savePatientConsent } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
+
+// SignatureCanvas paints to a <canvas>, which cannot resolve a var() reference,
+// so the token has to be read back as a concrete value. The fallback keeps the
+// pen usable if this ever renders before tokens.css has applied.
+function tokenColor(name: string, fallback: string): string {
+    if (typeof window === 'undefined') return fallback;
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+}
+
+const PEN_INK = () => tokenColor('--text', '#1F1F1F');
+const PEN_INK_STAFF = () => tokenColor('--brand-primary-hover', '#426BED');
 
 interface ConsentProps {
     patientId: string;
@@ -31,7 +42,7 @@ function SectionIcon({ name }: { name: string }) {
     );
 }
 
-function SigPad({ label, sigRef, penColor = colors.neutral[900], onClear }: SigPadProps) {
+function SigPad({ label, sigRef, penColor = PEN_INK(), onClear }: SigPadProps) {
     const [active, setActive] = useState(false);
     const [hasContent, setHasContent] = useState(false);
 
@@ -172,13 +183,13 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                             <SigPad
                                 label="Patient Signature"
                                 sigRef={patientSigCanvas}
-                                penColor={colors.neutral[900]}
+                                penColor={PEN_INK()}
                                 onClear={() => patientSigCanvas.current?.clear()}
                             />
                             <SigPad
                                 label="RHU Personnel Signature"
                                 sigRef={personnelSigCanvas}
-                                penColor={colors.brand.primaryHover}
+                                penColor={PEN_INK_STAFF()}
                                 onClear={() => personnelSigCanvas.current?.clear()}
                             />
                         </div>
