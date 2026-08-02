@@ -7,7 +7,7 @@ import { getInitials } from '../../lib/utils/names';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { SkeletonList } from '../../components/ui/Skeleton';
+import { SkeletonKpiGrid, SkeletonList } from '../../components/ui/Skeleton';
 import { safeTrim } from '../../lib/utils/strings';
 
 
@@ -36,6 +36,9 @@ const BhwDashboard = () => {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [records, setRecords] = useState<any[]>([]); // State for FHSIS Census Logs
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+    const [dashboardError, setDashboardError] = useState('');
+    const [reloadToken, setReloadToken] = useState(0);
 
     // ─── SPA Navigation State ───
     const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
@@ -58,27 +61,28 @@ const BhwDashboard = () => {
         window.addEventListener('offline', handleOffline);
 
         const fetchData = async () => {
-            const profile = await requireRole('BHW');
-            const name = profile.fullName || 'BHW User';
-            setUserName(name);
-            setUserInitials(getInitials(name));
+            setDashboardError('');
+            try {
+                const profile = await requireRole('BHW');
+                const name = profile.fullName || 'BHW User';
+                setUserName(name);
+                setUserInitials(getInitials(name));
 
-            // 2. Fetch ALL patients
-            const { data: allPatients, error: statsError } = await supabase
-                .from('patients')
-                .select(BHW_PATIENT_COLUMNS)
-                .or('archive_status.eq.active,archive_status.is.null')
-                .order('created_at', { ascending: false })
-                .limit(BHW_PATIENT_LIMIT);
+                // 2. Fetch ALL patients
+                const { data: allPatients, error: statsError } = await supabase
+                    .from('patients')
+                    .select(BHW_PATIENT_COLUMNS)
+                    .or('archive_status.eq.active,archive_status.is.null')
+                    .order('created_at', { ascending: false })
+                    .limit(BHW_PATIENT_LIMIT);
 
-            if (!statsError && allPatients) {
-                setPatients(allPatients as Patient[]);
-            }
+                if (statsError) throw statsError;
+                if (allPatients) setPatients(allPatients as Patient[]);
 
-            // 3. Fetch FHSIS logs for the OCR Reports
-            const { data: fhsisData, error: fhsisError } = await supabase
-                .from('fhsis_logs')
-                .select(`
+                // 3. Fetch FHSIS logs for the OCR Reports
+                const { data: fhsisData, error: fhsisError } = await supabase
+                    .from('fhsis_logs')
+                    .select(`
                     id,
                     patient_id,
                     category,
@@ -91,20 +95,27 @@ const BhwDashboard = () => {
                         address
                     )
                 `)
-                .order('created_at', { ascending: false })
-                .limit(BHW_FHSIS_LIMIT);
+                    .order('created_at', { ascending: false })
+                    .limit(BHW_FHSIS_LIMIT);
 
-            if (!fhsisError && fhsisData) {
-                // Flatten the relationship for the ReportGenerator
-                const formattedRecords = fhsisData.map(record => {
-                    const patientData: any = Array.isArray(record.patients) ? record.patients[0] : record.patients;
-                    return {
-                        ...record,
-                        patientName: patientData ? safeTrim(`${patientData.firstName || ''} ${patientData.lastName || ''}`) : 'Unknown Patient',
-                        address: patientData?.address || 'N/A'
-                    };
-                });
-                setRecords(formattedRecords);
+                if (fhsisError) throw fhsisError;
+                if (fhsisData) {
+                    // Flatten the relationship for the ReportGenerator
+                    const formattedRecords = fhsisData.map(record => {
+                        const patientData: any = Array.isArray(record.patients) ? record.patients[0] : record.patients;
+                        return {
+                            ...record,
+                            patientName: patientData ? safeTrim(`${patientData.firstName || ''} ${patientData.lastName || ''}`) : 'Unknown Patient',
+                            address: patientData?.address || 'N/A'
+                        };
+                    });
+                    setRecords(formattedRecords);
+                }
+            } catch (error) {
+                console.error('Unable to load the BHW dashboard.', error);
+                setDashboardError('Unable to load the community health queue. Check your connection and try again.');
+            } finally {
+                setIsDashboardLoading(false);
             }
         };
 
@@ -123,7 +134,7 @@ const BhwDashboard = () => {
             window.removeEventListener('offline', handleOffline);
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [reloadToken]);
 
     const stats = useMemo(() => ({
         total: patients.length,
@@ -173,16 +184,33 @@ const BhwDashboard = () => {
                                     subtitle="Register residents, review recent intakes, and continue FHSIS reporting."
                                 />
 
-                                <div className="pwa-page-pad flex flex-col pwa-panel-gap">
-                                    <div className="ops-summary-grid">
+                                <div className="pwa-page-pad flex flex-col pwa-panel-gap bhw-dashboard-workspace">
+                                    {dashboardError && (
+                                        <div className="role-dashboard-alert" role="alert">
+                                            <div>
+                                                <p className="role-dashboard-alert-title">Community queue unavailable</p>
+                                                <p className="role-dashboard-alert-copy">{dashboardError}</p>
+                                            </div>
+                                            <button type="button" onClick={() => { setIsDashboardLoading(true); setReloadToken(value => value + 1); }} className="role-dashboard-retry">Try again</button>
+                                        </div>
+                                    )}
+
+                                    {isDashboardLoading ? (
+                                        <>
+                                            <SkeletonKpiGrid count={4} className="role-dashboard-skeleton-grid" />
+                                            <div className="ops-panel"><SkeletonList rows={5} /></div>
+                                        </>
+                                    ) : (
+                                    <>
+                                    <div className="ops-summary-grid bhw-summary-grid">
                                         {[
-                                            ['Recent Registrations', recentPatients.length, 'Latest residents added'],
-                                            ['Total Patients', stats.total, 'Master registry'],
-                                            ['FHSIS Records', records.length, 'Existing report entries'],
-                                            ['With Address', stats.withAddress, 'Barangay-ready records'],
-                                        ].map(([label, value, note]) => (
-                                            <div key={label} className="ops-summary-card">
-                                                <p className="ops-summary-label">{label}</p>
+                                            ['Recent Registrations', recentPatients.length, 'Latest residents added', 'clock'],
+                                            ['Total Patients', stats.total, 'Master registry', 'users'],
+                                            ['FHSIS Records', records.length, 'Existing report entries', 'file-text'],
+                                            ['With Address', stats.withAddress, 'Barangay-ready records', 'map-pin'],
+                                        ].map(([label, value, note, icon]) => (
+                                            <div key={label} className="ops-summary-card role-summary-card">
+                                                <div className="role-summary-card-topline"><p className="ops-summary-label">{label}</p><span className="role-summary-icon"><Icon name={icon as string} className="h-4 w-4" /></span></div>
                                                 <p className="ops-summary-value tabular-nums">{value}</p>
                                                 <p className="ops-summary-note">{note}</p>
                                             </div>
@@ -200,7 +228,7 @@ const BhwDashboard = () => {
                                         </div>
                                         <div className="flex-1 ops-list">
                                             {recentPatients.length === 0 ? (
-                                                <div className="ops-empty">No recent registrations.</div>
+                                                <div className="role-queue-empty"><span className="role-queue-empty-icon"><Icon name="users" className="h-5 w-5" /></span><strong>No recent registrations</strong><span>Newly registered residents will appear here.</span></div>
                                             ) : (
                                                 recentPatients.map(p => (
                                                     <button key={p.id} type="button" onClick={() => setSelectedPatient(p)}
@@ -253,6 +281,8 @@ const BhwDashboard = () => {
                                         </div>
                                     </div>
                                     </div>
+                                    </>
+                                    )}
                                 </div>
                             </>
                         )}
