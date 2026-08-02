@@ -9,6 +9,7 @@ import { useToast } from '../../components/feedback/Toast';
 import { getInitials } from '../../lib/utils/names';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { Icon } from '../../components/shared/Icon';
+import { Badge, Button, Card, EmptyState, Input } from '../../components/ui';
 import { SkeletonList } from '../../components/ui/Skeleton';
 import type { Role } from '../../types/user';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
@@ -101,13 +102,13 @@ const RoleBadge = ({ role }: { role: string }) => {
     };
 
     const normalizedRole = role === 'labaratory' ? 'laboratory' : role;
-    const colorClass = roleColors[normalizedRole] || roleColors['admin'];
     const label = roleLabels[normalizedRole] || role;
+    const tone = normalizedRole === 'admin' ? 'blue' : 'slate';
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold leading-none ${colorClass}`}>
+        <Badge tone={tone} className={`rounded-full border-transparent px-2.5 py-1 leading-none ${roleColors[normalizedRole] || roleColors['admin']}`}>
             {label}
-        </span>
+        </Badge>
     );
 };
 
@@ -148,6 +149,7 @@ const AdminDashboard = () => {
     const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshingUsers, setIsRefreshingUsers] = useState(false);
+    const [usersError, setUsersError] = useState('');
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -217,6 +219,7 @@ const AdminDashboard = () => {
             setIsRefreshingUsers(true);
         } else {
             setIsLoading(true);
+            setUsersError('');
         }
 
         try {
@@ -228,9 +231,11 @@ const AdminDashboard = () => {
             if (error) {
                 if (!isSilent) {
                     logError('Failed to load users', error);
+                    setUsersError(healthcareErrorMessage('load user accounts'));
                     showToast(healthcareErrorMessage('load user accounts'), true);
                 }
             } else {
+                setUsersError('');
                 setAllUsers((data as UserProfile[]) || []);
             }
         } finally {
@@ -436,7 +441,7 @@ const AdminDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 min-w-0 overflow-auto md:ml-[240px] w-full">
+            <main className="app-shell-main flex-1 min-w-0 overflow-auto md:ml-[240px] w-full">
                 {/* ─── Topbar ─── */}
                 <Topbar
                     title={activePage === 'audit-log' ? 'Audit Log' : 'User Management'}
@@ -450,7 +455,7 @@ const AdminDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="w-full flex flex-col gap-5 ">
+                <div className="app-content-canvas w-full flex flex-col gap-5">
                     {activePage === 'audit-log' ? (
                         <>
                             <PageHeader
@@ -465,63 +470,72 @@ const AdminDashboard = () => {
                         title="User & Role Administration"
                         subtitle="Maintain RHU staff accounts and role assignments."
                     />
-                    <div className="pwa-page-pad flex flex-col pwa-panel-gap">
+                    <div className="pwa-page-pad flex flex-col gap-5 sm:gap-6">
 
                     {/* Stats Row */}
-                    <div className="ops-summary-grid">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="User management summary">
                         {[
-                            ['Total Users', allUsers.length, 'RHU staff accounts'],
-                            ['Active Accounts', allUsers.length, 'Currently available records'],
-                            ['Configured Roles', ROLES.length, 'Role assignment options'],
-                        ].map(([label, value, note]) => (
-                            <div key={label} className="ops-summary-card">
-                                <div className="ops-summary-label">{label}</div>
-                                <div className="ops-summary-value tabular-nums">{value}</div>
-                                <div className="ops-summary-note">{note}</div>
-                            </div>
+                            ['users', 'Total Users', allUsers.length, 'RHU staff accounts'],
+                            ['shield-plus', 'Active Accounts', allUsers.length, 'Available staff profiles'],
+                            ['lock', 'Configured Roles', ROLES.length, 'Permission groups'],
+                        ].map(([icon, label, value, note]) => (
+                            <Card key={label} className="flex min-h-[132px] items-start gap-4 p-4 sm:p-5">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]">
+                                    <Icon name={String(icon)} className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{label}</div>
+                                    <div className="mt-1 text-2xl font-semibold leading-tight tabular-nums text-[var(--text)]">{value}</div>
+                                    <div className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{note}</div>
+                                </div>
+                            </Card>
                         ))}
                     </div>
 
                     {/* Main Content Card */}
-                    <div className="ops-panel flex flex-col">
+                    <Card className="flex flex-col overflow-hidden">
                         {/* Card Header */}
-                        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-subtle)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                             <div>
-                                <h2 className="text-base font-semibold text-[var(--text)] tracking-tight">Staff Accounts</h2>
-                                <p className="text-sm text-[var(--text-secondary)]">Maintain authorized MEDISENS access and role assignments.</p>
+                                <h2 className="text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)]">Staff Accounts</h2>
+                                <p className="mt-1 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">Maintain authorized MEDISENS access and role assignments.</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 {isRefreshingUsers && <span className="text-xs font-semibold text-[var(--text-muted)]" role="status">Updating...</span>}
-                                <button
+                                <Button
                                     type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    leadingIcon={<Icon name="refresh" className="h-4 w-4" />}
                                     onClick={() => void loadUsers(true)}
                                     disabled={isRefreshingUsers || !isOnline}
-                                    className="clinical-row-action min-w-[96px] justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="min-h-11 min-w-[96px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-button-size)] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Icon name="refresh" className="h-3.5 w-3.5" /> Refresh
-                                </button>
+                                    Refresh
+                                </Button>
                             </div>
                         </div>
 
                         {/* Filter Bar */}
-                        <div className="p-4 bg-[var(--surface-subtle)]/50 border-b border-[var(--border-soft)] flex flex-col sm:flex-row gap-3">
-                            <div className="relative flex-1">
-                                <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    aria-label="Search users by name or email"
-                                    placeholder="Search by name or email..."
-                                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-[var(--border)] rounded-xl text-sm font-medium focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all"
-                                />
-                            </div>
-                            <div className="flex gap-3 w-full sm:w-auto">
+                        <div className="flex flex-col gap-3 border-b border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:flex-row sm:items-end sm:px-5">
+                            <Input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                label="Search staff"
+                                placeholder="Search by name or email..."
+                                leadingIcon={<Icon name="search" className="h-4 w-4" />}
+                                containerClassName="flex-1"
+                                className="pl-10"
+                            />
+                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[160px]">
+                                    <span className="text-[length:var(--type-label-size)] font-medium text-[var(--text-secondary)]">Role</span>
                                 <select
                                     aria-label="Filter staff accounts by role"
                                     value={roleFilter}
                                     onChange={(e) => setRoleFilter(e.target.value)}
-                                    className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-2)] focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] hover:border-[var(--border)] transition-all min-w-[140px] cursor-pointer"
+                                    className="min-h-[var(--control-height-md)] w-full cursor-pointer rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--text)] outline-none transition-colors focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--focus-ring)]"
                                 >
                                     <option value="">All Roles</option>
                                     <option value="doctor">Doctor</option>
@@ -532,14 +546,15 @@ const AdminDashboard = () => {
                                     <option value="labaratory">Laboratory</option>
                                     <option value="admin">Admin</option>
                                 </select>
-                                <button type="button" onClick={openAddModal} className="flex items-center gap-2 bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md shadow-none transition-all  shrink-0 justify-center">
-                                    <Icon name="user-plus" className="h-4 w-4" /> Add User
-                                </button>
+                                </label>
+                                <Button type="button" variant="primary" leadingIcon={<Icon name="user-plus" className="h-4 w-4" />} onClick={openAddModal} className="shrink-0 whitespace-nowrap sm:self-end">
+                                    Add User
+                                </Button>
                             </div>
                         </div>
 
                         {/* Table Header */}
-                        <div className="hidden md:grid grid-cols-[minmax(0,2fr)_160px_200px] gap-4 px-5 py-3 bg-[var(--surface-subtle)] border-b border-[var(--border)] text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                        <div className="hidden md:grid grid-cols-[minmax(0,2fr)_160px_200px] gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-5 py-3 text-[length:var(--type-caption-size)] font-semibold text-[var(--text-secondary)]">
                             <div>User</div>
                             <div>Role</div>
                             <div className="text-right">Actions</div>
@@ -549,19 +564,31 @@ const AdminDashboard = () => {
                         <div className="flex flex-col flex-1">
                             {isLoading ? (
                                 <SkeletonList rows={5} />
-                            ) : filteredUsers.length === 0 ? (
-                                <div className="clinical-table-state flex-col p-12">
-                                    <div className="w-16 h-16 bg-[var(--surface-subtle)] text-[var(--text-muted)] rounded-2xl flex items-center justify-center mb-4"><Icon name="users" className="h-8 w-8" /></div>
-                                    <h3 className="text-lg font-bold text-[var(--text-2)]">No staff accounts found</h3>
-                                    <p className="text-sm text-[var(--text-secondary)] mt-1">Adjust the role filter or search by staff name or email.</p>
+                            ) : usersError ? (
+                                <div role="alert" className="m-4 rounded-[var(--radius-card)] border border-[var(--coral-border)] bg-[var(--coral-light)] p-4 sm:m-5">
+                                    <div className="flex items-start gap-3">
+                                        <Icon name="alert-triangle" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--coral)]" />
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-semibold text-[var(--coral)]">Unable to load staff accounts</h3>
+                                            <p className="mt-1 text-sm text-[var(--coral-dark)]">{usersError}</p>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => void loadUsers()} className="mt-3">Retry</Button>
+                                        </div>
+                                    </div>
                                 </div>
+                            ) : filteredUsers.length === 0 ? (
+                                <EmptyState
+                                    icon={<Icon name="users" className="h-8 w-8" />}
+                                    title="No staff accounts found"
+                                    description="Adjust the role filter or search by staff name or email."
+                                    className="clinical-table-state flex-col rounded-none border-0 p-12"
+                                />
                             ) : (
                                 <div className="divide-y divide-[var(--border-soft)]">
                                     {filteredUsers.map(u => {
                                         const av = (u.full_name?.[0] || '?').toUpperCase();
                                         const colorClass = getAvatarColor(u.role);
                                         return (
-                                            <div key={u.id} className="flex flex-col md:grid md:grid-cols-[minmax(0,2fr)_160px_200px] md:items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-subtle)]/80 group">
+                                            <div key={u.id} className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface-subtle)] md:grid md:grid-cols-[minmax(0,2fr)_160px_200px] md:items-center md:gap-4 md:px-5">
                                                 {/* User Info */}
                                                 <div className="flex items-center gap-3.5 min-w-0">
                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm ${colorClass}`}>
@@ -574,18 +601,18 @@ const AdminDashboard = () => {
                                                 </div>
 
                                                 {/* Role */}
-                                                <div className="flex items-center md:pl-0 pl-[54px] -mt-2 md:mt-0">
+                                                <div className="flex items-center pl-[54px] md:pl-0">
                                                     <RoleBadge role={u.role} />
                                                 </div>
 
                                                 {/* Actions */}
-                                                <div className="flex items-center md:justify-end gap-2 md:pl-0 pl-[54px] mt-2 md:mt-0">
-                                                    <button type="button" onClick={() => openEditModal(u.id)} className="clinical-row-action min-w-[75px]">
-                                                        <Icon name="edit" className="h-3.5 w-3.5" /> Edit
-                                                    </button>
-                                                    <button type="button" onClick={() => openConfirmDelete(u.id, u.full_name || 'User')} className="clinical-row-action danger min-w-[75px]">
-                                                        <Icon name="trash" className="h-3.5 w-3.5" /> Delete
-                                                    </button>
+                                                <div className="flex items-center gap-2 pl-[54px] md:justify-end md:pl-0">
+                                                    <Button type="button" variant="outline" size="sm" leadingIcon={<Icon name="edit" className="h-4 w-4" />} onClick={() => openEditModal(u.id)} className="min-h-11 min-w-[75px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-button-size)]">
+                                                        Edit
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" leadingIcon={<Icon name="trash" className="h-4 w-4" />} onClick={() => openConfirmDelete(u.id, u.full_name || 'User')} className="min-h-11 min-w-[75px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] border-[var(--coral)] px-3 py-2 text-[length:var(--type-button-size)] text-[var(--coral)] shadow-none hover:border-[var(--coral)] hover:bg-[var(--coral-light)] hover:text-[var(--coral-dark)]">
+                                                        Delete
+                                                    </Button>
                                                 </div>
                                             </div>
                                         );
@@ -593,7 +620,7 @@ const AdminDashboard = () => {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </Card>
                 </div>
                         </>
                     )}
@@ -609,28 +636,28 @@ const AdminDashboard = () => {
                                 <h3 id="user-dialog-title" className="text-xl font-bold text-[var(--text)]">{isEditMode ? `Edit: ${fFullName}` : 'Add New User'}</h3>
                                 <p className="text-xs font-medium text-[var(--text-secondary)] mt-1">{isEditMode ? 'Update name or role assignment' : 'Create a new system account'}</p>
                             </div>
-                            <button type="button" onClick={closeUserModal} aria-label="Close user dialog" className="h-10 w-10 -m-1 flex items-center justify-center rounded-xl bg-white border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close user dialog" /></button>
+                            <Button type="button" variant="outline" size="sm" onClick={closeUserModal} aria-label="Close user dialog" className="h-10 w-10 -m-1 rounded-xl p-0 text-[var(--text-muted)]"><Icon name="close" className="h-4 w-4" /></Button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Full Name</label>
-                                <input ref={fullNameInputRef} type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} placeholder="e.g. Dr. Juan Dela Cruz" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
+                                <label htmlFor="admin-user-full-name" className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Full Name</label>
+                                <Input ref={fullNameInputRef} id="admin-user-full-name" type="text" value={fFullName} onChange={e => setFFullName(e.target.value)} placeholder="e.g. Dr. Juan Dela Cruz" className="rounded-xl bg-[var(--surface-subtle)] px-4 py-2.5 font-medium focus-visible:bg-white" />
                             </div>
 
                             {!isEditMode && (
                                 <>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Email Address</label>
-                                        <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="e.g. user@medisens.com" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
+                                        <label htmlFor="admin-user-email" className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Email Address</label>
+                                        <Input id="admin-user-email" type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="e.g. user@medisens.com" className="rounded-xl bg-[var(--surface-subtle)] px-4 py-2.5 font-medium focus-visible:bg-white" />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Password</label>
-                                            <input type="password" value={fPassword} onChange={e => setFPassword(e.target.value)} placeholder="Min. 6 chars" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
+                                            <label htmlFor="admin-user-password" className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Password</label>
+                                            <Input id="admin-user-password" type="password" value={fPassword} onChange={e => setFPassword(e.target.value)} placeholder="Min. 6 chars" className="rounded-xl bg-[var(--surface-subtle)] px-4 py-2.5 font-medium focus-visible:bg-white" />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Confirm Password</label>
-                                            <input type="password" value={fConfirmPassword} onChange={e => setFConfirmPassword(e.target.value)} placeholder="Repeat password" className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all" />
+                                            <label htmlFor="admin-user-confirm-password" className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Confirm Password</label>
+                                            <Input id="admin-user-confirm-password" type="password" value={fConfirmPassword} onChange={e => setFConfirmPassword(e.target.value)} placeholder="Repeat password" className="rounded-xl bg-[var(--surface-subtle)] px-4 py-2.5 font-medium focus-visible:bg-white" />
                                         </div>
                                     </div>
                                     <div className="p-4 bg-[var(--amber-surface)] border border-[var(--amber-tint)] rounded-2xl space-y-2">
@@ -643,8 +670,8 @@ const AdminDashboard = () => {
                             )}
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Role Assignment</label>
-                                <select value={fRole} onChange={e => setFRole(e.target.value)} className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-2)] focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all cursor-pointer">
+                                <label htmlFor="admin-user-role" className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">Role Assignment</label>
+                                <select id="admin-user-role" value={fRole} onChange={e => setFRole(e.target.value)} className="w-full px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-2)] focus:bg-white focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] transition-all cursor-pointer">
                                     <option value="" disabled>Select a role...</option>
                                     <option value="doctor">Doctor</option>
                                     <option value="nurse">Nurse</option>
@@ -657,10 +684,10 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                         <div className="p-5 border-t border-[var(--border-soft)] flex justify-end gap-3 bg-[var(--surface-subtle)]">
-                            <button type="button" onClick={closeUserModal} disabled={isSaving} className="px-5 py-2.5 bg-white border border-[var(--border)] text-[var(--text-2)] rounded-xl text-sm font-bold hover:bg-[var(--surface-subtle)] transition-colors disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={handleSaveUser} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] text-white rounded-xl text-sm font-bold shadow-md shadow-none transition-all disabled:opacity-50 min-w-[140px] justify-center text-center">
+                            <Button type="button" variant="outline" onClick={closeUserModal} disabled={isSaving} className="rounded-xl px-5 py-2.5">Cancel</Button>
+                            <Button type="button" variant="secondary" onClick={handleSaveUser} disabled={isSaving} isLoading={isSaving} className="min-w-[140px] rounded-xl px-6 py-2.5">
                                 {isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create User'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -677,10 +704,10 @@ const AdminDashboard = () => {
                             Are you sure you want to permanently delete <strong className="text-[var(--text)] font-bold">{userToDelete?.name}</strong>? This action cannot be undone.
                         </p>
                         <div className="flex w-full gap-3">
-                            <button ref={cancelDeleteRef} type="button" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 py-3 bg-[var(--surface-subtle)] text-[var(--text-2)] rounded-xl font-bold text-sm hover:bg-[var(--border-soft)] transition-colors disabled:opacity-50">Cancel</button>
-                            <button type="button" onClick={handleDeleteUser} disabled={isSaving} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-[var(--coral-accent)] text-white rounded-xl font-bold text-sm hover:bg-[var(--coral-accent-strong)] shadow-sm transition-colors disabled:opacity-50">
+                            <Button ref={cancelDeleteRef} type="button" variant="ghost" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 rounded-xl bg-[var(--surface-subtle)] py-3 text-[var(--text-2)] hover:bg-[var(--border-soft)]">Cancel</Button>
+                            <Button type="button" variant="danger" onClick={handleDeleteUser} disabled={isSaving} isLoading={isSaving} className="flex-1 rounded-xl py-3">
                                 {isSaving ? 'Deleting...' : 'Delete'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

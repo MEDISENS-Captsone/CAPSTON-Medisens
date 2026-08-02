@@ -515,7 +515,7 @@ const DoctorDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 overflow-auto md:ml-[240px]">
+            <main className="app-shell-main flex-1 overflow-auto md:ml-[240px]">
                 <Topbar
                     title={activePage === 'dashboard' ? 'Doctor Dashboard' : activePage === 'analytics' ? 'Doctor Analytics' : activePage === 'records' ? 'Patient Records' : activePage === 'audit-log' ? 'Audit Log' : activePage === 'archive-review' ? 'Archive Review' : 'Consultation Room'}
                     sectionLabel="Clinical Consultation"
@@ -527,7 +527,7 @@ const DoctorDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="w-full flex flex-col gap-5">
+                <div className="app-content-canvas w-full flex flex-col gap-5">
 
                     {activePage === 'dashboard' && (
                         <>

@@ -34,7 +34,7 @@ export function Topbar({
     onUserMenuClick,
 }: TopbarProps) {
     return (
-        <header className="sticky top-0 z-30 flex h-[52px] w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 backdrop-blur md:h-[56px] md:px-5">
+        <header className="app-topbar sticky top-0 z-30 flex min-h-16 w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-translucent-96)] px-3 shadow-[var(--shadow-sm)] backdrop-blur-md sm:px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-2">
                 <button
                     type="button"
@@ -48,8 +48,8 @@ export function Topbar({
                     <Icon name="menu" className="h-5 w-5" />
                 </button>
                 <div className="min-w-0">
-                    <div className="hidden text-[length:var(--type-category-size)] font-semibold uppercase leading-[var(--type-category-line)] tracking-[var(--tracking-category)] text-[var(--text-secondary)] sm:block">{sectionLabel}</div>
-                    <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] tracking-[var(--tracking-normal)] text-[var(--text)]">{title}</h1>
+                    <div className="hidden text-[length:var(--type-category-size)] font-semibold uppercase leading-[var(--type-category-line)] tracking-[var(--tracking-category)] text-[var(--brand-primary)] sm:block">{sectionLabel}</div>
+                    <h1 className="truncate text-[length:var(--type-section-title-size)] font-semibold leading-[var(--type-section-title-line)] tracking-[var(--tracking-normal)] text-[var(--text)]">{title}</h1>
                     {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
                 </div>
             </div>

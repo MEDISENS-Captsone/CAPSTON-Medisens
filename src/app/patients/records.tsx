@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { Icon } from '../../components/shared/Icon';
+import { Badge, Button, EmptyState, Input } from '../../components/ui';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 
 const MALVAR_BARANGAYS = [
@@ -119,20 +120,19 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                         <h2 className="clinical-table-title">Patient Registry</h2>
                         <p className="clinical-table-subtitle">{allPatients.length} registered patient{allPatients.length !== 1 ? 's' : ''}</p>
                     </div>
-                    <span className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</span>
+                    <Badge tone="slate" className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</Badge>
                 </div>
 
                 <div className="clinical-toolbar">
-                    <div className="clinical-search">
-                        <Icon name="search" className="h-4 w-4 text-[var(--text-secondary)]" />
-                        <input
-                            type="text"
-                            aria-label="Search patient records by name"
-                            placeholder="Search by name..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                        />
-                    </div>
+                    <Input
+                        type="text"
+                        aria-label="Search patient records by name"
+                        placeholder="Search by name..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        leadingIcon={<Icon name="search" className="h-4 w-4" />}
+                        containerClassName="min-w-[min(100%,18rem)] flex-1"
+                    />
 
                     <div className="clinical-filter-group">
                         <div className="clinical-select">
@@ -150,9 +150,16 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                         </div>
 
                         {selectedBarangay && (
-                            <button type="button" onClick={() => setSelectedBarangay('')} className="clinical-secondary-action">
-                                <Icon name="close" className="h-3.5 w-3.5" /> Clear
-                            </button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                leadingIcon={<Icon name="close" className="h-4 w-4" />}
+                                onClick={() => setSelectedBarangay('')}
+                                className="clinical-secondary-action text-[length:var(--type-button-size)]"
+                            >
+                                Clear
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -185,20 +192,26 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                             ) : loadError ? (
                                 <tr className="patient-records-state-row">
                                     <td colSpan={6}>
-                                        <div className="clinical-table-state" role="alert">
-                                            <Icon name="alert-triangle" className="h-5 w-5 text-[var(--border-strong)]" />
-                                            Patient records could not be loaded.
-                                            <button type="button" className="clinical-link-action" onClick={() => void fetchPatients()}>Retry</button>
+                                        <div role="alert">
+                                            <EmptyState
+                                                icon={<Icon name="alert-triangle" className="h-5 w-5" />}
+                                                title="Patient records could not be loaded."
+                                                className="clinical-table-state rounded-none border-0"
+                                            />
+                                            <div className="flex justify-center pb-4">
+                                                <Button type="button" variant="outline" size="sm" onClick={() => void fetchPatients()}>Retry</Button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
                             ) : patients.length === 0 ? (
                                 <tr className="patient-records-state-row">
                                     <td colSpan={6}>
-                                        <div className="clinical-table-state">
-                                            <Icon name="inbox" className="h-5 w-5 text-[var(--border-strong)]" />
-                                            {allPatients.length === 0 ? 'No patients are registered yet.' : 'No patients match the current search or filter.'}
-                                        </div>
+                                        <EmptyState
+                                            icon={<Icon name="inbox" className="h-5 w-5" />}
+                                            title={allPatients.length === 0 ? 'No patients are registered yet.' : 'No patients match the current search or filter.'}
+                                            className="clinical-table-state rounded-none border-0"
+                                        />
                                     </td>
                                 </tr>
                             ) : (
@@ -212,11 +225,13 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                                         </td>
                                         <td className="patient-records-col-demographics">{p.age ?? '-'} / {p.sex || '-'}</td>
                                         <td className="patient-records-col-barangay">{p.address?.split(',')[0] || '-'}</td>
-                                        <td className="patient-records-col-classification"><span className="clinical-neutral-badge patient-records-classification-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</span></td>
+                                        <td className="patient-records-col-classification"><Badge tone="slate" className="clinical-neutral-badge patient-records-classification-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</Badge></td>
                                         <td className="patient-records-col-contact">{p.contactNumber || '-'}</td>
                                         <td className="patient-records-col-action text-right">
-                                            <button
+                                            <Button
                                                 type="button"
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
                                                     handleRowClick(p);
@@ -224,7 +239,7 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                                                 className="clinical-link-action"
                                             >
                                                 View Chart
-                                            </button>
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))

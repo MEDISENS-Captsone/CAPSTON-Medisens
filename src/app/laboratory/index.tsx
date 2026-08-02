@@ -539,7 +539,7 @@ const LaboratoryDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
+            <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 <Topbar
                     title="Laboratory Dashboard"
                     sectionLabel="Diagnostic Laboratory"
@@ -551,7 +551,7 @@ const LaboratoryDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
+                <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full">
                         <PageHeader
                             title="Laboratory Work Queue"

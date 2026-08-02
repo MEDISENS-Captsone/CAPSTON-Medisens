@@ -15,6 +15,7 @@ import { updatePatientRecord } from '../../features/patients/services';
 import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
 import { Skeleton, SkeletonList } from '../../components/ui/Skeleton';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
+import { Badge, Button, Card, EmptyState } from '../../components/ui';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -264,12 +265,12 @@ function DetailsPage() {
             <div className="flex-1 flex flex-col min-h-screen w-full md:pl-[240px]">
                 <header className="h-[52px] md:h-[56px] w-full bg-white border-b border-[var(--border)] flex items-center justify-between px-3 md:px-5 sticky top-0 z-30">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 -ml-2 text-[var(--text-2)] hover:bg-[var(--surface-subtle)] rounded-lg"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                        <Button type="button" variant="ghost" size="sm" aria-label="Open navigation" onClick={() => setIsMobileMenuOpen(true)} className="-ml-2 h-11 w-11 p-0 md:hidden"><svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg></Button>
                         <h1 className="truncate text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">{editing ? 'Edit Profile' : 'Patient Profile'}</h1>
                     </div>
                     <div className="flex items-center gap-3">
 
-                        <button onClick={() => window.history.back()} className="px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-sm font-semibold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back</button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => window.history.back()}>Back</Button>
                     </div>
                 </header>
 
@@ -278,7 +279,7 @@ function DetailsPage() {
                 <main className="w-full flex-1 pwa-page-pad">
                     <div className="w-full">
                         {error ? (
-                            <div className="bg-[var(--coral-tint)] text-[var(--coral-dark)] p-6 rounded-xl border border-[var(--coral-border)] font-semibold text-center">{error}</div>
+                            <EmptyState title={error} className="border-[var(--coral-border)] bg-[var(--coral-tint)]" />
                         ) : !patient ? (
                             <div className="rounded-xl border border-[var(--border)] bg-white p-5" role="status" aria-live="polite" aria-busy="true">
                                 <div className="mb-5 flex items-center gap-4">
@@ -292,23 +293,23 @@ function DetailsPage() {
                             </div>
                         ) : showConsent ? (
                             <div className="">
-                                <button onClick={() => setShowConsent(false)} className="mb-4 px-4 py-2 bg-white border border-[var(--border)] text-[var(--text-2)] text-xs font-bold rounded-lg shadow-sm hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]">Back to Details</button>
+                                <Button type="button" variant="outline" size="sm" onClick={() => setShowConsent(false)} className="mb-4">Back to Details</Button>
                                 <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setPatient(current => current ? { ...current, consent_signed: true } : current); setShowConsent(false); loadPatient(); }} />
                             </div>
                         ) : editing && !isArchivedPatient ? (
                             // Edit Mode Form...
                             <form onSubmit={handleEditSubmit} className="">
-                                <div className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative ring-1 ring-[var(--border-soft)]">
+                                <Card className="relative mb-6 flex w-full flex-wrap items-center gap-5 bg-[var(--surface-subtle)] p-6 ring-1 ring-[var(--border-soft)]">
                                     <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">{patient.firstName?.[0]}{patient.lastName?.[0]}</div>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-[var(--text)] text-xl leading-tight truncate">Editing: {patient.firstName} {patient.lastName}</div>
                                         <div className="text-sm text-[var(--text-2)] mt-1 font-medium">Update the necessary fields below and save your changes.</div>
                                     </div>
                                     <div className="shrink-0 flex gap-2 w-full md:w-auto mt-4 md:mt-0">
-                                        <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 bg-white text-[var(--text-2)] border border-[var(--border)] hover:bg-[var(--surface-subtle)] text-sm font-bold rounded-lg transition-colors flex-1 md:flex-none text-center">Cancel</button>
-                                        <button type="submit" disabled={saving} className={`px-5 py-2.5 text-white text-sm font-bold rounded-lg transition-all flex-1 md:flex-none text-center shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${saving ? 'bg-[var(--text-muted)] cursor-not-allowed' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] hover:shadow-none'}`}>{saving ? 'Updating Chart...' : 'Update Patient Chart'}</button>
+                                        <Button type="button" variant="outline" onClick={() => setEditing(false)} className="flex-1 md:flex-none">Cancel</Button>
+                                        <Button type="submit" variant="primary" disabled={saving} isLoading={saving} className="flex-1 md:flex-none">{saving ? 'Updating Chart...' : 'Update Patient Chart'}</Button>
                                     </div>
-                                </div>
+                                </Card>
 
                                 <div className={sectionCls}>
                                     <div className={headerCls}>I. Patient's Information Record</div>
@@ -401,7 +402,7 @@ function DetailsPage() {
                         ) : (
                             // Read-Only Mode
                             <div className="">
-                                <div className="w-full bg-white border border-[var(--border)] rounded-xl p-6 mb-6 flex flex-wrap items-center gap-5 shadow-sm relative">
+                                <Card className="relative mb-6 flex w-full flex-wrap items-center gap-5 p-6">
                                     <div className="w-16 h-16 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
@@ -417,22 +418,22 @@ function DetailsPage() {
 
                                     <div className="shrink-0 flex flex-col md:items-end gap-2 w-full md:w-auto mt-4 md:mt-0">
                                         {isArchivedPatient ? (
-                                            <span className="bg-[var(--surface-subtle)] text-[var(--text-2)] border border-[var(--border)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Archived Read-Only</span>
+                                            <Badge tone="slate" className="w-full md:w-auto">Archived Read-Only</Badge>
                                         ) : (
                                             <div className="flex gap-2 w-full md:w-auto">
-                                                <button onClick={() => setEditing(true)} className="px-4 py-2 bg-[var(--surface-subtle)] hover:bg-[var(--surface-subtle)] text-[var(--text-2)] border border-[var(--border)] text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-1 md:flex-none">
+                                                <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)} className="flex-1 md:flex-none">
                                                     Edit Profile
-                                                </button>
+                                                </Button>
                                             </div>
                                         )}
 
                                         {patient.consent_signed ? (
-                                            <span className="bg-[var(--green-surface)] text-[var(--green-text)] border border-[var(--green-border-soft)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Consent Signed</span>
+                                            <Badge tone="green" className="w-full md:w-auto">Consent Signed</Badge>
                                         ) : (
-                                            <span className="bg-[var(--amber-surface)] text-[var(--amber-text)] border border-[var(--amber-border)] text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center justify-center md:justify-end gap-2 w-full md:w-auto">Pending Consent</span>
+                                            <Badge tone="amber" className="w-full md:w-auto">Pending Consent</Badge>
                                         )}
                                     </div>
-                                </div>
+                                </Card>
 
                                 <div className={sectionCls}>
                                     <div className={headerCls}>I. Patient's Information Record</div>
@@ -477,16 +478,16 @@ function DetailsPage() {
                                 <div className="flex flex-col gap-3">
                                     {/* Midwife action */}
                                     {role === 'midwives' && !patient.consent_signed && !isArchivedPatient && (
-                                        <button onClick={() => setShowConsent(true)} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
+                                        <Button type="button" variant="primary" size="lg" onClick={() => setShowConsent(true)} className="w-full">
                                             Proceed to Patient Consent
-                                        </button>
+                                        </Button>
                                     )}
 
                                     {/* Nurse / Doctor / any role action */}
                                     {(role === 'nurse' || role === 'doctor' || role === 'midwives' || role === 'BHW') && (
-                                        <button onClick={handleOpenHistory} className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] hover:shadow-none transition-all  flex items-center justify-center gap-3">
+                                        <Button type="button" variant="primary" size="lg" onClick={handleOpenHistory} className="w-full">
                                             View Complete Transaction History
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
                             </div>

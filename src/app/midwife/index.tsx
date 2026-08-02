@@ -317,7 +317,7 @@ const MidwifeApp = () => {
                 isOnline={isOnline}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
+            <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 <Topbar
                     title={activeTab === 'dashboard' ? 'Midwife Dashboard'
                         : activeTab === 'analytics' ? 'Analytics'
@@ -335,7 +335,7 @@ const MidwifeApp = () => {
                 />
 
                 {/* Content */}
-                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-[var(--bg)]">
+                <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto bg-[var(--bg)]">
                     <div className="w-full min-h-full pwa-page-pad">
                         <div className="w-full">
                             {activeTab === 'dashboard' && (

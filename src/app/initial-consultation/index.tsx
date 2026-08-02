@@ -10,9 +10,9 @@ import { clinicalInputClass, clinicalLabelClass } from '../../components/ui/Clin
 // Shared clinical form classes
 const inputClasses = clinicalInputClass;
 const labelClasses = clinicalLabelClass;
-const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-[var(--border)] mb-4 overflow-hidden";
+const fieldsetClasses = "overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]";
 // Full section headings stay sentence case; uppercase is reserved for small field labels.
-const legendClasses = "w-full px-4 py-3 border-b border-[var(--border)] text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)] bg-[var(--surface-subtle)] flex items-center gap-2";
+const legendClasses = "flex w-full items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)] sm:px-5 lg:px-6";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface InitialConsultationData {
@@ -246,18 +246,18 @@ export function ConsultationComponent() {
     );
 
     return (
-        <div className="w-full relative pb-12">
+        <div className="relative mx-auto w-full max-w-[72rem] px-3 pb-12 sm:px-5 lg:px-6">
             <ToastComponent />
 
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div>
+            <div className="mb-5 flex flex-col gap-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:p-5 lg:p-6">
+                <div className="min-w-0">
                     <h1 className="text-[length:var(--type-page-title-size)] font-bold leading-[var(--type-page-title-line)] text-[var(--text)] flex items-center gap-2"><Icon name="clipboard" className="h-6 w-6" /> Initial Consultation</h1>
                     {patientInfo ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--text-2)]">
-                            <span className="font-semibold text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] px-3 py-1 rounded-md">{patientName}</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white border border-[var(--border)] px-3 py-1 rounded-md"><Icon name="user" className="h-3.5 w-3.5" /> {patientInfo.sex || 'N/A'}</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white border border-[var(--border)] px-3 py-1 rounded-md"><Icon name="calendar" className="h-3.5 w-3.5" /> {patientInfo.age ?? 'N/A'} yrs</span>
-                            <span className="inline-flex items-center gap-1.5 bg-white border border-[var(--border)] px-3 py-1 rounded-md"><Icon name="droplet" className="h-3.5 w-3.5" /> {patientInfo.bloodType || 'N/A'}</span>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--text-2)]" aria-label="Selected patient context">
+                            <span className="max-w-full rounded-[var(--radius-badge)] border border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] px-3 py-1.5 font-semibold text-[var(--brand-active)] break-words">{patientName}</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-badge)] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5"><Icon name="user" className="h-3.5 w-3.5" /> {patientInfo.sex || 'N/A'}</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-badge)] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5"><Icon name="calendar" className="h-3.5 w-3.5" /> {patientInfo.age ?? 'N/A'} yrs</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-badge)] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5"><Icon name="droplet" className="h-3.5 w-3.5" /> {patientInfo.bloodType || 'N/A'}</span>
                         </div>
                     ) : (
                         <p className="text-sm text-[var(--text-secondary)] mt-2">Search and select a consented patient to begin.</p>
@@ -272,7 +272,7 @@ export function ConsultationComponent() {
             </div>
 
             {!currentPatientId ? (
-                <div className="w-full pwa-dense-panel">
+                <div className="mx-auto w-full max-w-[56rem] pwa-dense-panel">
                     <div className="w-full">
                         <div className="relative mb-6">
                             <label htmlFor="ic-patient-search" className="sr-only">Search consented patients by name</label>
@@ -319,16 +319,16 @@ export function ConsultationComponent() {
                     </div>
                 </div>
             ) : (
-                <form onSubmit={handleSubmit} className="w-full ">
+                <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5 sm:gap-6">
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}><span className="text-[var(--text-2)]">①</span> General Information</div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                        <div className="p-4 sm:p-5 lg:p-6">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-x-6">
                                 <div><label htmlFor="ic-dateOfConsultation" className={labelClasses}>Date of Consultation</label><input id="ic-dateOfConsultation" type="date" name="dateOfConsultation" value={formData.dateOfConsultation} onChange={handleChange} className={inputClasses} required /></div>
                                 <div><label htmlFor="ic-consultationTime" className={labelClasses}>Consultation Time</label><input id="ic-consultationTime" type="time" name="consultationTime" value={formData.consultationTime} onChange={handleChange} className={inputClasses} /></div>
                                 <div><label htmlFor="ic-referredBy" className={labelClasses}>Referred From / By</label><input id="ic-referredBy" type="text" name="referredBy" value={formData.referredBy} onChange={handleChange} className={inputClasses} placeholder="Name or Department" /></div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
+                            <div className="mt-7 grid grid-cols-1 gap-6 border-t border-[var(--border-soft)] pt-6 lg:grid-cols-2 lg:gap-8">
                                 <div>
                                     <span id="ic-modeOfTransaction-label" className={labelClasses}>Mode of Transaction</span>
                                     <div className="flex flex-wrap gap-3 mt-2" role="radiogroup" aria-labelledby="ic-modeOfTransaction-label">
@@ -355,7 +355,7 @@ export function ConsultationComponent() {
 
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}><Icon name="file-text" className="h-4 w-4 text-[var(--text-2)]" /> Clinical Notes</div>
-                        <div className="p-6 flex flex-col gap-5">
+                        <div className="flex flex-col gap-6 p-4 sm:p-5 lg:p-6">
                             <div>
                                 <label htmlFor="ic-chiefComplaints" className={labelClasses}>Chief Complaints</label>
                                 <textarea id="ic-chiefComplaints" name="chiefComplaints" value={formData.chiefComplaints} onChange={handleChange} rows={3} className={`${inputClasses} resize-y min-h-[80px]`} placeholder="Describe the patient's primary symptoms..."></textarea>
@@ -379,10 +379,10 @@ export function ConsultationComponent() {
 
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}><Icon name="heart-pulse" className="h-4 w-4 text-[var(--text-2)]" /> Physical Examination & Vital Signs</div>
-                        <div className="p-6 bg-[var(--surface-subtle)]/10">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <div className="bg-[var(--surface-subtle)]/10 p-4 sm:p-5 lg:p-6">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-5">
                                 {VITAL_FIELDS.map(f => (
-                                    <div key={f.name} className="bg-white p-3 rounded-lg border border-[var(--border)] shadow-sm">
+                                    <div key={f.name} className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow-sm)]">
                                         <label htmlFor={`ic-${f.name}`} className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">{f.label}</label>
                                         <input
                                             id={`ic-${f.name}`}
@@ -395,7 +395,7 @@ export function ConsultationComponent() {
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-8 pt-6 border-t border-[var(--border)]">
+                            <div className="mt-7 border-t border-[var(--border)] pt-6">
                                 <span id="ic-generalSurvey-label" className={labelClasses}>General Survey Status</span>
                                 <div className="flex flex-wrap gap-3 mt-3" role="radiogroup" aria-labelledby="ic-generalSurvey-label">
                                     {['Awake and Alert', 'Altered Sensorium'].map(v => (
@@ -408,7 +408,7 @@ export function ConsultationComponent() {
                         </div>
                     </fieldset>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-end gap-4 mt-6 mb-12 border-t border-[var(--border)] pt-6">
+                    <div className="flex flex-col items-center justify-end gap-4 border-t border-[var(--border)] pt-5 sm:flex-row sm:pt-6">
                         <button type="submit" disabled={isSubmitting} className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${isSubmitting ? 'bg-[var(--text-muted)] cursor-not-allowed shadow-none' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)]'}`}>
                             {isSubmitting ? 'Recording Initial Intake...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Record Initial Intake</>}
                         </button>

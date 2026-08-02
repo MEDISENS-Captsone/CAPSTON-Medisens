@@ -46,7 +46,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             disabled={disabled || isLoading}
             aria-busy={isLoading || undefined}
             className={cn(
-                'inline-flex max-w-full items-center justify-center gap-2 border font-semibold leading-[var(--type-button-line)] tracking-[var(--tracking-normal)] transition-colors duration-[var(--motion-fast)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)] disabled:shadow-none',
+                'inline-flex max-w-full !flex-row flex-nowrap items-center justify-center gap-2 border font-semibold leading-[var(--type-button-line)] tracking-[var(--tracking-normal)] transition-colors duration-[var(--motion-fast)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)] disabled:shadow-none',
                 sizeClasses[size],
                 variantClasses[variant],
                 className,
@@ -54,11 +54,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             {...props}
         >
             {isLoading && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" />
+                <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" />
             )}
-            {!isLoading && leadingIcon}
+            {!isLoading && leadingIcon && (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-4 [&>svg]:w-4">
+                    {leadingIcon}
+                </span>
+            )}
             <span className="min-w-0 truncate">{children}</span>
-            {!isLoading && trailingIcon}
+            {!isLoading && trailingIcon && (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-4 [&>svg]:w-4">
+                    {trailingIcon}
+                </span>
+            )}
         </button>
     );
 });
