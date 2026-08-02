@@ -3313,6 +3313,23 @@ button.clinical-worklist-row {
     padding: 1rem 1.25rem;
 }
 
+/* Audit drawers keep the Laboratory slide-over proportions. The detail panel is
+   full-height and edge-aligned; both audit drawers retain a 44px close target. */
+.clinical-drawer.audit-detail-drawer {
+    inset-block: 0;
+    width: min(100vw, 42rem);
+    height: 100dvh;
+    max-width: min(100vw, 42rem) !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+}
+
+.audit-detail-drawer .clinical-drawer-header button[aria-label^="Close"],
+.audit-filter-drawer .clinical-drawer-header button[aria-label^="Close"] {
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
 .patient-chart-modal {
     display: flex;
     width: min(100%, 64rem);

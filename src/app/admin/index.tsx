@@ -149,6 +149,7 @@ const AdminDashboard = () => {
     const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshingUsers, setIsRefreshingUsers] = useState(false);
+    const [usersError, setUsersError] = useState('');
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -218,6 +219,7 @@ const AdminDashboard = () => {
             setIsRefreshingUsers(true);
         } else {
             setIsLoading(true);
+            setUsersError('');
         }
 
         try {
@@ -229,9 +231,11 @@ const AdminDashboard = () => {
             if (error) {
                 if (!isSilent) {
                     logError('Failed to load users', error);
+                    setUsersError(healthcareErrorMessage('load user accounts'));
                     showToast(healthcareErrorMessage('load user accounts'), true);
                 }
             } else {
+                setUsersError('');
                 setAllUsers((data as UserProfile[]) || []);
             }
         } finally {
@@ -466,30 +470,35 @@ const AdminDashboard = () => {
                         title="User & Role Administration"
                         subtitle="Maintain RHU staff accounts and role assignments."
                     />
-                    <div className="pwa-page-pad flex flex-col pwa-panel-gap">
+                    <div className="pwa-page-pad flex flex-col gap-5 sm:gap-6">
 
                     {/* Stats Row */}
-                    <div className="ops-summary-grid">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="User management summary">
                         {[
-                            ['Total Users', allUsers.length, 'RHU staff accounts'],
-                            ['Active Accounts', allUsers.length, 'Currently available records'],
-                            ['Configured Roles', ROLES.length, 'Role assignment options'],
-                        ].map(([label, value, note]) => (
-                            <Card key={label} className="ops-summary-card">
-                                <div className="ops-summary-label">{label}</div>
-                                <div className="ops-summary-value tabular-nums">{value}</div>
-                                <div className="ops-summary-note">{note}</div>
+                            ['users', 'Total Users', allUsers.length, 'RHU staff accounts'],
+                            ['shield-plus', 'Active Accounts', allUsers.length, 'Available staff profiles'],
+                            ['lock', 'Configured Roles', ROLES.length, 'Permission groups'],
+                        ].map(([icon, label, value, note]) => (
+                            <Card key={label} className="flex min-h-[132px] items-start gap-4 p-4 sm:p-5">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]">
+                                    <Icon name={String(icon)} className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{label}</div>
+                                    <div className="mt-1 text-2xl font-semibold leading-tight tabular-nums text-[var(--text)]">{value}</div>
+                                    <div className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{note}</div>
+                                </div>
                             </Card>
                         ))}
                     </div>
 
                     {/* Main Content Card */}
-                    <Card className="ops-panel flex flex-col">
+                    <Card className="flex flex-col overflow-hidden">
                         {/* Card Header */}
-                        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-subtle)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                             <div>
-                                <h2 className="text-base font-semibold text-[var(--text)] tracking-tight">Staff Accounts</h2>
-                                <p className="text-sm text-[var(--text-secondary)]">Maintain authorized MEDISENS access and role assignments.</p>
+                                <h2 className="text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)]">Staff Accounts</h2>
+                                <p className="mt-1 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">Maintain authorized MEDISENS access and role assignments.</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 {isRefreshingUsers && <span className="text-xs font-semibold text-[var(--text-muted)]" role="status">Updating...</span>}
@@ -508,23 +517,25 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Filter Bar */}
-                        <div className="p-4 bg-[var(--surface-subtle)]/50 border-b border-[var(--border-soft)] flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col gap-3 border-b border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:flex-row sm:items-end sm:px-5">
                             <Input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                aria-label="Search users by name or email"
+                                label="Search staff"
                                 placeholder="Search by name or email..."
                                 leadingIcon={<Icon name="search" className="h-4 w-4" />}
                                 containerClassName="flex-1"
-                                className="rounded-xl px-4 py-2.5 pl-9 font-medium"
+                                className="pl-10"
                             />
-                            <div className="flex gap-3 w-full sm:w-auto">
+                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[160px]">
+                                    <span className="text-[length:var(--type-label-size)] font-medium text-[var(--text-secondary)]">Role</span>
                                 <select
                                     aria-label="Filter staff accounts by role"
                                     value={roleFilter}
                                     onChange={(e) => setRoleFilter(e.target.value)}
-                                    className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-2)] focus:outline-none focus:border-[var(--focus-color)] focus:ring-4 focus:ring-[var(--focus-ring)] hover:border-[var(--border)] transition-all min-w-[140px] cursor-pointer"
+                                    className="min-h-[var(--control-height-md)] w-full cursor-pointer rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--text)] outline-none transition-colors focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--focus-ring)]"
                                 >
                                     <option value="">All Roles</option>
                                     <option value="doctor">Doctor</option>
@@ -535,14 +546,15 @@ const AdminDashboard = () => {
                                     <option value="labaratory">Laboratory</option>
                                     <option value="admin">Admin</option>
                                 </select>
-                                <Button type="button" variant="primary" size="sm" leadingIcon={<Icon name="user-plus" className="h-4 w-4" />} onClick={openAddModal} className="min-h-11 shrink-0 flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-button-size)]">
+                                </label>
+                                <Button type="button" variant="primary" leadingIcon={<Icon name="user-plus" className="h-4 w-4" />} onClick={openAddModal} className="shrink-0 whitespace-nowrap sm:self-end">
                                     Add User
                                 </Button>
                             </div>
                         </div>
 
                         {/* Table Header */}
-                        <div className="hidden md:grid grid-cols-[minmax(0,2fr)_160px_200px] gap-4 px-5 py-3 bg-[var(--surface-subtle)] border-b border-[var(--border)] text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                        <div className="hidden md:grid grid-cols-[minmax(0,2fr)_160px_200px] gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-5 py-3 text-[length:var(--type-caption-size)] font-semibold text-[var(--text-secondary)]">
                             <div>User</div>
                             <div>Role</div>
                             <div className="text-right">Actions</div>
@@ -552,6 +564,17 @@ const AdminDashboard = () => {
                         <div className="flex flex-col flex-1">
                             {isLoading ? (
                                 <SkeletonList rows={5} />
+                            ) : usersError ? (
+                                <div role="alert" className="m-4 rounded-[var(--radius-card)] border border-[var(--coral-border)] bg-[var(--coral-light)] p-4 sm:m-5">
+                                    <div className="flex items-start gap-3">
+                                        <Icon name="alert-triangle" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--coral)]" />
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-semibold text-[var(--coral)]">Unable to load staff accounts</h3>
+                                            <p className="mt-1 text-sm text-[var(--coral-dark)]">{usersError}</p>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => void loadUsers()} className="mt-3">Retry</Button>
+                                        </div>
+                                    </div>
+                                </div>
                             ) : filteredUsers.length === 0 ? (
                                 <EmptyState
                                     icon={<Icon name="users" className="h-8 w-8" />}
@@ -565,7 +588,7 @@ const AdminDashboard = () => {
                                         const av = (u.full_name?.[0] || '?').toUpperCase();
                                         const colorClass = getAvatarColor(u.role);
                                         return (
-                                            <div key={u.id} className="flex flex-col md:grid md:grid-cols-[minmax(0,2fr)_160px_200px] md:items-center gap-4 px-5 py-3.5 hover:bg-[var(--surface-subtle)]/80 group">
+                                            <div key={u.id} className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface-subtle)] md:grid md:grid-cols-[minmax(0,2fr)_160px_200px] md:items-center md:gap-4 md:px-5">
                                                 {/* User Info */}
                                                 <div className="flex items-center gap-3.5 min-w-0">
                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm ${colorClass}`}>
@@ -578,12 +601,12 @@ const AdminDashboard = () => {
                                                 </div>
 
                                                 {/* Role */}
-                                                <div className="flex items-center md:pl-0 pl-[54px] -mt-2 md:mt-0">
+                                                <div className="flex items-center pl-[54px] md:pl-0">
                                                     <RoleBadge role={u.role} />
                                                 </div>
 
                                                 {/* Actions */}
-                                                <div className="flex items-center md:justify-end gap-2 md:pl-0 pl-[54px] mt-2 md:mt-0">
+                                                <div className="flex items-center gap-2 pl-[54px] md:justify-end md:pl-0">
                                                     <Button type="button" variant="outline" size="sm" leadingIcon={<Icon name="edit" className="h-4 w-4" />} onClick={() => openEditModal(u.id)} className="min-h-11 min-w-[75px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-button-size)]">
                                                         Edit
                                                     </Button>
