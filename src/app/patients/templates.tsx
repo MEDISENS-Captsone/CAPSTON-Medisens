@@ -11,10 +11,10 @@ import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass } from 
 // ─── Reusable Tailwind Classes ───────────────────────────────────────────────
 const inputClasses = clinicalInputClass;
 const inputErrorClasses = clinicalInputErrorClass;
-const readOnlyInputClasses = "w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-left bg-slate-100 text-slate-600 font-semibold cursor-not-allowed select-none";
+const readOnlyInputClasses = "w-full border border-[var(--neutral-300)] rounded-lg px-3 py-2.5 text-sm text-left bg-[var(--neutral-100)] text-[var(--text-2)] font-semibold cursor-not-allowed select-none";
 const labelClasses = clinicalLabelClass;
-const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-slate-200 mb-4 overflow-hidden";
-const legendClasses = "w-full px-4 py-3 border-b border-slate-200 text-sm font-semibold text-slate-800 uppercase tracking-wide bg-slate-50/60 flex items-center gap-2";
+const fieldsetClasses = "bg-white rounded-lg shadow-sm border border-[var(--border)] mb-4 overflow-hidden";
+const legendClasses = "w-full px-4 py-3 border-b border-[var(--border)] text-sm font-semibold text-[var(--text)] uppercase tracking-wide bg-[var(--neutral-50-70)] flex items-center gap-2";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PatientForm = PatientRegistrationForm;
@@ -106,7 +106,7 @@ function RadioOption({ name, value, label, checked, onChange }: {
     checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
     return (
-        <label className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all ${checked ? 'border-slate-700 bg-slate-50 text-slate-700 ring-1 ring-slate-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
+        <label className={`clinical-choice-label cursor-pointer px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all ${checked ? 'border-[var(--neutral-700)] bg-[var(--bg)] text-[var(--text-2)] ring-1 ring-[var(--neutral-700)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--neutral-300)] hover:bg-[var(--bg)]'}`}>
             <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="sr-only" />
             {label}
         </label>
@@ -227,10 +227,10 @@ export function TemplatesComponent() {
 
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <h2 className="text-2xl font-extrabold text-[var(--text)] flex items-center gap-2">
                         Patient Registration
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">Register a new patient into the system for initial triage.</p>
+                    <p className="text-sm text-[var(--text-3)] mt-1">Register a new patient into the system for initial triage.</p>
                 </div>
             </div>
 
@@ -238,7 +238,7 @@ export function TemplatesComponent() {
                 <form onSubmit={handleSubmit} className="flex-1 w-full min-w-0">
                     <fieldset className={fieldsetClasses}>
                         <div className={legendClasses}>
-                            <span className="text-slate-700">①</span> Patient's Information Record
+                            <span className="text-[var(--text-2)]">①</span> Patient's Information Record
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
@@ -292,7 +292,7 @@ export function TemplatesComponent() {
                                     <FieldError message={errors['birthday']} />
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Age <span className="text-slate-500 font-normal normal-case tracking-normal">(auto)</span></label>
+                                    <label className={labelClasses}>Age <span className="text-[var(--text-3)] font-normal normal-case tracking-normal">(auto)</span></label>
                                     <input
                                         type="text" id="age" value={form.age}
                                         readOnly
@@ -322,7 +322,7 @@ export function TemplatesComponent() {
                                     <AddressField value={form.address} onChange={(val) => setForm(f => ({ ...f, address: val }))} />
                                 </div>
                                 <div className="col-span-1 sm:col-span-2">
-                                    <label className={labelClasses}>Contact # <span className="text-slate-400 font-normal normal-case tracking-normal">(11 digits)</span></label>
+                                    <label className={labelClasses}>Contact # <span className="text-[var(--text-3)] font-normal normal-case tracking-normal">(11 digits)</span></label>
                                     <input
                                         type="text" id="contactNumber" value={form.contactNumber}
                                         onChange={handlePhone}
@@ -333,7 +333,7 @@ export function TemplatesComponent() {
                                     />
                                     <div className="flex items-center justify-between mt-1">
                                         <FieldError message={errors['contactNumber']} />
-                                        <span className={`text-xs ml-auto font-semibold ${form.contactNumber.length === 11 ? 'text-green-500' : 'text-slate-400'}`}>
+                                        <span className={`text-xs ml-auto font-semibold ${form.contactNumber.length === 11 ? 'text-green-500' : 'text-[var(--text-3)]'}`}>
                                             {form.contactNumber.length}/11
                                         </span>
                                     </div>
@@ -412,7 +412,7 @@ export function TemplatesComponent() {
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className={labelClasses}>PhilHealth No. <span className="text-slate-400 font-normal normal-case tracking-normal">(XX-XXXXXXXXX-X)</span></label>
+                                    <label className={labelClasses}>PhilHealth No. <span className="text-[var(--text-3)] font-normal normal-case tracking-normal">(XX-XXXXXXXXX-X)</span></label>
                                     <input
                                         type="text" id="philhealthNo" value={form.philhealthNo}
                                         onChange={handlePhilhealth}
@@ -423,7 +423,7 @@ export function TemplatesComponent() {
                                     />
                                     <div className="flex items-center justify-between mt-1">
                                         <FieldError message={errors['philhealthNo']} />
-                                        <span className={`text-xs ml-auto font-semibold ${philhealthDigits(form.philhealthNo).length === 12 ? 'text-green-500' : 'text-slate-400'}`}>
+                                        <span className={`text-xs ml-auto font-semibold ${philhealthDigits(form.philhealthNo).length === 12 ? 'text-green-500' : 'text-[var(--text-3)]'}`}>
                                             {philhealthDigits(form.philhealthNo).length}/12 digits
                                         </span>
                                     </div>
@@ -502,20 +502,20 @@ export function TemplatesComponent() {
                         </div>
                     </fieldset>
 
-                    <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-medium leading-6 text-slate-900">
+                    <div className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--neutral-50-70)] px-4 py-3 text-sm font-medium leading-6 text-[var(--text)]">
                         <div className="flex gap-3">
-                            <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-slate-700" />
+                            <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-2)]" />
                             <p>
                                 Personal and health data are collected and processed only for authorized RHU healthcare purposes in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-4 mt-4 mb-12 border-t border-slate-200 pt-6">
+                    <div className="flex justify-end gap-4 mt-4 mb-12 border-t border-[var(--border)] pt-6">
                         <button
                             type="submit"
                             disabled={saving}
-                            className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${saving ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-slate-700 hover:bg-slate-800'}`}
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${saving ? 'bg-[var(--neutral-400)] cursor-not-allowed shadow-none' : 'bg-[var(--neutral-700)] hover:bg-[var(--neutral-800)]'}`}
                         >
                             {saving ? 'Registering Patient...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Register Patient</>}
                         </button>

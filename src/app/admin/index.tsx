@@ -602,7 +602,7 @@ const AdminDashboard = () => {
 
             {/* ─── Add/Edit User Modal ─── */}
             {isUserModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget) closeUserModal(); }}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--overlay-soft)] backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget) closeUserModal(); }}>
                     <div ref={userDialogRef} role="dialog" aria-modal="true" aria-labelledby="user-dialog-title" className="bg-white w-full max-w-md rounded-2xl shadow-sm flex flex-col  overflow-hidden">
                         <div className="p-6 border-b border-[var(--border-soft)] flex justify-between items-center bg-[var(--surface-subtle)]/50">
                             <div>
@@ -668,7 +668,7 @@ const AdminDashboard = () => {
 
             {/* ─── Confirm Delete Modal ─── */}
             {isConfirmModalOpen && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget && !isSaving) closeConfirmModal(); }}>
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[var(--overlay-soft)] backdrop-blur-sm p-4 " onClick={(e) => { if (e.target === e.currentTarget && !isSaving) closeConfirmModal(); }}>
                     <div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-lg border border-[var(--border)] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
                         <div className="w-16 h-16 bg-red-50 text-red-500 rounded-lg flex items-center justify-center mb-5"><Icon name="trash" className="h-8 w-8" /></div>

@@ -1,106 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ══════════════════════════════════════════════════════════════
-   DESIGN TOKENS
-══════════════════════════════════════════════════════════════ */
-:root {
-    --brand-primary: #5A81FA;
-    --brand-primary-hover: #426BED;
-    --brand-active: #2B318A;
-    --brand-active-hover: #242970;
-    --brand-accent-surface: #D1DDFF;
-    --brand-soft-surface: #F2F3FF;
-
-    --blue:        var(--brand-primary);
-    --blue-light:  var(--brand-soft-surface);
-    --blue-hover:  var(--brand-active);
-    --green:       #16A34A;
-    --green-light: #F0FDF4;
-    --pink:        #BE185D;
-    --pink-light:  #FDF2F8;
-    --slate:       #2B318A;
-    --indigo:      var(--brand-active);
-    --indigo-light:var(--brand-soft-surface);
-    --coral:       #DC2626;
-    --coral-light: #FEF2F2;
-
-    --bg:          #F7F8FC;
-    --surface:     #FFFFFF;
-    --border:      #DDE3F5;
-    --border-soft: #EEF1FB;
-    --border-strong: #A8B1CE;
-    --text:        #1F1F1F;
-    --text-2:      #4F5368;
-    --text-3:      #6A6E83;
-    --text-secondary: #6A6E83;
-    --white:       #FFFFFF;
-
-    --shadow-sm:   0 1px 1px rgba(43,49,138,0.04);
-    --shadow-md:   0 1px 3px rgba(43,49,138,0.07);
-    --shadow-lg:   0 4px 12px rgba(43,49,138,0.10);
-
-    --radius-sm:   0.5rem;
-    --radius:      0.5rem;
-    --radius-lg:   0.5rem;
-
-    /* Responsive variables */
-    --sidebar-w:   240px;
-    --topbar-h:    3.25rem;
-
-    /* Shared semantic foundation */
-    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-    --font-weight-regular: 400;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-bold: 700;
-    --type-display-size: 1.5rem;
-    --type-display-line: 1.2;
-    --type-page-title-size: clamp(1.25rem, 1.05rem + 0.55vw, 1.5rem);
-    --type-page-title-line: 1.25;
-    --type-section-title-size: 1.0625rem;
-    --type-section-title-line: 1.35;
-    --type-card-title-size: 0.9375rem;
-    --type-card-title-line: 1.35;
-    --type-body-size: 0.875rem;
-    --type-body-line: 1.55;
-    --type-supporting-size: 0.8125rem;
-    --type-supporting-line: 1.45;
-    --type-label-size: 0.8125rem;
-    --type-label-line: 1.35;
-    --type-table-size: 0.8125rem;
-    --type-table-line: 1.45;
-    --type-button-size: 0.875rem;
-    --type-button-line: 1.2;
-    --type-nav-size: 0.875rem;
-    --type-nav-line: 1.25;
-    --type-category-size: 0.6875rem;
-    --type-category-line: 1.25;
-    --type-caption-size: 0.75rem;
-    --type-caption-line: 1.35;
-    --tracking-normal: 0;
-    --tracking-label: 0.01em;
-    --tracking-category: 0.08em;
-    --tracking-nav-category: 0.11em;
-    --surface-muted: #F2F3FF;
-    --surface-subtle: #F7F8FC;
-    --text-muted: #6A6E83;
-    --focus-ring: rgba(90, 129, 250, 0.28);
-    --focus-color: var(--brand-primary);
-    --disabled-bg: #F2F3FF;
-    --disabled-text: #A8B1CE;
-    --disabled-border: #D1DDFF;
-    --space-1: 0.25rem;
-    --space-2: 0.5rem;
-    --space-3: 0.75rem;
-    --space-4: 1rem;
-    --space-6: 1.5rem;
-    --radius-control: 0.5rem;
-    --motion-fast: 160ms;
-    --motion-base: 220ms;
-}
-
-
+/* Design tokens are not imported here. Every entry page in pages/*.html
+   links src/styles/tokens.css directly, so importing it again would ship a
+   duplicate copy of the :root block on the pages that also load this file. */
 
 /* ══════════════════════════════════════════════════════════════
    RESET & BASE (Fully Responsive Zoom Support)
@@ -267,13 +167,13 @@ textarea {
 /* System Online pill */
 .online-pill {
     display: flex; align-items: center; gap: 0.5rem;
-    background: #F0FDF4;
-    border: 1px solid #BBF7D0;
+    background: var(--green-light);
+    border: 1px solid var(--green-border);
     border-radius: 1.25rem;
     padding: 0.25rem 0.75rem;
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-medium);
-    color: #16A34A;
+    color: var(--green);
 }
 
 /* ── Content ── */
@@ -379,8 +279,8 @@ table {
 
 .ds-button-primary:hover,
 .btn-primary:hover {
-    background: #1D4ED8;
-    border-color: #1D4ED8;
+    background: var(--blue-strong);
+    border-color: var(--blue-strong);
 }
 
 .ds-input,
@@ -427,9 +327,9 @@ textarea:focus {
 }
 
 .ds-badge-green {
-    background: #F0FDF4;
-    border-color: #BBF7D0;
-    color: #15803D;
+    background: var(--green-light);
+    border-color: var(--green-border);
+    color: var(--green-dark);
 }
 
 .ds-empty,
@@ -937,7 +837,7 @@ td {
     /* --brand-primary-hover keeps white text at >= 4.5:1 (WCAG 1.4.3) */
     border-color: var(--brand-primary-hover);
     background: var(--brand-primary-hover);
-    color: #FFFFFF;
+    color: var(--white);
     box-shadow: var(--shadow-sm);
 }
 
@@ -1267,9 +1167,9 @@ td {
 }
 
 .clinical-row-action.danger:hover {
-    border-color: #FECACA;
-    background: #FEF2F2;
-    color: #B91C1C;
+    border-color: var(--coral-border);
+    background: var(--coral-light);
+    color: var(--coral-dark);
 }
 
 .clinical-status-badge {
@@ -1290,21 +1190,21 @@ td {
 }
 
 .clinical-status-badge.success {
-    border-color: #A7F3D0;
-    background: #ECFDF5;
-    color: #047857;
+    border-color: var(--green-border-soft);
+    background: var(--green-surface);
+    color: var(--green-text);
 }
 
 .clinical-status-badge.warning {
-    border-color: #FDE68A;
-    background: #FFFBEB;
-    color: #B45309;
+    border-color: var(--amber-border);
+    background: var(--amber-surface);
+    color: var(--amber-text);
 }
 
 .clinical-status-badge.error {
-    border-color: #FECACA;
-    background: #FEF2F2;
-    color: #B91C1C;
+    border-color: var(--coral-border);
+    background: var(--coral-light);
+    color: var(--coral-dark);
 }
 
 .clinical-worklist-row {
@@ -1523,11 +1423,11 @@ button.clinical-worklist-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    border: 1px solid #FDE68A;
+    border: 1px solid var(--amber-border);
     border-radius: var(--radius);
-    background: #FFFBEB;
+    background: var(--amber-surface);
     padding: 0.75rem 0.875rem;
-    color: #92400E;
+    color: var(--amber-text-dark);
     font-size: var(--type-body-size);
     font-weight: var(--font-weight-semibold);
 }
@@ -1862,15 +1762,15 @@ button.clinical-worklist-row {
 }
 
 .doctor-comparison-badge.is-up {
-    border-color: #A7F3D0;
-    background: #ECFDF5;
-    color: #047857;
+    border-color: var(--green-border-soft);
+    background: var(--green-surface);
+    color: var(--green-text);
 }
 
 .doctor-comparison-badge.is-down {
-    border-color: #FDE68A;
-    background: #FFFBEB;
-    color: #B45309;
+    border-color: var(--amber-border);
+    background: var(--amber-surface);
+    color: var(--amber-text);
 }
 
 .doctor-signal-stack {
@@ -1980,9 +1880,9 @@ button.clinical-worklist-row {
 
 .doctor-service-card {
     min-width: 0;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--neutral-border-soft);
     border-radius: var(--radius-control);
-    background: #FFFFFF;
+    background: var(--white);
     padding: 0.75rem;
 }
 
@@ -2105,7 +2005,7 @@ button.clinical-worklist-row {
     justify-content: center;
     border: 1px solid var(--brand-accent-surface);
     border-radius: 999px;
-    background: #FFFFFF;
+    background: var(--white);
     color: var(--brand-active);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
@@ -2340,7 +2240,7 @@ button.clinical-worklist-row {
     place-items: center;
     border-radius: 999px;
     background:
-        radial-gradient(circle at center, #FFFFFF 0 61%, transparent 62%),
+        radial-gradient(circle at center, var(--white) 0 61%, transparent 62%),
         conic-gradient(var(--brand-primary) 0 var(--doctor-coverage-rate), var(--border) var(--doctor-coverage-rate) 100%);
 }
 
@@ -2352,7 +2252,7 @@ button.clinical-worklist-row {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: #FFFFFF;
+    background: var(--white);
     text-align: center;
 }
 
@@ -2757,11 +2657,11 @@ button.clinical-worklist-row {
 }
 
 .doctor-geo-detail-error {
-    border: 1px solid #F0C9C9;
+    border: 1px solid var(--coral-border-soft);
     border-radius: var(--radius);
-    background: #FFF7F7;
+    background: var(--coral-surface-soft);
     padding: 0.55rem 0.7rem;
-    color: #9F3A3A;
+    color: var(--coral-text-soft);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-bold);
     line-height: var(--type-label-line);
@@ -2792,7 +2692,7 @@ button.clinical-worklist-row {
     gap: 0.25rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #FFFFFF;
+    background: var(--white);
     padding: 0.6rem 0.65rem;
 }
 
@@ -2963,7 +2863,7 @@ button.clinical-worklist-row {
 }
 
 .doctor-status-bar .is-completed { background: var(--brand-primary); }
-.doctor-status-bar .is-pending { background: #D9A441; }
+.doctor-status-bar .is-pending { background: var(--amber); }
 
 .doctor-status-bar-legend {
     display: grid;
@@ -2989,7 +2889,7 @@ button.clinical-worklist-row {
 }
 
 .doctor-status-bar-item.is-completed::before { background: var(--brand-primary); }
-.doctor-status-bar-item.is-pending::before { background: #D9A441; }
+.doctor-status-bar-item.is-pending::before { background: var(--amber); }
 
 .doctor-status-bar-item strong {
     color: var(--text);
@@ -3221,8 +3121,8 @@ button.clinical-worklist-row {
     font-weight: var(--font-weight-semibold);
 }
 
-.doctor-reliability-text.is-green { color: #38765a; }
-.doctor-reliability-text.is-amber { color: #8a6414; }
+.doctor-reliability-text.is-green { color: var(--green-text-muted); }
+.doctor-reliability-text.is-amber { color: var(--amber-text-muted); }
 
 .ops-list {
     display: flex;
@@ -3244,7 +3144,7 @@ button.clinical-worklist-row {
 }
 
 .ops-row:hover {
-    background: #F7FBFF;
+    background: var(--blue-surface-faint);
 }
 
 .bhw-recent-registration-row {
@@ -3530,7 +3430,7 @@ button.clinical-worklist-row {
     width: 0.62rem;
     height: 0.62rem;
     transform: translate(-50%, -50%);
-    border: 2px solid #FFFFFF;
+    border: 2px solid var(--white);
     border-radius: 999px;
     background: var(--brand-primary);
     box-shadow: 0 0 0 1px rgba(90, 129, 250, 0.24);

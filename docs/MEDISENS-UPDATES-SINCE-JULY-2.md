@@ -146,7 +146,7 @@ Benefit: the current source compiles cleanly and has clearer architectural guida
 
 ### Currently being tested
 
-- The repository contains untracked local QA notes and screenshots (`UI-Manual-Check.md`, `r1-*.png`, `r1fix-*.png`) and a final committed R1 fix (`96cf4aa`). Because the notes/screenshots are not part of HEAD, they were not used as proof of completed runtime coverage.
+- The repository contains untracked local QA notes and screenshots (`docs/UI-Manual-Check.md`, `r1-*.png`, `r1fix-*.png`) and a final committed R1 fix (`96cf4aa`). Because the notes/screenshots are not part of HEAD, they were not used as proof of completed runtime coverage.
 - The codebase includes analytics SQL verification/smoke scripts, but this review did not rerun them against the linked project.
 
 ### Remaining before deployment
@@ -194,7 +194,7 @@ The interface was also unified through a shared clinical design system and then 
 - **Date range reviewed:** July 2, 2026 through July 31, 2026, current HEAD. The first commit in the inspected ancestry after the requested start date is July 4.
 - **Branch inspected:** `redesign/final-ui`
 - **Commits inspected:** 34 commits, from `cdbe9f01a96c94043ddd1655ab49df3b8ed4cda8` through `96cf4aa445ef4412d33f0e94641a5669f942c95e`; cumulative comparison used parent baseline `ed7bcc28cfb88b5ea780d3cde1025d0015261d85`.
-- **Output file created:** `MEDISENS-UPDATES-SINCE-JULY-2.md`
+- **Output file created:** `docs/MEDISENS-UPDATES-SINCE-JULY-2.md`
 - **Verification performed in this review:** Git history and cumulative/per-commit diffs; current application, migrations, RPCs, Edge Functions, UI, accessibility, documentation, and cleanup files; `npm.cmd run build` passed (458 modules); `npm.cmd exec -- tsc --noEmit` passed.
 - **Could not be verified from the repository alone:** current remote Supabase migration/Edge Function deployment, live data accuracy, complete role-by-role authorization behavior, production readiness, real end-to-end workflows, screen-reader behavior, runtime performance, and whether untracked local QA artifacts represent a completed test cycle.
 - **Repository documentation limitation:** no project-level `README.md` or root `AGENTS.md` exists at HEAD. `CLAUDE.md`, `docs/superpowers/plans/PLAN.md`, `UI-Final-Redesign.md`, and `UPDATE.md` were used as the main project documentation.

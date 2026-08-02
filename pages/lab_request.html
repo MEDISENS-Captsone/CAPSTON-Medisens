@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediSens | Initial Consultation</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../src/styles/tokens.css">
     <link rel="stylesheet" href="../src/styles/dashboard.css">
     <style>
-    :root {
-        --sidebar-width: 260px;
-    }
-
-    body { 
-        font-family: 'Plus Jakarta Sans', sans-serif; 
-        background-color: #F7F8FC;
+    body {
+        font-family: var(--font-sans);
+        background-color: var(--bg);
         margin: 0;
         display: flex; /* Sidebar and Main side-by-side */
     }
@@ -32,7 +28,7 @@
 
     /* ── Responsive Form Grid ── */
     .form-section {
-        background: #ffffff;
+        background: var(--white);
         border: 1px solid var(--border);
         border-radius: 12px;
         padding: 24px;
@@ -65,15 +61,15 @@
         padding: 9px 16px; border: 1.5px solid var(--border);
         border-radius: 8px; cursor: pointer;
         font-size: 0.85rem; font-weight: 500; color: var(--text-2);
-        background: #fff; transition: all 0.15s; user-select: none;
+        background: var(--white); transition: all 0.15s; user-select: none;
     }
 
-    .radio-opt:hover { border-color: #5A81FA; }
+    .radio-opt:hover { border-color: var(--brand-primary); }
 
     .radio-opt.sel,
     .radio-opt:has(input:checked) {
-        border-color: #5A81FA; background: #F2F3FF;
-        color: #2B318A; font-weight: 600;
+        border-color: var(--brand-primary); background: var(--brand-soft-surface);
+        color: var(--brand-active); font-weight: 600;
     }
 
     /* ── Inputs ── */
@@ -94,7 +90,7 @@
     }
 
     input:focus, textarea:focus {
-        border-color: #5A81FA;
+        border-color: var(--brand-primary);
         box-shadow: 0 0 0 3px rgba(90, 129, 250, 0.18);
     }
 

@@ -127,9 +127,9 @@ Do not “correct” this value to `laboratory` in authorization logic, database
 
 Before implementing any visible UI change, read:
 
-- `docs/SKILL-UI.md`
-- `docs/UI-CLINICAL-PATTERNS.md` when the task involves patient or clinical interfaces
-- `docs/PWA-OFFLINE-TARGET.md` only when the task explicitly involves offline or synchronization behavior
+- `docs/design/SKILL-UI.md`
+- `docs/design/UI-CLINICAL-PATTERNS.md` when the task involves patient or clinical interfaces
+- `docs/design/PWA-OFFLINE-TARGET.md` only when the task explicitly involves offline or synchronization behavior
 
 Before modifying visible UI, inspect:
 
@@ -361,7 +361,7 @@ Display reliability or attribution limitations when the backend provides them.
 
 ## UI and UX
 
-Follow `docs/SKILL-UI.md`.
+Follow `docs/design/SKILL-UI.md`.
 
 Design direction:
 
@@ -415,7 +415,7 @@ Do not create a new visual variant merely because a component appears in a diffe
 
 ### Design tokens
 
-`docs/SKILL-UI.md` is authoritative for the visual token system.
+`docs/design/SKILL-UI.md` is authoritative for the visual token system.
 
 All new or revised:
 

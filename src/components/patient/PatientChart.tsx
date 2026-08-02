@@ -62,7 +62,7 @@ export function PatientChartIdentityHeader({
                     <div id={titleId} className="font-semibold text-[var(--text)] leading-tight truncate">
                         {title ?? formatPatientChartName(patient)}
                     </div>
-                    <div className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+                    <div className="text-xs text-[var(--text-3)] font-medium mt-0.5 truncate">
                         {subtitle ?? formatPatientChartSubtitle(patient)}
                     </div>
                 </div>

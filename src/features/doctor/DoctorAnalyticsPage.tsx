@@ -2617,15 +2617,15 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                 </div>
                 {preset === 'custom' && (
                     <div className="doctor-custom-period">
-                        <label className="flex min-w-[10rem] flex-col gap-1 text-xs font-semibold text-slate-600">
+                        <label className="flex min-w-[10rem] flex-col gap-1 text-xs font-semibold text-[var(--text-2)]">
                             From
                             <input type="date" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} className="clinical-input min-h-9" disabled={isRefreshing && preset === 'custom'} />
                         </label>
-                        <label className="flex min-w-[10rem] flex-col gap-1 text-xs font-semibold text-slate-600">
+                        <label className="flex min-w-[10rem] flex-col gap-1 text-xs font-semibold text-[var(--text-2)]">
                             To
                             <input type="date" value={customTo} onChange={(event) => setCustomTo(event.target.value)} className="clinical-input min-h-9" disabled={isRefreshing && preset === 'custom'} />
                         </label>
-                        <span className="pb-2 text-xs font-medium text-slate-500">Maximum 366 days. End date is included.</span>
+                        <span className="pb-2 text-xs font-medium text-[var(--text-3)]">Maximum 366 days. End date is included.</span>
                     </div>
                 )}
             </header>

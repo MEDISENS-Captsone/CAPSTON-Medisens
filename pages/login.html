@@ -4,26 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediSens | Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../src/styles/tokens.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Page-local only. Brand, text, and surface values come from tokens.css.
+           Prefixed so it cannot shadow a global token. */
         :root {
-            --navy: #2B318A;
-            --navy-mid: #2B318A;
-            --teal: #5A81FA;
-            --surface: #F7F8FC;
-            --surface-line: #A8B1CE;
-            --text: #1F1F1F;
-            --muted: #6A6E83;
-            --error: #c93636;
-            --white: #ffffff;
+            --login-error: #c93636;
         }
 
         html,
         body {
             height: 100%;
-            font-family: 'DM Sans', sans-serif;
-            background-color: var(--navy);
+            font-family: var(--font-sans);
+            background-color: var(--brand-active);
             color: var(--text);
             overflow: hidden;
         }
@@ -33,7 +27,7 @@
             inset: 0;
             z-index: 0;
             overflow: hidden;
-            background: #1F1F1F;
+            background: var(--text);
         }
 
         .bg::before,
@@ -189,7 +183,7 @@
             height: 8px;
             flex: 0 0 auto;
             border-radius: 999px;
-            background: #5A81FA;
+            background: var(--brand-primary);
             box-shadow: 0 0 0 4px rgba(90, 129, 250, 0.16);
         }
 
@@ -224,9 +218,9 @@
 
         .card-kicker {
             margin-bottom: 8px;
-            /* --navy rather than the brand blue: this is small bold uppercase text,
-               where #5A81FA on white falls under 4.5:1. */
-            color: var(--navy);
+            /* --brand-active rather than --brand-primary: this is small bold uppercase
+               text, where #5A81FA on white falls under 4.5:1. */
+            color: var(--brand-active);
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.14em;
@@ -234,7 +228,7 @@
         }
 
         .card-header h2 {
-            color: var(--navy);
+            color: var(--brand-active);
             font-size: 1.65rem;
             font-weight: 700;
             letter-spacing: -0.02em;
@@ -242,7 +236,7 @@
 
         .card-header p {
             margin-top: 6px;
-            color: var(--muted);
+            color: var(--text-3);
             font-size: 0.88rem;
         }
 
@@ -251,7 +245,7 @@
         .field label {
             display: block;
             margin-bottom: 7px;
-            color: #1F1F1F;
+            color: var(--text);
             font-size: 0.76rem;
             font-weight: 700;
             letter-spacing: 0.08em;
@@ -261,22 +255,22 @@
         .field input {
             width: 100%;
             padding: 13px 15px;
-            border: 1px solid var(--surface-line);
+            border: 1px solid var(--border-strong);
             border-radius: 8px;
             background: var(--white);
-            color: var(--navy);
-            font-family: 'DM Sans', sans-serif;
+            color: var(--brand-active);
+            font-family: var(--font-sans);
             font-size: 0.95rem;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .field input:focus {
-            border-color: #5A81FA;
+            border-color: var(--brand-primary);
             box-shadow: 0 0 0 3px rgba(90, 129, 250, 0.18);
         }
 
-        .field input::placeholder { color: #A8B1CE; }
+        .field input::placeholder { color: var(--border-strong); }
 
         .login-btn {
             width: 100%;
@@ -285,9 +279,9 @@
             padding: 13px 14px;
             border: none;
             border-radius: 8px;
-            background: var(--navy);
+            background: var(--brand-active);
             color: var(--white);
-            font-family: 'DM Sans', sans-serif;
+            font-family: var(--font-sans);
             font-size: 0.95rem;
             font-weight: 700;
             letter-spacing: 0.01em;
@@ -296,11 +290,11 @@
         }
 
         .login-btn:hover {
-            background: #1F1F1F;
+            background: var(--text);
             box-shadow: 0 4px 12px rgba(43, 49, 138, 0.18);
         }
 
-        .login-btn:active { background: #1F1F1F; }
+        .login-btn:active { background: var(--text); }
         .login-btn.loading { pointer-events: none; opacity: 0.7; }
 
         .spinner {
@@ -323,15 +317,15 @@
             border: 1px solid rgba(224, 82, 82, 0.3);
             border-radius: 8px;
             background: rgba(224, 82, 82, 0.1);
-            color: var(--error);
+            color: var(--login-error);
             font-size: 0.83rem;
         }
 
         .privacy-notice {
             margin-top: 18px;
             padding-top: 14px;
-            border-top: 1px solid var(--surface-line);
-            color: #6A6E83;
+            border-top: 1px solid var(--border-strong);
+            color: var(--text-secondary);
             font-size: 0.76rem;
             line-height: 1.55;
         }
