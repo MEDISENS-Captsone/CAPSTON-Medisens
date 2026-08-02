@@ -11,45 +11,47 @@
    not contain reset, layout, or component rules: several pages link it
    without dashboard.css and rely on their own layout.
 
-   Values here are the current runtime values, preserved exactly. The
-   approved navy target in docs/design/SKILL-UI.md is applied in a later
-   batch by editing this file alone.
+   Values here implement the approved navy target in
+   docs/design/SKILL-UI.md section 7.1. Token names and every non-color
+   layout/spacing/typography value are unchanged from the prior batch —
+   only canonical semantic color values were retuned here so components
+   picked up the new palette without any JSX or class changes.
 ══════════════════════════════════════════════════════════════ */
 :root {
-    --brand-primary: #5A81FA;
-    --brand-primary-hover: #426BED;
-    --brand-active: #2B318A;
-    --brand-active-hover: #242970;
-    --brand-accent-surface: #D1DDFF;
-    --brand-soft-surface: #F2F3FF;
+    --brand-primary: #1D4E68;
+    --brand-primary-hover: #173E54;
+    --brand-active: #102E40;
+    --brand-active-hover: #0B2230;
+    --brand-accent-surface: #BCD4DF;
+    --brand-soft-surface: #DCEAF0;
 
     --blue:        var(--brand-primary);
     --blue-light:  var(--brand-soft-surface);
     --blue-hover:  var(--brand-active);
-    --green:       #16A34A;
-    --green-light: #F0FDF4;
+    --green:       #126B3D;
+    --green-light: #E7F4EC;
     --pink:        #BE185D;
     --pink-light:  #FDF2F8;
-    --slate:       #2B318A;
+    --slate:       #102E40;
     --indigo:      var(--brand-active);
     --indigo-light:var(--brand-soft-surface);
-    --coral:       #DC2626;
-    --coral-light: #FEF2F2;
+    --coral:       #B42318;
+    --coral-light: #FDECEA;
 
-    --bg:          #F7F8FC;
+    --bg:          #F3F5F6;
     --surface:     #FFFFFF;
-    --border:      #DDE3F5;
-    --border-soft: #EEF1FB;
-    --border-strong: #A8B1CE;
-    --text:        #1F1F1F;
-    --text-2:      #4F5368;
-    --text-3:      #6A6E83;
-    --text-secondary: #6A6E83;
+    --border:      #DDE3E6;
+    --border-soft: #E8ECEE;
+    --border-strong: #C7D0D5;
+    --text:        #14212A;
+    --text-2:      #52616B;
+    --text-3:      #63727C;
+    --text-secondary: #687781;
     --white:       #FFFFFF;
 
-    --shadow-sm:   0 1px 1px rgba(43,49,138,0.04);
-    --shadow-md:   0 1px 3px rgba(43,49,138,0.07);
-    --shadow-lg:   0 4px 12px rgba(43,49,138,0.10);
+    --shadow-sm:   0 1px 1px rgba(11,34,48,0.04);
+    --shadow-md:   0 1px 3px rgba(11,34,48,0.07);
+    --shadow-lg:   0 4px 12px rgba(11,34,48,0.10);
 
     --radius-sm:   0.5rem;
     --radius:      0.5rem;
@@ -94,14 +96,14 @@
     --tracking-label: 0.01em;
     --tracking-category: 0.08em;
     --tracking-nav-category: 0.11em;
-    --surface-muted: #F2F3FF;
-    --surface-subtle: #F7F8FC;
-    --text-muted: #6A6E83;
-    --focus-ring: rgba(90, 129, 250, 0.28);
+    --surface-muted: #EEF2F3;
+    --surface-subtle: #F7F8F9;
+    --text-muted: #63727C;
+    --focus-ring: rgba(29, 78, 104, 0.28);
     --focus-color: var(--brand-primary);
-    --disabled-bg: #F2F3FF;
-    --disabled-text: #A8B1CE;
-    --disabled-border: #D1DDFF;
+    --disabled-bg: #DCEAF0;
+    --disabled-text: #C7D0D5;
+    --disabled-border: #BCD4DF;
     --space-1: 0.25rem;
     --space-2: 0.5rem;
     --space-3: 0.75rem;
@@ -141,8 +143,11 @@
     --neutral-border-soft: #E2E8F0;
 
     /* Neutral scale — exact values of the raw Tailwind slate/gray utilities
-       these replace, kept distinct from the MediSens text/border palette so
-       computed appearance does not shift until the navy redesign batch. */
+       these replace, kept distinct from the MediSens text/border palette.
+       Out of scope for the token-level navy retune: these back a handful
+       of specific components (e.g. the registration submit button) and
+       changing them is a deliberate component-level decision for a later,
+       explicitly scoped batch, not a canonical semantic token. */
     --neutral-50-70: rgba(248, 250, 252, 0.7);
     --neutral-100: #F1F5F9;
     --neutral-300: #CBD5E1;

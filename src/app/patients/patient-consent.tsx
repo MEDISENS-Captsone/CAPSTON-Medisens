@@ -17,8 +17,8 @@ function tokenColor(name: string, fallback: string): string {
     return value || fallback;
 }
 
-const PEN_INK = () => tokenColor('--text', '#1F1F1F');
-const PEN_INK_STAFF = () => tokenColor('--brand-primary-hover', '#426BED');
+const PEN_INK = () => tokenColor('--text', '#14212A');
+const PEN_INK_STAFF = () => tokenColor('--brand-primary-hover', '#173E54');
 
 interface ConsentProps {
     patientId: string;
