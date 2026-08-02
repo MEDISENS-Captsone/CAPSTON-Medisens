@@ -47,13 +47,13 @@ const TYPE_MARK: Record<PatientTransaction['type'], string> = {
 
 const TYPE_MARK_CLASS: Record<PatientTransaction['type'], string> = {
     registration: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border)]',
-    consent: 'bg-amber-50 text-amber-800 ring-amber-200',
+    consent: 'bg-[var(--amber-surface)] text-[var(--amber-text-dark)] ring-[var(--amber-border)]',
     initial_consultation: 'bg-[var(--surface-subtle)] text-[var(--text)] ring-[var(--border)]',
     doctor_consultation: 'bg-[var(--surface-subtle)] text-[var(--text-2)] ring-[var(--border)]',
     lab_request: 'bg-violet-50 text-violet-800 ring-violet-200',
-    lab_result: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    lab_result: 'bg-[var(--green-surface)] text-[var(--green-ink-strong)] ring-[var(--green-border-soft)]',
     prescription: 'bg-rose-50 text-rose-800 ring-rose-200',
-    pharmacy: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    pharmacy: 'bg-[var(--green-surface)] text-[var(--green-ink-strong)] ring-[var(--green-border-soft)]',
     vaccine: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
     follow_up: 'bg-purple-50 text-purple-800 ring-purple-200',
 };
@@ -129,9 +129,9 @@ function HistoryWarning({ warnings, onRetry }: { warnings: PatientHistoryWarning
     const canRetry = warnings.some(warning => warning.kind !== 'application') && Boolean(onRetry);
 
     return (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+        <div className="mb-4 rounded-xl border border-[var(--amber-border)] bg-[var(--amber-surface)] p-4 text-sm text-[var(--amber-ink-strong)]">
             <div className="font-extrabold">Partial history loaded</div>
-            <p className="mt-1 font-medium text-amber-900">
+            <p className="mt-1 font-medium text-[var(--amber-ink)]">
                 Some medical record sections could not be loaded. Review the visible records with caution.
             </p>
             <ul className="mt-3 space-y-1">
@@ -229,7 +229,7 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
 
     if (visibleError) {
         return (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className="rounded-lg border border-[var(--coral-border)] bg-[var(--coral-tint)] p-3 text-sm text-[var(--coral-ink)]">
                 <div className="font-extrabold">Patient history could not be loaded</div>
                 <p className="mt-1 font-medium">{visibleError}</p>
                 <RetryButton onRetry={retry} />
@@ -306,13 +306,13 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                         <div className="hidden shrink-0 pt-4 sm:flex">
                             <div className={`h-2.5 w-2.5 rounded-full shadow-sm ring-2 ring-white ${
                                 transaction.type === 'lab_result' || transaction.type === 'pharmacy'
-                                    ? 'bg-green-500'
+                                    ? 'bg-[var(--green-accent)]'
                                     : transaction.type === 'vaccine'
                                         ? 'bg-indigo-500'
                                         : transaction.type === 'registration'
                                             ? 'bg-[var(--brand-active)]'
                                             : transaction.type === 'consent'
-                                                ? 'bg-amber-500'
+                                                ? 'bg-[var(--amber-accent)]'
                                                 : transaction.type === 'follow_up'
                                                     ? 'bg-purple-500'
                                                     : 'bg-[var(--text-muted)]'

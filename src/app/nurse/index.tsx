@@ -180,7 +180,7 @@ const NurseDashboard = () => {
                                 <PageHeader
                                     title="Nursing Intake Queue"
                                     subtitle="Patients with signed consent are ready for vitals and initial consultation."
-                                    meta={<span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                                    meta={<span className="rounded-md border border-[var(--green-border)] bg-[var(--green-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--green-dark)]">
                                         {stats.consented} ready for vitals
                                     </span>}
                                 />

@@ -51,8 +51,8 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
             <div className="ops-summary-grid mb-5 w-full">
                 {[
                     { icon: 'users', label: 'Master Registry',      value: totalPatients, bg: 'bg-[var(--surface-subtle)]',    text: 'text-[var(--text-2)]'   },
-                    { icon: 'heart-pulse', label: 'Maternal Care',        value: maternalCount, bg: 'bg-pink-50',    text: 'text-pink-600'   },
-                    { icon: 'baby', label: 'Child Care (Immu)',    value: childCount,    bg: 'bg-emerald-50', text: 'text-emerald-600'},
+                    { icon: 'heart-pulse', label: 'Maternal Care',        value: maternalCount, bg: 'bg-[var(--pink-light)]',    text: 'text-pink-600'   },
+                    { icon: 'baby', label: 'Child Care (Immu)',    value: childCount,    bg: 'bg-[var(--green-surface)]', text: 'text-emerald-600'},
                     { icon: 'pill', label: 'Family Planning',      value: fpCount,       bg: 'bg-purple-50',  text: 'text-purple-600' },
                 ].map(({ icon, label, value, bg, text }) => (
                     <div key={label} className="ops-summary-card flex items-center gap-3 w-full">
@@ -149,9 +149,9 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
                                             {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </div>
                                         {!p.consent_signed ? (
-                                            <span className="text-[0.68rem] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded shadow-sm tracking-wide uppercase inline-flex items-center gap-1"><Icon name="alert-triangle" className="h-3 w-3" /> Pending</span>
+                                            <span className="text-[0.68rem] font-semibold bg-[var(--amber-surface)] text-[var(--amber-accent-strong)] border border-[var(--amber-border)] px-2 py-0.5 rounded shadow-sm tracking-wide uppercase inline-flex items-center gap-1"><Icon name="alert-triangle" className="h-3 w-3" /> Pending</span>
                                         ) : (
-                                            <span className="text-[0.68rem] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded shadow-sm tracking-wide uppercase inline-flex items-center gap-1"><Icon name="check" className="h-3 w-3" /> Signed</span>
+                                            <span className="text-[0.68rem] font-semibold bg-[var(--green-surface)] text-[var(--green-ink)] border border-[var(--green-border-soft)] px-2 py-0.5 rounded shadow-sm tracking-wide uppercase inline-flex items-center gap-1"><Icon name="check" className="h-3 w-3" /> Signed</span>
                                         )}
                                     </div>
                                 </button>

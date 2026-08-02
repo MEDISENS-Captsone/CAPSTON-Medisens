@@ -14,7 +14,7 @@ export const clinicalSectionHeaderClass =
 
 export const clinicalInputErrorClass = cn(
     clinicalInputClass,
-    'border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/10',
+    'border-[var(--coral-border-strong)] bg-[var(--coral-tint)] focus:border-[var(--coral-accent)] focus:ring-red-500/10',
 );
 
 interface ClinicalFieldProps {
@@ -32,11 +32,11 @@ export function ClinicalField({ label, htmlFor, children, required, hint, error,
         <div className={cn('min-w-0', className)}>
             <label htmlFor={htmlFor} className={clinicalLabelClass}>
                 {label}
-                {required && <span className="ml-1 text-red-500">*</span>}
+                {required && <span className="ml-1 text-[var(--coral-accent)]">*</span>}
             </label>
             {children}
             {(error || hint) && (
-                <p className={cn('mt-1 text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)]', error ? 'text-red-600' : 'text-[var(--text-secondary)]')}>
+                <p className={cn('mt-1 text-[length:var(--type-caption-size)] font-medium leading-[var(--type-caption-line)]', error ? 'text-[var(--coral-accent-strong)]' : 'text-[var(--text-secondary)]')}>
                     {error || hint}
                 </p>
             )}

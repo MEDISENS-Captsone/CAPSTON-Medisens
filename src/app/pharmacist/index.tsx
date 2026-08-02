@@ -424,7 +424,7 @@ function PharmacyDashboard() {
                                 type="button"
                                 onClick={handlePrintUnavailable}
                                 disabled={allChecked}
-                                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all w-full sm:w-auto flex items-center justify-center gap-2 ${allChecked ? 'opacity-40 cursor-not-allowed bg-[var(--border-soft)] text-[var(--text-secondary)] border border-[var(--border)]' : 'text-pink-700 bg-pink-100 border border-pink-200 hover:bg-pink-200 shadow-sm hover:shadow'}`}
+                                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all w-full sm:w-auto flex items-center justify-center gap-2 ${allChecked ? 'opacity-40 cursor-not-allowed bg-[var(--border-soft)] text-[var(--text-secondary)] border border-[var(--border)]' : 'text-[var(--pink)] bg-[var(--pink-tint)] border border-[var(--pink-border)] hover:bg-[var(--pink-border)] shadow-sm hover:shadow'}`}
                             >
                                 <Icon name="printer" className="h-4 w-4" /> Print
                             </button>
@@ -468,7 +468,7 @@ function PharmacyDashboard() {
                                                             onChange={() => handleToggleChecklist(i)}
                                                         />
                                                     </td>
-                                                    <td className={`p-4 font-bold ${dispenseChecklist[i] ? 'text-[var(--text-2)]' : 'text-red-700 line-through'}`}>{med.name}</td>
+                                                    <td className={`p-4 font-bold ${dispenseChecklist[i] ? 'text-[var(--text-2)]' : 'text-[var(--coral-dark)] line-through'}`}>{med.name}</td>
                                                     <td className="p-4 text-[var(--text-2)]">{med.dosage}</td>
                                                     <td className="p-4 text-[var(--text-2)]">{med.frequency}</td>
                                                     <td className="p-4 font-semibold text-[var(--text)] tabular-nums">{med.quantity}</td>

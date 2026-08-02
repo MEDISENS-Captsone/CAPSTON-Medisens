@@ -12,8 +12,8 @@ export interface ToastProps {
 }
 
 const typeClasses = {
-    success: 'bg-green-700',
-    error: 'bg-red-700',
+    success: 'bg-[var(--green-dark)]',
+    error: 'bg-[var(--coral-dark)]',
     info: 'bg-[var(--brand-active)]',
 } as const;
 

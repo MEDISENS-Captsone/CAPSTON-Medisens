@@ -648,10 +648,10 @@ export function PatientDetailModal({
                                         )}
 
                                         {vaccineLoadError ? (
-                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                            <div className="rounded-xl border border-[var(--coral-border)] bg-[var(--coral-tint)] p-4 text-sm text-[var(--coral-dark)]">
                                                 <div className="font-bold">Vaccine records could not be loaded.</div>
                                                 <div className="mt-1">{vaccineLoadError}</div>
-                                                <button type="button" onClick={loadVaccineRecords} className={`mt-3 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 ${focusCls}`}>
+                                                <button type="button" onClick={loadVaccineRecords} className={`mt-3 rounded-lg bg-[var(--coral-accent-strong)] px-3 py-1.5 text-xs font-bold text-white hover:bg-[var(--coral-dark)] ${focusCls}`}>
                                                     Retry
                                                 </button>
                                             </div>
@@ -670,7 +670,7 @@ export function PatientDetailModal({
                                                             onClick={() => setPendingRemoveVaccine(vr)}
                                                             disabled={removingVaccineId === vr.id}
                                                             aria-label={`Remove ${getVaccineDisplayName(vr)} vaccine record`}
-                                                            className={`absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                                            className={`absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--coral-tint)] text-[var(--coral-accent-strong)] hover:bg-[var(--coral-tint-strong)] hover:text-[var(--coral-dark)] transition-colors text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                                                             title="Remove vaccine record"
                                                         >
                                                             X
@@ -791,7 +791,7 @@ export function PatientDetailModal({
                                 type="button"
                                 onClick={() => handleRemoveVaccine(pendingRemoveVaccine)}
                                 disabled={Boolean(removingVaccineId)}
-                                className={`flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
+                                className={`flex-1 rounded-xl bg-[var(--coral-accent-strong)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[var(--coral-dark)] disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`}
                             >
                                 {removingVaccineId ? 'Removing...' : 'Remove'}
                             </button>

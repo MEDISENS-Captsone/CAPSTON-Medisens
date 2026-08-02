@@ -2571,7 +2571,7 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
     return (
         <div className="pwa-page-pad doctor-analytics-dashboard">
             {!isOnline && (
-                <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                <div role="status" className="rounded-lg border border-[var(--amber-border)] bg-[var(--amber-surface)] px-4 py-3 text-sm font-semibold text-[var(--amber-text-dark)]">
                     Analytics may be out of date while the workstation is offline.
                 </div>
             )}

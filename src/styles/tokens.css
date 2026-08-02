@@ -183,4 +183,42 @@
     --shadow-navy-drawer: rgba(15, 49, 84, 0.18);
     --surface-translucent-chart: rgba(247, 250, 252, 0.96);
     --ring-info-soft: rgba(66, 174, 232, 0.1);
+
+    /* Batch 1B.2 correction — the flat --tw-* palette aliases were removed.
+       Genuine status shades now extend the existing --amber/--green/--coral
+       family (lightest → darkest: tint, tint-strong, [border-strong],
+       accent, accent-strong, ink, [ink-strong]) instead of being named
+       after raw Tailwind hues. Purely categorical/decorative colors
+       (audit action & module tags, transaction-type badges, per-role
+       accents, decorative section numbering) were restored to plain
+       Tailwind utility classes and deferred to the navy-theme batch,
+       since forcing them into a status token would misstate their intent. */
+    --amber-tint: #FEF3C7;
+    --amber-tint-strong: #FCD34D;
+    --amber-accent: #F59E0B;
+    --amber-accent-strong: #D97706;
+    --amber-ink: #78350F;
+    --amber-ink-strong: #451A03;
+
+    --green-tint: #F0FDF4;
+    --green-tint-strong: #DCFCE7;
+    --green-border-strong: #86EFAC;
+    --green-accent: #22C55E;
+    --green-accent-strong: #16A34A;
+    --green-ink: #059669;
+    --green-ink-strong: #065F46;
+
+    --coral-tint: #FEF2F2;
+    --coral-tint-strong: #FEE2E2;
+    --coral-border-strong: #F87171;
+    --coral-accent: #EF4444;
+    --coral-accent-strong: #DC2626;
+    --coral-ink: #991B1B;
+
+    --pink-tint: #FCE7F3;
+
+    /* Small intent-specific tokens, each genuinely distinct from the
+       families above and used for exactly one concrete purpose. */
+    --status-caution: #F97316;
+    --marker-required: #F43F5E;
 }
