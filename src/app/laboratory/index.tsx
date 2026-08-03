@@ -368,6 +368,7 @@ const LaboratoryDashboard = () => {
 
     const [requests, setRequests] = useState<LabRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'All' | 'Pending' | 'Completed'>('All');
     const [selectedRequest, setSelectedRequest] = useState<LabRequest | null>(null);
@@ -479,8 +480,10 @@ const LaboratoryDashboard = () => {
             } else {
                 setRequests([]);
             }
+            setLoadError(false);
         } catch (err) {
             logError('Failed to load lab requests', err);
+            setLoadError(true);
             showToast(healthcareErrorMessage("load laboratory requests"), true);
         } finally {
             if (showSpinner) setLoading(false);
@@ -523,7 +526,7 @@ const LaboratoryDashboard = () => {
     };
 
     return (
-        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
+        <div className="laboratory-dashboard-workspace flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             <ToastComponent />
             <Sidebar
                 activePage="lab"
@@ -552,7 +555,7 @@ const LaboratoryDashboard = () => {
                 />
 
                 <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
-                    <div className="w-full">
+                    <div className="role-workspace-canvas w-full">
                         <PageHeader
                             title="Laboratory Work Queue"
                             subtitle="Encode pending results and review completed requests."
@@ -561,26 +564,27 @@ const LaboratoryDashboard = () => {
                         <div className="pwa-page-pad pb-0">
                             <div className="ops-summary-grid">
                                 {[
-                                    ['Pending Requests', stats.pending, 'Awaiting result encoding'],
-                                    ['Completed Results', stats.completed, 'Already encoded'],
-                                    ['Total Requests', stats.total, 'Current worklist'],
-                                ].map(([label, value, note]) => (
-                                    <div key={label} className="ops-summary-card">
-                                        <div className="ops-summary-label">{label}</div>
+                                    ['clock', 'Pending Requests', stats.pending, 'Awaiting result encoding'],
+                                    ['check', 'Completed Results', stats.completed, 'Already encoded'],
+                                    ['flask', 'Total Requests', stats.total, 'Current worklist'],
+                                ].map(([icon, label, value, note]) => (
+                                    <div key={label} className="ops-summary-card role-summary-card">
+                                        <div className="role-summary-icon"><Icon name={icon as 'clock' | 'check' | 'flask'} className="h-4 w-4" /></div>
+                                        <div><div className="ops-summary-label">{label}</div>
                                         <div className="ops-summary-value tabular-nums">{value}</div>
-                                        <div className="ops-summary-note">{note}</div>
+                                        <div className="ops-summary-note">{note}</div></div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="m-3 md:m-4 xl:m-5 ops-panel overflow-hidden mb-6">
-                            <div className="px-4 py-3 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface-subtle)]">
+                        <div className="role-queue-panel ops-panel overflow-hidden mb-6">
+                            <div className="role-queue-header">
                                 <div>
                                     <h2 className="text-base font-semibold text-[var(--text)]">Lab Requests</h2>
                                     <p className="text-xs text-[var(--text-secondary)]">Select a request to review details and record laboratory results.</p>
                                 </div>
-                                <div className="flex items-center gap-3 flex-wrap">
+                                <div className="clinical-filter-group" aria-label="Filter laboratory requests by status">
                                     {(['All', 'Pending',  'Completed'] as const).map(s => (
                                         <button
                                             type="button"
@@ -595,18 +599,19 @@ const LaboratoryDashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="p-4 border-b border-[var(--border-soft)] bg-[var(--surface-subtle)]/50">
-                                <div className="relative w-full sm:max-w-lg">
-                                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+                            <div className="role-queue-toolbar">
+                                <label className="role-search-field">
+                                    <Icon name="search" className="h-4 w-4 text-[var(--text-muted)]" />
                                     <input
                                         type="text"
                                         aria-label="Search lab requests by patient, lab number, or complaint"
-                                        placeholder="Search by patient name, lab no, complaint..."
-                                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] text-sm bg-white"
+                                        placeholder="Search patient, lab number, or complaint"
+                                        className="bg-transparent border-none outline-none text-sm text-[var(--text-2)] w-full"
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
                                     />
-                                </div>
+                                </label>
+                                <span className="role-result-count" aria-live="polite">{filtered.length} result{filtered.length === 1 ? '' : 's'}</span>
                             </div>
 
                             <div className="clinical-table-scroll">
@@ -629,10 +634,12 @@ const LaboratoryDashboard = () => {
                                                     <SkeletonTable rows={6} columns={7} />
                                                 </td>
                                             </tr>
+                                        ) : loadError && requests.length === 0 ? (
+                                            <tr><td colSpan={7} className="px-6 py-12"><div className="role-queue-state" role="alert"><Icon name="alert-triangle" className="h-6 w-6" /><strong>Unable to load laboratory requests</strong><span>Check the connection and try again.</span><button type="button" onClick={() => void loadRequests(true)} className="clinical-link-action">Try again</button></div></td></tr>
                                         ) : filtered.length === 0 ? (
                                             <tr>
                                                 <td colSpan={7} className="px-6 py-12 text-center">
-                                                    <EmptyState title="No lab requests found" description="New lab requests from doctors will appear here." />
+                                                    <EmptyState title={(searchQuery || statusFilter !== 'All') ? 'No requests match these filters' : 'No laboratory requests yet'} description={(searchQuery || statusFilter !== 'All') ? 'Adjust the status filter or search terms.' : 'New lab requests from doctors will appear here.'} />
                                                 </td>
                                             </tr>
                                         ) : (
@@ -645,7 +652,10 @@ const LaboratoryDashboard = () => {
                                                     <tr
                                                         key={r.labrequest_id}
                                                         onClick={() => setSelectedRequest(r)}
-                                                        className="cursor-pointer group"
+                                                        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedRequest(r); } }}
+                                                        tabIndex={0}
+                                                        aria-label={`Review laboratory request for ${name}`}
+                                                        className="cursor-pointer group role-action-row"
                                                     >
                                                         <td className="px-6 py-3">
                                                             <div className="flex items-center gap-3">

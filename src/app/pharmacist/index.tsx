@@ -16,6 +16,7 @@ import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { safeTrim } from '../../lib/utils/strings';
 import { logAuditEvent } from '../../features/audit/services';
+import { SkeletonTable } from '../../components/ui/Skeleton';
 
 
 // --- Interfaces ---
@@ -50,6 +51,8 @@ function PharmacyDashboard() {
     const [profile, setProfile] = useState<PharmacistProfile | null>(null);
     const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
     const [dispenseChecklist, setDispenseChecklist] = useState<Record<number, boolean>>({});
@@ -127,9 +130,12 @@ function PharmacyDashboard() {
                 };
             });
             setPrescriptions(transformed as unknown as Prescription[]);
+            setLoadError(false);
         } else if (error) {
             logError('Failed to load prescriptions', error);
+            setLoadError(true);
         }
+        setLoading(false);
     };
 
     const handleRxSelect = (rx: Prescription) => {
@@ -292,7 +298,7 @@ function PharmacyDashboard() {
     const allChecked = medsToDispense.length > 0 && medsToDispense.every((_, i) => dispenseChecklist[i]);
 
     return (
-        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
+        <div className="pharmacy-dashboard-workspace flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             <ToastComponent />
             <Sidebar
                 activePage={activePage}
@@ -322,69 +328,77 @@ function PharmacyDashboard() {
                 <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="w-full max-w-full flex flex-col gap-6">
                         {activePage === 'queue' && (
-                            <>
+                            <div className="role-workspace-canvas">
                                 <PageHeader
                                     title="Pharmacy Dispensing Queue"
                                     subtitle="Review pending e-prescriptions and document dispensing decisions."
                                 />
 
-                                <div className="pwa-page-pad">
+                                <div className="pwa-page-pad pb-0">
                                     <div className="ops-summary-grid">
                                         {[
-                                            ['To Dispense', prescriptions.length, 'Pending e-prescriptions'],
-                                            ['Showing', filteredRx.length, 'Matching the current search'],
-                                        ].map(([label, value, note]) => (
-                                            <div key={label} className="ops-summary-card">
-                                                <div className="ops-summary-label">{label}</div>
+                                            ['pill', 'To Dispense', prescriptions.length, 'Pending e-prescriptions'],
+                                            ['search', 'Visible Results', filteredRx.length, searchQuery ? 'Matching your search' : 'Ready for review'],
+                                        ].map(([icon, label, value, note]) => (
+                                            <div key={label} className="ops-summary-card role-summary-card">
+                                                <div className="role-summary-icon"><Icon name={icon as 'pill' | 'search'} className="h-4 w-4" /></div>
+                                                <div><div className="ops-summary-label">{label}</div>
                                                 <div className="ops-summary-value tabular-nums">{value}</div>
-                                                <div className="ops-summary-note">{note}</div>
+                                                <div className="ops-summary-note">{note}</div></div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="m-3 md:m-4 xl:m-5 ops-panel overflow-hidden">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3">
+                                <div className="role-queue-panel ops-panel overflow-hidden">
+                                    <div className="role-queue-header">
                                         <div>
                                             <h3 className="font-semibold text-[var(--text)]">Pending Prescriptions</h3>
                                             <p className="text-xs text-[var(--text-secondary)]">{prescriptions.length} awaiting dispensing review. Select a prescription to verify medication details.</p>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-lg px-3 py-2 w-full sm:w-auto">
+                                    </div>
+                                    <div className="role-queue-toolbar pharmacy-queue-toolbar">
+                                        <label className="role-search-field">
                                             <Icon name="search" className="h-4 w-4 text-[var(--text-muted)]" />
                                             <input
                                                 type="text"
-                                                aria-label="Search prescriptions by patient"
-                                                placeholder="Search patient..."
+                                                aria-label="Search prescriptions by patient name"
+                                                placeholder="Search patient name"
                                                 className="bg-transparent border-none outline-none text-sm text-[var(--text-2)] w-full"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                             />
-                                        </div>
+                                        </label>
+                                        <span className="role-result-count" aria-live="polite">{filteredRx.length} result{filteredRx.length === 1 ? '' : 's'}</span>
                                     </div>
 
                                     <div className="clinical-table-scroll">
-                                        <table className="clinical-table min-w-[720px]">
+                                        <table className="clinical-table pharmacy-prescription-table">
                                             <thead>
                                                 <tr>
                                                     <th>Patient</th>
                                                     <th>Prescription Date</th>
                                                     <th>Status</th>
-                                                    <th className="text-right">Action</th>
+                                                    <th className="pharmacy-action-column">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {filteredRx.length === 0 ? (
-                                                    <tr><td colSpan={4} className="px-6 py-12"><EmptyState title="No pending prescriptions" description="New e-prescriptions from doctors will appear here." /></td></tr>
+                                                {loading ? (
+                                                    <tr><td colSpan={4} className="px-6 py-10"><SkeletonTable rows={6} columns={4} /></td></tr>
+                                                ) : loadError && prescriptions.length === 0 ? (
+                                                    <tr><td colSpan={4} className="px-6 py-12"><div className="role-queue-state" role="alert"><Icon name="alert-triangle" className="h-6 w-6" /><strong>Unable to load prescriptions</strong><span>Check the connection and try again.</span><button type="button" onClick={() => { setLoading(true); void loadPrescriptions(); }} className="clinical-link-action">Try again</button></div></td></tr>
+                                                ) : filteredRx.length === 0 ? (
+                                                    <tr><td colSpan={4} className="px-6 py-12"><EmptyState title={searchQuery ? 'No prescriptions match your search' : 'No pending prescriptions'} description={searchQuery ? 'Try a different patient name.' : 'New e-prescriptions from doctors will appear here.'} /></td></tr>
                                                 ) : (
                                                     filteredRx.map(rx => (
-                                                        <tr key={rx.prescription_id} onClick={() => handleRxSelect(rx)} className="cursor-pointer">
-                                                            <td>
+                                                        <tr key={rx.prescription_id} onClick={() => handleRxSelect(rx)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleRxSelect(rx); } }} tabIndex={0} aria-label={`Review prescription for ${rx.patients?.lastName}, ${rx.patients?.firstName}`} className="cursor-pointer role-action-row">
+                                                            <td data-label="Patient">
                                                                 <div className="clinical-primary">{rx.patients?.lastName}, {rx.patients?.firstName}</div>
                                                                 <div className="clinical-secondary">{rx.patients?.sex || '-'}</div>
                                                             </td>
-                                                            <td>{new Date(rx.prescription_date).toLocaleDateString('en-PH')}</td>
-                                                            <td><span className="clinical-status-badge warning"><Icon name="clock" className="h-3 w-3" /> Pending</span></td>
-                                                            <td className="text-right">
+                                                            <td data-label="Prescription Date">{new Date(rx.prescription_date).toLocaleDateString('en-PH')}</td>
+                                                            <td data-label="Status"><span className="clinical-status-badge warning"><Icon name="clock" className="h-3 w-3" /> Pending</span></td>
+                                                            <td data-label="Action" className="pharmacy-action-cell">
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => { e.stopPropagation(); handleRxSelect(rx); }}
@@ -401,7 +415,7 @@ function PharmacyDashboard() {
                                         </table>
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -413,6 +427,7 @@ function PharmacyDashboard() {
                     title="E-Prescription Details"
                     labelledBy="prescription-dialog-title"
                     onClose={() => setSelectedRx(null)}
+                    className="pharmacy-prescription-drawer"
                     subtitle={<>Patient: <span className="font-semibold text-[var(--text-2)]">{selectedRx.patients?.firstName} {selectedRx.patients?.lastName}</span></>}
                     footer={(
                         <>
@@ -445,38 +460,31 @@ function PharmacyDashboard() {
                                 <span className="text-xs font-medium text-[var(--text-secondary)]">Check each medication that can be dispensed.</span>
                             </div>
 
-                            <div className="border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
-                                <div className="clinical-table-scroll">
-                                    <table className="clinical-table min-w-[680px]">
-                                        <thead>
-                                            <tr>
-                                                <th className="p-4 font-semibold text-center">Dispense</th>
-                                                <th className="p-4 font-semibold">Medication</th>
-                                                <th className="p-4 font-semibold">Dosage</th>
-                                                <th className="p-4 font-semibold">Frequency</th>
-                                                <th className="p-4 font-semibold">Quantity</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {medsToDispense.map((med: Medication, i: number) => (
-                                                <tr key={i} className={`border-b border-[var(--border)] last:border-0 transition-colors ${dispenseChecklist[i] ? 'bg-white hover:bg-[var(--surface-subtle)]/40' : 'bg-red-50/70 text-[var(--text-2)]'}`}>
-                                                    <td className="p-4 text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="w-6 h-6 accent-teal-700 cursor-pointer"
-                                                            checked={!!dispenseChecklist[i]}
-                                                            onChange={() => handleToggleChecklist(i)}
-                                                        />
-                                                    </td>
-                                                    <td className={`p-4 font-bold ${dispenseChecklist[i] ? 'text-[var(--text-2)]' : 'text-[var(--coral-dark)] line-through'}`}>{med.name}</td>
-                                                    <td className="p-4 text-[var(--text-2)]">{med.dosage}</td>
-                                                    <td className="p-4 text-[var(--text-2)]">{med.frequency}</td>
-                                                    <td className="p-4 font-semibold text-[var(--text)] tabular-nums">{med.quantity}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div className="pharmacy-medication-list">
+                                {medsToDispense.map((med: Medication, i: number) => (
+                                    <article key={i} className={`pharmacy-medication-item ${dispenseChecklist[i] ? '' : 'is-unavailable'}`}>
+                                        <label className="pharmacy-medication-check">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!dispenseChecklist[i]}
+                                                onChange={() => handleToggleChecklist(i)}
+                                            />
+                                            <span>Dispense</span>
+                                        </label>
+                                        {[
+                                            ['Medication', med.name],
+                                            ['Dosage', med.dosage],
+                                            ['Frequency', med.frequency],
+                                            ['Duration', med.duration],
+                                            ['Quantity', med.quantity],
+                                        ].map(([label, value]) => (
+                                            <div key={label} className={`pharmacy-medication-field ${label === 'Medication' ? 'is-name' : ''}`}>
+                                                <span className="pharmacy-medication-label">{label}</span>
+                                                <span className="pharmacy-medication-value">{value || '—'}</span>
+                                            </div>
+                                        ))}
+                                    </article>
+                                ))}
                             </div>
                 </ClinicalDrawer>
             )}
