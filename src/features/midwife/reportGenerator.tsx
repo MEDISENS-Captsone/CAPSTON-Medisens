@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useToast } from '../../components/feedback/Toast';
+import { Icon } from '../../components/shared/Icon';
 import { logAuditEvent } from '../audit/services';
 
 interface Props {
     records: any[];
     isLoading?: boolean;
+    hasLoadError?: boolean;
 }
 
 const MALVAR_BARANGAYS = [
@@ -13,7 +15,7 @@ const MALVAR_BARANGAYS = [
     'San Juan', 'San Pedro I', 'San Pedro II', 'San Pioquinto', 'Santiago', 'TOTAL'
 ];
 
-const ReportGenerator = ({ records, isLoading = false }: Props) => {
+const ReportGenerator = ({ records, isLoading = false, hasLoadError = false }: Props) => {
     const [selectedReport, setSelectedReport] = useState('maternal');
     const [reportMonth, setReportMonth] = useState(new Date().toISOString().substring(0, 7));
     const [isExporting, setIsExporting] = useState(false);
@@ -176,13 +178,18 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
     };
 
     return (
-        <div className="w-full mx-auto  pb-10 px-4">
+        <div className="mx-auto w-full pb-10">
             <ToastComponent />
+            <div className="mb-5 print:hidden">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Records & reporting</p>
+                <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">FHSIS Report Workspace</h2>
+                <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">Choose a program and reporting month, review the official form, then export the completed PDF.</p>
+            </div>
             {/* CONTROLS */}
-            <div className="flex flex-col gap-4 mb-6 rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm print:hidden md:flex-row md:items-end">
+            <div className="mb-5 flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm print:hidden sm:p-5 lg:flex-row lg:items-end">
                 <div className="flex-1">
                     <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">FHSIS Report Type</label>
-                    <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]">
+                    <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-base font-medium text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)] sm:text-sm">
                         <option value="maternal">Maternal Care Program</option>
                         <option value="child">Child Care Program</option>
                         <option value="dental">Dental Health Program</option>
@@ -191,25 +198,28 @@ const ReportGenerator = ({ records, isLoading = false }: Props) => {
                         <option value="rabies_leprosy">Leprosy & Rabies</option>
                     </select>
                 </div>
-                <div className="w-full md:w-48">
+                <div className="w-full lg:w-52">
                     <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1.5">Reporting Month</label>
-                    <input type="month" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]"/>
+                    <input type="month" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-base font-medium text-[var(--text)] outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)] sm:text-sm"/>
                 </div>
                 <div className="flex">
-                    <button type="button" onClick={handleExportPDF} disabled={isExporting || isLoading} className="w-full rounded-lg bg-[var(--brand-active)] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--brand-active-hover)] disabled:opacity-70">
+                    <button type="button" onClick={handleExportPDF} disabled={isExporting || isLoading || hasLoadError} className="min-h-11 w-full rounded-lg bg-[var(--brand-active)] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-active-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-60">
                         {isExporting ? 'Preparing PDF...' : isLoading ? 'Loading FHSIS records...' : 'Export FHSIS PDF'}
                     </button>
                 </div>
             </div>
 
             {isLoading && (
-                <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-semibold text-[var(--text-2)] print:hidden">
-                    Loading FHSIS records...
+                <div className="mb-4 flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-medium text-[var(--text-2)] print:hidden" role="status">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--brand-active)]" /> Loading FHSIS records...
                 </div>
+            )}
+            {hasLoadError && !isLoading && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-[var(--coral-border)] bg-[var(--coral-tint)] px-4 py-3 text-sm text-[var(--coral-dark)] print:hidden" role="alert"><Icon name="alert-triangle" className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-semibold">Report data is unavailable</p><p className="mt-0.5">Refresh the page before exporting an official report.</p></div></div>
             )}
 
             {/* DOH DOCUMENT RENDER AREA */}
-                <div className="flex flex-col items-start overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 print:border-0 print:bg-white print:p-0 md:p-6">
+                <div className="flex flex-col items-start overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 print:border-0 print:bg-white print:p-0 md:p-6" aria-label="Scrollable official FHSIS report preview">
             {/* Added w-max and h-fit so the paper strictly hugs the table dimensions */}
                 <div ref={reportRef} className={`bg-white p-10 shadow-sm font-sans text-black w-max h-fit print:shadow-none ${selectedReport === 'fp' ? 'min-w-[1550px] pl-20 ml-0' : 'min-w-[1100px] mx-auto'}`}>
                     

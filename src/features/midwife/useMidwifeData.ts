@@ -7,9 +7,11 @@ export const useMidwifeData = () => {
     const [records, setRecords] = useState<any[]>([]);
     const [summary, setSummary] = useState<any>({});
     const [isLoading, setIsLoading] = useState(true);
+    const [hasLoadError, setHasLoadError] = useState(false);
 
     const refreshData = useCallback(async () => {
         setIsLoading(true);
+        setHasLoadError(false);
         const currentMonth = new Date().toISOString().substring(0, 7);
 
         // 1. Fetch Patients — join patient_consent so consent status is accurate
@@ -60,6 +62,7 @@ export const useMidwifeData = () => {
             setPatients(normalized);
         } catch (err) {
                 console.error("Error fetching patients:", err);
+            setHasLoadError(true);
             setPatients([]);
         }
 
@@ -69,6 +72,7 @@ export const useMidwifeData = () => {
             setRecords(recs || []);
         } catch (err) {
                 console.error("Error fetching census records:", err);
+            setHasLoadError(true);
             setRecords([]);
         }
 
@@ -78,6 +82,7 @@ export const useMidwifeData = () => {
             setSummary(summ || {});
         } catch (err) {
                 console.error("Error fetching summary:", err);
+            setHasLoadError(true);
             setSummary({});
         }
 
@@ -88,5 +93,5 @@ export const useMidwifeData = () => {
         refreshData();
     }, [refreshData]);
 
-    return { patients, records, summary, isLoading, refreshData };
+    return { patients, records, summary, isLoading, hasLoadError, refreshData };
 };

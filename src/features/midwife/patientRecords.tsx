@@ -11,6 +11,7 @@ interface Props {
     records: any[];
     rhuPersonnel: string;
     isLoading?: boolean;
+    hasLoadError?: boolean;
     onPatientClick?: (patient: any) => void;
     onNavigateToRecords?: () => void;
 }
@@ -93,7 +94,7 @@ function HistoryModal({ patient, logs, onClose }: { patient: any; logs: any[]; o
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props) => {
+const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, onPatientClick }: Props) => {
     const [searchQuery,    setSearchQuery]    = useState('');
     const [historyPatient, setHistoryPatient] = useState<any>(null);
 
@@ -107,7 +108,7 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
         : [];
 
     return (
-        <div className="w-full max-w-full px-2 sm:px-4 md:px-0  relative">
+        <div className="relative w-full max-w-full">
 
             {historyPatient && (
                 <HistoryModal
@@ -117,11 +118,12 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                 />
             )}
 
-            <div className="bg-white rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden w-full">
-                <div className="p-6 sm:p-8 border-b border-[var(--border-soft)] bg-[var(--surface-subtle)]/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <section className="w-full overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm" aria-labelledby="midwife-patient-directory-heading">
+                <div className="flex flex-col gap-4 border-b border-[var(--border-soft)] bg-[var(--surface-subtle)]/50 p-4 sm:p-6 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h2 className="text-2xl font-extrabold text-[var(--text)] tracking-tight">Patient Directory</h2>
-                        <p className="text-sm text-[var(--text-secondary)] font-medium mt-0.5">All registered patients</p>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Patient care</p>
+                        <h2 id="midwife-patient-directory-heading" className="text-xl font-semibold text-[var(--text)] tracking-tight">Patient Directory</h2>
+                        <p className="text-sm text-[var(--text-secondary)] mt-1">Open a patient record or review FHSIS care history.</p>
                     </div>
                     <div className="relative w-full md:max-w-sm">
                         <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
@@ -131,7 +133,7 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                             placeholder="Search patient name..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none transition-all text-sm shadow-sm"
+                            className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-10 pr-4 text-base outline-none transition-all focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)] sm:text-sm"
                         />
                     </div>
                 </div>
@@ -139,23 +141,27 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                 <div>
                     {isLoading ? (
                         <SkeletonList rows={5} />
+                    ) : hasLoadError && patients.length === 0 ? (
+                        <div className="clinical-table-state flex-col py-20" role="alert"><Icon name="alert-triangle" className="mx-auto mb-3 h-10 w-10 text-[var(--coral-accent-strong)]" /><div className="text-lg font-semibold text-[var(--text)]">Unable to load patient records</div><div className="mt-1 text-sm text-[var(--text-secondary)]">Please refresh the page or try again when the connection is stable.</div></div>
                     ) : filteredPatients.length === 0 ? (
                         <div className="clinical-table-state flex-col py-20">
                             <Icon name="inbox" className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                            <div className="font-bold text-[var(--text-2)] text-lg">No matching patients found</div>
-                            <div className="text-sm text-[var(--text-muted)] mt-1">Search by patient name or review the full patient directory.</div>
+                            <div className="font-semibold text-[var(--text)] text-lg">{patients.length === 0 ? 'No patients available' : 'No matching patients'}</div>
+                            <div className="text-sm text-[var(--text-secondary)] mt-1">{patients.length === 0 ? 'Registered patients will appear here when records become available.' : 'Try a different first or last name.'}</div>
+                            {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="clinical-row-action mt-4 min-h-11">Clear search</button>}
                         </div>
                     ) : (
                         filteredPatients.map(patient => (
-                            <div
+                            <article
                                 key={patient.id}
-                                className="clinical-worklist-row group"
+                                className="clinical-worklist-row group flex-col items-stretch gap-3 sm:flex-row sm:items-center"
                             >
                                 {/* Clickable left side → details modal */}
                                 <button
                                     type="button"
                                     onClick={() => onPatientClick?.(patient)}
-                                    className="flex items-center gap-4 flex-1 min-w-0 text-left"
+                                    aria-label={`Open patient details for ${patient.lastName}, ${patient.firstName}`}
+                                    className="flex min-h-12 flex-1 items-center gap-3 text-left sm:gap-4"
                                 >
                                     <div className="w-11 h-11 rounded-full bg-[var(--surface-subtle)] text-[var(--text-2)] flex items-center justify-center font-bold text-sm uppercase shrink-0 group-hover:bg-[var(--border-soft)] transition-colors">
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
@@ -171,7 +177,7 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                 </button>
 
                                 {/* Right side */}
-                                <div className="shrink-0 flex items-center gap-3">
+                                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--border-soft)] pt-3 sm:justify-end sm:border-0 sm:pt-0">
                                     <div className="flex flex-col items-end gap-1.5">
                                         <span className="text-[0.65rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
                                             {patient.created_at
@@ -190,19 +196,20 @@ const PatientRecords = ({ patients, records, isLoading, onPatientClick }: Props)
                                     <button
                                         type="button"
                                         onClick={e => { e.stopPropagation(); setHistoryPatient(patient); }}
-                                        className="clinical-row-action"
+                                        className="clinical-row-action min-h-11"
                                         title="View FHSIS History"
+                                        aria-label={`View FHSIS history for ${patient.lastName}, ${patient.firstName}`}
                                     >
                                         <Icon name="clipboard" className="inline h-3.5 w-3.5 mr-1" /> History
                                     </button>
 
                                     <div className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors text-sm">›</div>
                                 </div>
-                            </div>
+                            </article>
                         ))
                     )}
                 </div>
-            </div>
+            </section>
         </div>
     );
 };

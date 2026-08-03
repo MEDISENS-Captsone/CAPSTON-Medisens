@@ -982,6 +982,33 @@ td {
     overflow-wrap: anywhere;
 }
 
+.doctor-recorded-diagnoses,
+.doctor-frequency-table-wrap {
+    width: 100%;
+    min-width: 0;
+}
+
+.doctor-frequency-table-wrap {
+    overflow: visible;
+}
+
+.doctor-frequency-table {
+    table-layout: fixed;
+}
+
+.doctor-frequency-table th,
+.doctor-frequency-table td {
+    height: auto;
+    min-height: 3.25rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.doctor-frequency-col-metric { width: 18%; }
+.doctor-frequency-col-group { width: 34%; }
+.doctor-frequency-col-number { width: 13%; }
+.doctor-frequency-col-state { width: 22%; }
+
 .archive-col-patient { width: 30%; }
 .archive-col-demographics { width: 11%; }
 .archive-col-date { width: 15%; }
@@ -1746,28 +1773,59 @@ button.clinical-worklist-row {
 .doctor-analytics-period {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 0.875rem;
+    align-items: flex-end;
+    gap: 1rem 1.5rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: var(--surface);
-    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-subtle) 100%);
+    padding: clamp(1rem, 1.8vw, 1.4rem);
     box-shadow: var(--shadow-sm);
 }
 
 .doctor-analytics-dashboard {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.875rem, 1.2vw, 1.125rem);
+    gap: clamp(1rem, 1.35vw, 1.35rem);
+}
+
+.doctor-analytics-period-intro {
+    min-width: min(100%, 22rem);
+    flex: 1 1 26rem;
+}
+
+.doctor-analytics-eyebrow {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--brand-active);
+    font-size: var(--type-category-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.doctor-analytics-page-description {
+    max-width: 38rem;
+    margin-top: 0.3rem;
+    color: var(--text-secondary);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--type-supporting-line);
 }
 
 .doctor-analytics-controls {
     display: flex;
     min-width: 0;
+    flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: 0.625rem;
+}
+
+.doctor-analytics-control-label {
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
 }
 
 .doctor-custom-period {
@@ -1954,29 +2012,44 @@ button.clinical-worklist-row {
 
 .doctor-analytics-page-title {
     color: var(--text);
-    font-size: 1.125rem;
+    font-size: clamp(1.35rem, 2vw, 1.7rem);
     font-weight: var(--font-weight-bold);
-    line-height: var(--type-section-title-line);
+    line-height: 1.15;
 }
 
 .doctor-analytics-period-label {
-    margin-top: 0.125rem;
-    color: var(--text-muted);
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
+    margin-top: 0.75rem;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    padding: 0.35rem 0.55rem;
+    color: var(--text-secondary);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-medium);
+}
+
+.doctor-analytics-period-label strong {
+    color: var(--text);
+    font-weight: var(--font-weight-bold);
 }
 
 .doctor-analytics-section {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    gap: 0.75rem;
 }
 
 .doctor-analytics-section-heading {
     display: flex;
     max-width: 48rem;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: 0.2rem;
+    border-left: 3px solid var(--brand-primary);
+    padding-left: 0.75rem;
 }
 
 .doctor-analytics-section-heading h2 {
@@ -1997,7 +2070,7 @@ button.clinical-worklist-row {
 .doctor-kpi-strip {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
+    gap: 0.875rem;
 }
 
 .doctor-primary-grid {
@@ -2100,7 +2173,7 @@ button.clinical-worklist-row {
 
 .doctor-clinical-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     gap: 0.875rem;
 }
@@ -2115,9 +2188,10 @@ button.clinical-worklist-row {
     flex-direction: column;
     justify-content: space-between;
     border: 1px solid var(--border);
+    border-top: 3px solid var(--brand-primary);
     border-radius: var(--radius);
     background: var(--surface);
-    padding: 0.85rem 0.95rem;
+    padding: 1rem;
     box-shadow: var(--shadow-sm);
 }
 
@@ -2136,7 +2210,7 @@ button.clinical-worklist-row {
 }
 
 .doctor-insight-value {
-    margin-top: 0.375rem;
+    margin-top: 0.65rem;
     color: var(--text);
     font-size: clamp(1.55rem, 2.1vw, 1.95rem);
     font-weight: var(--font-weight-bold);
@@ -2341,22 +2415,26 @@ button.clinical-worklist-row {
 .doctor-workspace-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.125rem;
+    gap: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 0.35rem;
+    box-shadow: var(--shadow-sm);
 }
 
 .doctor-workspace-tabs .clinical-filter-button {
-    border: 0;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
+    min-height: 2.5rem;
+    flex: 0 0 auto;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
     background: none;
-    padding-inline: 0.75rem;
+    padding-inline: 0.9rem;
 }
 
 .doctor-workspace-tabs .clinical-filter-button.is-active {
-    border-bottom-color: var(--brand-primary);
-    background: none;
+    border-color: var(--brand-accent-surface);
+    background: var(--brand-soft-surface);
     color: var(--brand-active);
 }
 
@@ -2367,10 +2445,19 @@ button.clinical-worklist-row {
     gap: 0.5rem;
     border-bottom: 1px solid var(--border);
     padding: 0.75rem 1rem;
+    background: var(--surface-subtle);
+}
+
+.doctor-analytics-tabs .clinical-filter-button {
+    min-height: 2.5rem;
 }
 
 .doctor-detail-panel {
-    padding: 1rem;
+    padding: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.doctor-analytics-detail-table tbody tr:hover {
+    background: var(--surface-subtle);
 }
 
 .doctor-detail-heading {
@@ -2378,30 +2465,6 @@ button.clinical-worklist-row {
     color: var(--text);
     font-size: var(--type-body-size);
     font-weight: var(--font-weight-bold);
-}
-
-.doctor-ranking-list {
-    margin: 0;
-    padding: 0.75rem 1rem 1rem;
-    list-style: none;
-}
-
-.doctor-ranking-row {
-    display: grid;
-    grid-template-columns: 2.125rem minmax(0, 1fr);
-    align-items: center;
-    gap: 0.8rem;
-    min-height: 3.5rem;
-    border: 1px solid transparent;
-    border-radius: var(--radius);
-    padding: 0.55rem 0.625rem;
-}
-
-.doctor-ranking-row + .doctor-ranking-row { margin-top: 0.375rem; }
-
-.doctor-ranking-row:nth-child(odd) {
-    background: var(--surface-subtle);
-    border-color: var(--border-soft);
 }
 
 .doctor-ranking-index {
@@ -2418,58 +2481,6 @@ button.clinical-worklist-row {
     font-weight: var(--font-weight-bold);
 }
 
-.doctor-ranking-main {
-    min-width: 0;
-}
-
-.doctor-ranking-meta {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.doctor-ranking-label {
-    color: var(--text);
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-semibold);
-    line-height: var(--type-section-title-line);
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow-wrap: anywhere;
-}
-
-.doctor-ranking-value {
-    flex: 0 0 auto;
-    border-radius: 999px;
-    background: var(--brand-soft-surface);
-    padding: 0.18rem 0.55rem;
-    color: var(--brand-active);
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-bold);
-}
-
-.doctor-ranking-track {
-    width: min(18rem, 78%);
-    height: 0.42rem;
-    margin-top: 0.55rem;
-    overflow: hidden;
-    border-radius: 999px;
-    background: var(--border-soft);
-}
-
-.doctor-ranking-track span {
-    position: relative;
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--brand-primary);
-}
-
-.doctor-ranking-track span.is-nonzero::after,
 .doctor-barangay-track span.is-nonzero::after {
     position: absolute;
     top: 0;
@@ -2479,6 +2490,144 @@ button.clinical-worklist-row {
     border-radius: inherit;
     background: var(--brand-primary);
     content: "";
+}
+
+.doctor-diagnosis-donut-layout {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.8fr) minmax(18rem, 1.2fr);
+    align-items: center;
+    gap: clamp(1.25rem, 3vw, 3rem);
+    padding: clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.doctor-diagnosis-donut-figure {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.doctor-diagnosis-donut {
+    width: min(100%, 17rem);
+    height: auto;
+    overflow: visible;
+}
+
+.doctor-diagnosis-donut-track,
+.doctor-diagnosis-donut-segment {
+    fill: none;
+    stroke-width: 18;
+    transform: rotate(-90deg);
+    transform-origin: 60px 60px;
+}
+
+.doctor-diagnosis-donut-track {
+    stroke: var(--border-soft);
+}
+
+.doctor-diagnosis-donut-segment {
+    cursor: default;
+    transition: opacity var(--motion-fast), stroke-width var(--motion-fast);
+}
+
+.doctor-diagnosis-donut-segment:hover,
+.doctor-diagnosis-donut-segment:focus-visible {
+    stroke-width: 21;
+    outline: none;
+}
+
+.doctor-diagnosis-donut-segment.is-blue,
+.doctor-diagnosis-legend-swatch.is-blue { stroke: var(--blue); background: var(--blue); }
+.doctor-diagnosis-donut-segment.is-green,
+.doctor-diagnosis-legend-swatch.is-green { stroke: var(--green); background: var(--green); }
+.doctor-diagnosis-donut-segment.is-amber,
+.doctor-diagnosis-legend-swatch.is-amber { stroke: var(--amber); background: var(--amber); }
+.doctor-diagnosis-donut-segment.is-violet,
+.doctor-diagnosis-legend-swatch.is-violet { stroke: #8b72d9; background: #8b72d9; }
+.doctor-diagnosis-donut-segment.is-slate,
+.doctor-diagnosis-legend-swatch.is-slate { stroke: #64748b; background: #64748b; }
+
+.doctor-diagnosis-donut-total {
+    fill: var(--text);
+    font-size: 1rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.doctor-diagnosis-donut-caption {
+    fill: var(--text-muted);
+    font-size: 0.48rem;
+    font-weight: var(--font-weight-semibold);
+}
+
+.doctor-diagnosis-donut-figure figcaption {
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+    text-align: center;
+}
+
+.doctor-diagnosis-legend {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.doctor-diagnosis-legend li {
+    display: grid;
+    min-height: 2.75rem;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.65rem;
+    border-bottom: 1px solid var(--border-soft);
+    padding: 0.45rem 0.25rem;
+}
+
+.doctor-diagnosis-legend li:last-child {
+    border-bottom: 0;
+}
+
+.doctor-diagnosis-legend-swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 999px;
+}
+
+.doctor-diagnosis-legend-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: var(--type-body-size);
+    font-weight: var(--font-weight-semibold);
+}
+
+.doctor-diagnosis-legend strong {
+    color: var(--text);
+    font-size: var(--type-body-size);
+}
+
+.doctor-diagnosis-legend-percent {
+    min-width: 3rem;
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    padding: 0.2rem 0.45rem;
+    color: var(--text-secondary);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
+    text-align: right;
+}
+
+.doctor-diagnosis-donut-skeleton {
+    width: min(100%, 15rem);
+    aspect-ratio: 1;
+    border-radius: 999px;
+}
+
+.doctor-diagnosis-legend-skeleton {
+    display: grid;
+    width: 100%;
+    gap: 0.55rem;
 }
 
 .doctor-barangay-chart {
@@ -4313,7 +4462,27 @@ button.clinical-worklist-row {
 }
 
 
+@media (max-width: 1100px) {
+    .doctor-primary-grid,
+    .doctor-clinical-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-operational-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 900px) {
+    .doctor-diagnosis-donut-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .doctor-diagnosis-donut {
+        width: min(100%, 15rem);
+    }
+
     .doctor-kpi-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -4374,11 +4543,94 @@ button.clinical-worklist-row {
     }
 }
 
+@media (max-width: 760px) {
+    .doctor-frequency-table {
+        display: block;
+        background: transparent;
+    }
+
+    .doctor-frequency-table colgroup {
+        display: none;
+    }
+
+    .doctor-frequency-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .doctor-frequency-table tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .doctor-frequency-table tbody tr {
+        display: grid;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .doctor-frequency-table tbody td {
+        display: grid;
+        min-height: 0;
+        grid-template-columns: minmax(6.25rem, 0.38fr) minmax(0, 1fr);
+        align-items: start;
+        gap: 0.75rem;
+        border-bottom: 1px solid var(--border-soft);
+        padding: 0.65rem 0.75rem;
+        text-align: left !important;
+    }
+
+    .doctor-frequency-table tbody td:last-child {
+        border-bottom: 0;
+    }
+
+    .doctor-frequency-table tbody td::before {
+        color: var(--text-muted);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        content: attr(data-label);
+    }
+
+    .doctor-frequency-table .doctor-reliability-text {
+        justify-self: start;
+        text-align: left;
+    }
+}
+
 @media (max-width: 560px) {
+    .doctor-diagnosis-donut-layout {
+        padding: 0.875rem;
+    }
+
+    .doctor-diagnosis-legend li {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.5rem;
+    }
+
+    .doctor-diagnosis-legend-percent {
+        grid-column: 2 / -1;
+        justify-self: start;
+    }
+
     .doctor-analytics-period { align-items: flex-start; }
     .doctor-analytics-controls { width: 100%; justify-content: flex-start; }
-    .doctor-analytics-period .clinical-filter-group { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding: 0.3rem; margin-inline: -0.3rem; }
-    .doctor-workspace-tabs { flex-wrap: nowrap; overflow-x: auto; }
+    .doctor-analytics-control-label { width: 100%; }
+    .doctor-analytics-period .clinical-filter-group { width: 100%; flex-wrap: wrap; }
+    .doctor-analytics-period .clinical-filter-button { flex: 1 1 auto; }
+    .doctor-workspace-tabs { flex-wrap: wrap; }
+    .doctor-workspace-tabs .clinical-filter-button { flex: 1 1 auto; }
+    .doctor-custom-period > label { width: 100%; }
+    .doctor-analytics-page-description { max-width: 30rem; }
     .doctor-operational-grid,
     .doctor-staff-metrics,
     .doctor-kpi-strip {

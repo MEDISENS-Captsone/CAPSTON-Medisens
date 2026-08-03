@@ -239,12 +239,14 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
     ];
 
     return (
-        <div className="w-full  relative pb-10">
+        <div className="relative w-full pb-10">
             
             <ToastComponent />
-            <div className="mb-8">
-                <h2 className="text-2xl font-extrabold text-[var(--text)] tracking-tight">Program Logbooks (FHSIS)</h2>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-5">
+            <div className="mb-6">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Maternal & community care</p>
+                <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Program Logbooks (FHSIS)</h2>
+                <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">Choose a care program to review its registry or record a new patient encounter.</p>
+                <div className="mt-4 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 md:flex md:flex-wrap" role="group" aria-label="FHSIS care programs">
                     {logbooks.map(log => (
                         <button 
                             type="button"
@@ -260,7 +262,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                 })]);
                                 setSelectedPatient(null);
                             }}
-                            className={`clinical-filter-button flex-none ${activeLogbook === log.id ? 'is-active' : ''}`}
+                            className={`clinical-filter-button min-h-11 w-full justify-center md:w-auto ${activeLogbook === log.id ? 'is-active' : ''}`}
                             aria-pressed={activeLogbook === log.id}
                         >
                             <span className="inline-flex items-center gap-2"><Icon name={log.icon} className="h-4 w-4" />{log.label}</span>
@@ -271,16 +273,42 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
 
             <div className={isSubmitting ? 'opacity-60 pointer-events-none' : ''}>
                 {!isAddingEntry ? (
-                    <div className="card shadow-sm border border-[var(--border)]">
-                        <div className="card-hd border-b border-[var(--border-soft)] pb-4 mb-0 bg-[var(--surface-subtle)]/50 p-6 rounded-t-2xl">
+                    <div className="card overflow-hidden border border-[var(--border)] shadow-sm">
+                        <div className="card-hd mb-0 flex-col items-stretch gap-4 rounded-t-xl border-b border-[var(--border-soft)] bg-[var(--surface-subtle)]/50 p-4 sm:flex-row sm:items-center sm:p-5">
                             <div>
-                                <h3 className="text-lg font-bold text-[var(--text)]">{logbooks.find(l => l.id === activeLogbook)?.label} Registry</h3>
+                                <h3 className="text-lg font-semibold text-[var(--text)]">{logbooks.find(l => l.id === activeLogbook)?.label} Registry</h3>
+                                <p className="mt-1 text-sm text-[var(--text-secondary)]">{activeRecords.length} {activeRecords.length === 1 ? 'entry' : 'entries'} in the current reporting month</p>
                             </div>
-                            <button type="button" onClick={() => setIsAddingEntry(true)} className="px-4 py-2 bg-[var(--brand-active)] text-white rounded-lg text-sm font-bold shadow-md hover:bg-[var(--brand-active-hover)]">
+                            <button type="button" onClick={() => setIsAddingEntry(true)} className="min-h-11 rounded-lg bg-[var(--brand-active)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[var(--brand-active-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
                                 <Icon name="plus" className="inline h-4 w-4 mr-1" /> New Entry
                             </button>
                         </div>
-                        <div className="clinical-table-scroll">
+                        <div className="divide-y divide-[var(--border-soft)] md:hidden">
+                            {activeRecords.length > 0 ? activeRecords.map(record => (
+                                <article key={record.id} className="p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <h4 className="truncate text-sm font-semibold capitalize text-[var(--text)]">{record.patientName}</h4>
+                                            <p className="mt-1 break-words text-sm capitalize text-[var(--text-secondary)]">{record.address || 'No Address'}</p>
+                                        </div>
+                                        <span className="clinical-status-badge success shrink-0">Saved</span>
+                                    </div>
+                                    <dl className="mt-3 border-t border-[var(--border-soft)] pt-3">
+                                        <div className="flex items-center justify-between gap-4 text-sm">
+                                            <dt className="font-medium text-[var(--text-secondary)]">Date recorded</dt>
+                                            <dd className="font-semibold tabular-nums text-[var(--text)]">{new Date(record.created_at).toLocaleDateString()}</dd>
+                                        </div>
+                                    </dl>
+                                </article>
+                            )) : (
+                                <div className="flex min-h-52 flex-col items-center justify-center px-5 py-10 text-center">
+                                    <Icon name="clipboard" className="mb-3 h-8 w-8 text-[var(--text-muted)]" />
+                                    <p className="text-sm font-semibold text-[var(--text)]">No {logbooks.find(logbook => logbook.id === activeLogbook)?.label.toLowerCase()} entries</p>
+                                    <p className="mt-1 max-w-sm text-sm text-[var(--text-secondary)]">Use New Entry to add a patient record to this logbook.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="clinical-table-scroll hidden md:block">
                             <table className="clinical-table min-w-[720px]">
                                 <thead>
                                     <tr>
@@ -306,21 +334,21 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="card shadow-sm border border-[var(--border)] p-8 ">
-                        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-[var(--border-soft)]">
-                            <button type="button" onClick={() => setIsAddingEntry(false)} className="px-3 py-1.5 text-sm font-semibold text-[var(--text-2)] bg-[var(--surface-subtle)] rounded-lg hover:bg-[var(--border-soft)]">← Back</button>
-                            <h3 className="text-xl font-extrabold text-[var(--text)]">New {logbooks.find(l => l.id === activeLogbook)?.label} Entry</h3>
+                    <div className="card border border-[var(--border)] p-4 shadow-sm sm:p-6 lg:p-8">
+                        <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-soft)] pb-5">
+                            <button type="button" onClick={() => setIsAddingEntry(false)} className="clinical-row-action min-h-11" aria-label={`Back to ${logbooks.find(l => l.id === activeLogbook)?.label} registry`}>Back</button>
+                            <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">New care record</p><h3 className="text-lg font-semibold text-[var(--text)] sm:text-xl">{logbooks.find(l => l.id === activeLogbook)?.label}</h3></div>
                         </div>
 
                         {errorMsg && <div className="mb-6 p-4 bg-[var(--coral-tint)] text-[var(--coral-dark)] rounded-xl text-sm font-semibold flex items-start gap-2" role="alert"><Icon name="alert-triangle" className="h-5 w-5 shrink-0" /> {errorMsg}</div>}
 
-                        <div className="max-w-3xl">
+                        <div className="max-w-4xl">
                             {/* STEP 1: PATIENT SELECTION */}
-                            <div className="mb-10">
-                                <label className="block text-sm font-bold text-[var(--text-2)] mb-3 uppercase tracking-wide">1. Select Patient</label>
+                            <div className="mb-8">
+                                <label className="mb-3 block text-sm font-semibold text-[var(--text)]">1. Select patient</label>
                                 {!selectedPatient ? (
                                     <div className="relative">
-                                        <input type="text" aria-label="Search patient name for census entry" placeholder="Search patient name..." value={searchQuery} onFocus={() => setShowDropdown(true)} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-4 pr-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] outline-none shadow-sm" />
+                                        <input type="text" aria-label="Search patient name for census entry" placeholder="Search patient name..." value={searchQuery} onFocus={() => setShowDropdown(true)} onChange={(e) => setSearchQuery(e.target.value)} className="min-h-12 w-full rounded-lg border border-[var(--border)] px-4 py-3 text-base outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]" />
                                         {showDropdown && searchQuery && (
                                             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-sm border border-[var(--border)] max-h-64 overflow-y-auto z-50">
                                                 {filteredPatients.length > 0 ? filteredPatients.map(p => (
@@ -337,7 +365,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                             setSelectedPatient(p);
                                                             setShowDropdown(false);
                                                         }}
-                                                        className="w-full text-left px-5 py-4 hover:bg-[var(--surface-subtle)] border-b border-[var(--border-soft)] flex justify-between"
+                                                        className="flex min-h-14 w-full flex-col justify-center gap-1 border-b border-[var(--border-soft)] px-4 py-3 text-left hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)] sm:flex-row sm:items-center sm:justify-between"
                                                     >
                                                         <span className="font-bold text-[var(--text)] capitalize">{p.firstName} {p.lastName}</span>
                                                         <span className="text-[0.65rem] font-bold text-[var(--text-secondary)] bg-[var(--surface-subtle)] px-2 py-1 rounded uppercase">{p.address}</span>
@@ -353,7 +381,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-5 rounded-xl flex justify-between items-center">
+                                    <div className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                                         <div>
                                             <p className="font-bold text-[var(--text)] capitalize text-lg">{selectedPatient.firstName} {selectedPatient.lastName}</p>
                                             {/* READ-ONLY DISPLAY FOR ALL TABS */}
@@ -362,16 +390,16 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                 {activeLogbook === 'child' && ` • DOB: ${selectedPatient.birthday}`}
                                             </p>
                                         </div>
-                                        <button type="button" onClick={() => { setSelectedPatient(null); setSearchQuery(''); }} className="px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] bg-white border border-[var(--border)] rounded-lg shadow-sm hover:bg-[var(--surface-subtle)]">Change</button>
+                                        <button type="button" onClick={() => { setSelectedPatient(null); setSearchQuery(''); }} className="clinical-row-action min-h-11 self-start sm:self-auto">Change patient</button>
                                     </div>
                                 )}
                             </div>
 
                             {/* STEP 2: DYNAMIC FORMS */}
                             <form onSubmit={handleSubmit} className={!selectedPatient ? 'opacity-40 pointer-events-none' : ''}>
-                                <label className="block text-sm font-bold text-[var(--text-2)] mb-3 uppercase tracking-wide">2. Program Data Input</label>
+                                <label className="mb-3 block text-sm font-semibold text-[var(--text)]">2. Program data</label>
                                 
-                                <div className="bg-[var(--surface-subtle)]/70 border border-[var(--border)] rounded-xl p-6 mb-8">
+                                <div className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)]/70 p-4 sm:p-6">
                                     
                                     {/* 1. MATERNAL CARE */}
                                     {activeLogbook === 'maternal' && (
@@ -387,8 +415,8 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                     <option value="Extra Visit">Extra Visit (More than 4)</option>
                                                 </select>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4 p-4 bg-white border border-[var(--border)] rounded-lg">
-                                                <div className="col-span-2"><h4 className="text-sm font-bold text-[var(--text)]">BMI Assessment</h4></div>
+                                            <div className="grid grid-cols-1 gap-4 rounded-lg border border-[var(--border)] bg-white p-4 sm:grid-cols-2">
+                                                <div className="sm:col-span-2"><h4 className="text-sm font-bold text-[var(--text)]">BMI Assessment</h4></div>
                                                 <div>
                                                     <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Height (cm)</label>
                                                     <input type="number" name="height" onChange={handleInputChange} required className="w-full p-2 border border-[var(--border)] rounded-lg text-left text-[var(--text)] bg-white shadow-sm" />
@@ -398,7 +426,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                     <input type="number" name="weight" onChange={handleInputChange} required className="w-full p-2 border border-[var(--border)] rounded-lg text-left text-[var(--text)] bg-white shadow-sm" />
                                                 </div>
                                                 {calculatedBMI && (
-                                                    <div className="col-span-2 mt-2 p-3 bg-[var(--surface-subtle)] rounded-lg text-sm border border-[var(--border)] flex justify-between">
+                                                    <div className="mt-2 flex flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm sm:col-span-2 sm:flex-row sm:justify-between">
                                                         <span>Calculated BMI: <strong>{calculatedBMI.value}</strong></span>
                                                         <span>Status: <strong className={calculatedBMI.status === 'Normal' ? 'text-[var(--green-accent-strong)]' : 'text-[var(--amber-accent-strong)]'}>{calculatedBMI.status}</strong></span>
                                                     </div>
@@ -497,7 +525,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
 
                                     {/* 3. FAMILY PLANNING */}
                                     {activeLogbook === 'family_planning' && (
-                                        <div className="grid grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                             <div>
                                                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">Method Used</label>
                                                 <select name="fp_method" onChange={handleInputChange} required className="w-full p-2.5 border border-[var(--border)] rounded-lg text-sm">
@@ -603,8 +631,8 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                     )}
                                 </div>
                                 
-                                <div className="flex justify-end pt-4">
-                                    <button type="submit" disabled={isSubmitting || !selectedPatient} className="px-8 py-3 bg-[var(--brand-active)] text-white text-sm font-bold rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] transition flex items-center gap-2">
+                                <div className="flex justify-end pt-2">
+                                    <button type="submit" disabled={isSubmitting || !selectedPatient} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand-active)] px-8 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--brand-active-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
                                         {isSubmitting ? <span className="animate-pulse">Recording Census Entry...</span> : 'Record FHSIS Entry'}
                                     </button>
                                 </div>
