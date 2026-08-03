@@ -262,7 +262,7 @@ const MidwifeApp = () => {
     // ── Shared modal state — lives here so Dashboard + PatientRecords both use it
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
-    const { patients, records, isLoading, refreshData } = useMidwifeData();
+    const { patients, records, isLoading, hasLoadError, refreshData } = useMidwifeData();
 
     const handleRealtimeChange = useCallback(async () => {
         await refreshData();
@@ -345,6 +345,8 @@ const MidwifeApp = () => {
                                     rhuPersonnel={userData.name}
                                     onNavigateToRecords={() => setActiveTab('records')}
                                     onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
+                                    isLoading={isLoading}
+                                    hasLoadError={hasLoadError}
                                 />
                             )}
                             {activeTab === 'analytics' && (
@@ -355,6 +357,7 @@ const MidwifeApp = () => {
                                     patients={patients}
                                     records={records}
                                     isLoading={isLoading}
+                                    hasLoadError={hasLoadError}
                                     rhuPersonnel={userData.name}
                                     onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
                                 />
@@ -368,7 +371,7 @@ const MidwifeApp = () => {
                             )}
                             {activeTab === 'reports' && (
                                 <Suspense fallback={<LazyPanelFallback />}>
-                                    <ReportGenerator records={records} isLoading={isLoading} />
+                                    <ReportGenerator records={records} isLoading={isLoading} hasLoadError={hasLoadError} />
                                 </Suspense>
                             )}
                         </div>
