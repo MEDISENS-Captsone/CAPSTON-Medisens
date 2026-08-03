@@ -17,6 +17,7 @@ import { safeTrim } from '../../lib/utils/strings';
 import { AuditLogPage } from '../../features/audit/AuditLogPage';
 import { logAuditEvent } from '../../features/audit/services';
 import { useDialogFocus } from '../../components/ui/useDialogFocus';
+import { useHashPage } from '../../hooks/useHashPage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserProfile {
@@ -132,14 +133,7 @@ const AdminDashboard = () => {
 
     // Context & Auth
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [activePage, setActivePage] = useState(() => {
-        const requestedPage = window.location.hash.replace('#', '');
-        return requestedPage === 'audit-log' ? requestedPage : 'admin';
-    });
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('admin', page => (page === 'audit-log' ? page : 'admin'));
 
     const isOnline = useOnlineStatus();
     const [userName, setUserName] = useState('Loading...');

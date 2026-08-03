@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useNetworkSync';
 import { useToast } from '../../components/feedback/Toast';
 import { Icon } from '../../components/shared/Icon';
@@ -112,6 +112,10 @@ export function TemplatesComponent() {
     const [form, setForm] = useState<PatientForm>(EMPTY_FORM);
     const [otherReligion, setOtherReligion] = useState('');
     const [saving, setSaving] = useState(false);
+    // `disabled={saving}` only applies once React re-renders, and a state read inside the
+    // handler sees the value from the render the click came from. Taps landing in the same
+    // frame each inserted a patient, so the in-flight latch has to be a ref.
+    const savingRef = useRef(false);
     const { showToast, ToastComponent } = useToast();
     const [errors, setErrors] = useState<FieldErrors>({});
 
@@ -186,10 +190,12 @@ export function TemplatesComponent() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (savingRef.current) return;
         if (!validate()) {
             showToast('Please fix the errors before saving.', true);
             return;
         }
+        savingRef.current = true;
         setSaving(true);
         const payload = toPatientRegistrationPayload(form);
         try {
@@ -206,6 +212,7 @@ export function TemplatesComponent() {
             logError('Failed to save patient registration', error);
             showToast(healthcareErrorMessage("save the patient record"), true);
         } finally {
+            savingRef.current = false;
             setSaving(false);
         }
     };

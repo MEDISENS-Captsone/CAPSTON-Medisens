@@ -70,6 +70,14 @@ const VITAL_FIELDS: {
 ];
 
 const toNumberOrNull = (val: unknown) => parseNumberOrNull(val);
+
+// The role shell keeps its active module in the URL hash. Rewriting the query
+// string for patient selection must carry that hash through, or a refresh (or a
+// Back press) drops the user out of Initial Consultation and back onto the
+// dashboard mid-intake.
+const setPatientQuery = (query: string) => {
+    window.history.pushState({}, '', `${window.location.pathname}${query}${window.location.hash}`);
+};
 const CONSENTED_PATIENT_SEARCH_LIMIT = 300;
 const INITIAL_CONSULT_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, birthday, birthPlace, bloodType, nationality, religion, civilStatus, address, contactNumber, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress';
 
@@ -118,7 +126,7 @@ export function ConsultationComponent() {
             const { data, error } = await supabase
                 .from('patients')
                 .select(`
-                    id, firstName, middleName, lastName, age, sex, bloodType,
+                    id, firstName, middleName, lastName, age, sex, bloodType, address,
                     patient_consent ( consent_id )
                 `)
                 .or('archive_status.eq.active,archive_status.is.null')
@@ -186,7 +194,7 @@ export function ConsultationComponent() {
     };
 
     const handleSelectPatient = (id: string) => {
-        window.history.pushState({}, '', `?id=${id}`);
+        setPatientQuery(`?id=${id}`);
         loadPatientDetails(id);
     };
 
@@ -248,7 +256,7 @@ export function ConsultationComponent() {
                 setCurrentPatientId(null);
                 setPatientInfo(null);
                 setPatientName('No Patient Selected');
-                window.history.pushState({}, '', '?');
+                setPatientQuery('?');
             }, 1500);
         } catch (err) {
             logError('Failed to save initial consultation', err);
@@ -278,7 +286,7 @@ export function ConsultationComponent() {
                 </div>
 
                 {currentPatientId && (
-                    <button onClick={() => { setCurrentPatientId(null); setPatientInfo(null); window.history.pushState({}, '', '?'); }} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm shrink-0 text-sm font-semibold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] transition-colors">
+                    <button onClick={() => { setCurrentPatientId(null); setPatientInfo(null); setPatientQuery('?'); }} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm shrink-0 text-sm font-semibold text-[var(--text-2)] hover:bg-[var(--surface-subtle)] transition-colors">
                         <Icon name="search" className="h-4 w-4" /> Search Another
                     </button>
                 )}

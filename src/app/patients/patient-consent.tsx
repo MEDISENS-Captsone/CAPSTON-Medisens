@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import React, { useRef, useState } from 'react';
+
 import SignatureCanvas from 'react-signature-canvas';
 import { useToast } from '../../components/feedback/Toast';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Input } from '../../components/ui';
@@ -96,6 +97,10 @@ function SigPad({ label, sigRef, penColor = PEN_INK(), onClear }: SigPadProps) {
 export default function PatientConsent({ patientId, patientName, rhuPersonnel: initialPersonnel = '', onConsentSaved }: ConsentProps) {
     const [rhuPersonnel] = useState(initialPersonnel);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // `disabled={isSubmitting}` only applies after React re-renders, and a state read in
+    // the handler sees the value from the render the submit came from — so a same-frame
+    // double submit would record the consent twice. The in-flight latch has to be a ref.
+    const isSubmittingRef = useRef(false);
     const { showToast, ToastComponent } = useToast();
 
     const patientSigCanvas = useRef<SignatureCanvas | null>(null);
@@ -103,6 +108,7 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmittingRef.current) return;
 
         if (patientSigCanvas.current?.isEmpty()) {
             showToast("Please provide the patient's signature.", true);
@@ -113,6 +119,7 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
             return;
         }
 
+        isSubmittingRef.current = true;
         setIsSubmitting(true);
 
         try {
@@ -134,6 +141,7 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
             logError('Failed to save patient consent', err);
             showToast(healthcareErrorMessage("save the patient's consent"), true);
         } finally {
+            isSubmittingRef.current = false;
             setIsSubmitting(false);
         }
     };

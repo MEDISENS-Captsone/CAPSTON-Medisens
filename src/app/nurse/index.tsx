@@ -9,6 +9,7 @@ import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { Badge, Button, Card, EmptyState, Input, SkeletonKpiGrid, SkeletonList } from '../../components/ui';
+import { useHashPage } from '../../hooks/useHashPage';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -45,11 +46,7 @@ const NurseDashboard = () => {
     const [isDashboardLoading, setIsDashboardLoading] = useState(true);
     const [dashboardError, setDashboardError] = useState('');
     const [reloadToken, setReloadToken] = useState(0);
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('dashboard');
 
     // Modal state — still used by Records component
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);

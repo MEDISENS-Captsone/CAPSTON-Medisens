@@ -10,6 +10,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { SkeletonKpiGrid, SkeletonList } from '../../components/ui/Skeleton';
 import { safeTrim } from '../../lib/utils/strings';
 import { useToast } from '../../components/feedback/Toast';
+import { useHashPage } from '../../hooks/useHashPage';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -51,11 +52,7 @@ const BhwDashboard = () => {
     const { showToast, ToastComponent } = useToast();
 
     // ─── SPA Navigation State ───
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('dashboard');
 
     const navItems = [
         { id: 'dashboard', label: 'Home', icon: 'home', group: 'Overview' },

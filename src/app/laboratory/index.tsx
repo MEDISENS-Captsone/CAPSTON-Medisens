@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon } from '../../components/shared/Icon';
 import { createRoot } from 'react-dom/client';
 import { supabase } from '../../lib/supabase/client';
@@ -90,6 +90,10 @@ function LabRequestDetail({
     const [results, setResults] = useState('');
     const [datePerformed, setDatePerformed] = useState(formatDateTimeLocal());
     const [saving, setSaving] = useState(false);
+    // `disabled={saving}` only applies after React re-renders, and a state read inside
+    // the handler sees the value from the render the click came from. Two taps in the
+    // same frame therefore both wrote the result, so the latch has to be a ref.
+    const savingRef = useRef(false);
     const [loadingLabResult, setLoadingLabResult] = useState(false);
     const { showToast, ToastComponent } = useToast();
 
@@ -149,6 +153,7 @@ function LabRequestDetail({
     const activeTests = tests.filter(t => t.value);
 
     const handleMarkCompleted = async () => {
+        if (savingRef.current) return;
         if (!isOnline) {
             showToast('You are offline. Lab results cannot be submitted until the connection is restored.', true);
             return;
@@ -163,6 +168,7 @@ function LabRequestDetail({
             return;
         }
 
+        savingRef.current = true;
         setSaving(true);
         try {
             const performedBy =
@@ -186,6 +192,7 @@ function LabRequestDetail({
             logError('Failed to submit laboratory results', err);
             showToast(healthcareErrorMessage("submit the lab results"), true);
         } finally {
+            savingRef.current = false;
             setSaving(false);
         }
     };

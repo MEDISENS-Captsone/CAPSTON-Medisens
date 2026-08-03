@@ -15,6 +15,7 @@ import { AuditLogPage } from '../../features/audit/AuditLogPage';
 import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 import { SkeletonKpiGrid } from '../../components/ui';
+import { useHashPage } from '../../hooks/useHashPage';
 
 const ConsultationPage = lazy(() => import('../consultation'));
 const RecordsComponent = lazy(() => import('../patients/records').then(module => ({ default: module.RecordsComponent })));
@@ -78,11 +79,7 @@ const DoctorDashboard = () => {
     const [userName, setUserName] = useState('Loading...');
     const [userInitials, setUserInitials] = useState('D');
 
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('dashboard');
 
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [selectedIcid, setSelectedIcid] = useState<string | null>(null);

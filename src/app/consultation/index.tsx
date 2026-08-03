@@ -1116,12 +1116,16 @@ export function ConsultationPage({
         return (
             <div className="relative w-full px-4 pb-8 md:px-5 xl:px-6">
                 <ClinicalPatientWorklist
-                    patients={consultationQueue.map(entry => ({ ...entry.patients, id: entry.patient_id, recordDate: entry.consultation_date, recordLabel: entry.consultation_date ? `Referred ${new Date(entry.consultation_date).toLocaleDateString()}` : undefined }))}
+                    patients={consultationQueue.map(entry => ({ ...entry.patients, id: entry.patient_id, rowKey: entry.initialconsultation_id, recordDate: entry.consultation_date, recordLabel: entry.consultation_date ? `Referred ${new Date(entry.consultation_date).toLocaleDateString()}` : undefined }))}
                     loading={consultationQueueLoading}
                     error={consultationQueueError}
                     onRetry={() => void loadConsultationQueue()}
                     onSelect={(selected) => {
-                        const entry = consultationQueue.find(item => String(item.patient_id) === String(selected.id));
+                        // Matched on the encounter, not the patient: a patient with more
+                        // than one open referral would otherwise always resolve to their
+                        // earliest one, opening the wrong consultation.
+                        const entry = consultationQueue.find(item => String(item.initialconsultation_id) === String(selected.rowKey))
+                            ?? consultationQueue.find(item => String(item.patient_id) === String(selected.id));
                         if (entry && onSelectPatient) onSelectPatient(String(entry.patient_id), String(entry.initialconsultation_id));
                     }}
                     title="Consultation queue"

@@ -16,6 +16,7 @@ import PatientRecords from '../../features/midwife/patientRecords';
 import CensusEntry from '../../features/midwife/censusEntry';
 import { useMidwifeData } from '../../features/midwife/useMidwifeData';
 import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
+import { useHashPage } from '../../hooks/useHashPage';
 
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 const ConsultationComponent = lazy(() => import('../initial-consultation').then(module => ({ default: module.ConsultationComponent })));
@@ -206,11 +207,7 @@ function PatientModal({
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 const MidwifeApp = () => {
-    const [activeTab, setActiveTab] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
-
-    useEffect(() => {
-        window.location.hash = activeTab;
-    }, [activeTab]);
+    const [activeTab, setActiveTab] = useHashPage('dashboard');
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
