@@ -14,11 +14,11 @@ import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../component
 import Dashboard from '../../features/midwife/dashboard';
 import PatientRecords from '../../features/midwife/patientRecords';
 import CensusEntry from '../../features/midwife/censusEntry';
-import PatientConsent from '../patients/patient-consent';
 import { useMidwifeData } from '../../features/midwife/useMidwifeData';
 import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
+const ConsultationComponent = lazy(() => import('../initial-consultation').then(module => ({ default: module.ConsultationComponent })));
 
 const LazyPanelFallback = () => (
     <div className="rounded-xl border border-[var(--border)] bg-white">
@@ -46,12 +46,10 @@ const headerCls  = "flex items-center gap-2 text-sm font-semibold text-[var(--te
 function PatientDetailsPanel({
     patient,
     consentSigned,
-    onProceedToConsent,
     onViewHistory,
 }: {
     patient: any;
     consentSigned: boolean;
-    onProceedToConsent: () => void;
     onViewHistory: () => void;
 }) {
     const displayCategory = () => {
@@ -135,16 +133,6 @@ function PatientDetailsPanel({
                     <DetailItem label="Relative's Address" value={patient.relativeAddress} />
                 </div>
             </div>
-
-            {!consentSigned && (
-                <button
-                    type="button"
-                    onClick={onProceedToConsent}
-                    className="w-full bg-[var(--brand-active)] text-white font-bold text-sm py-4 rounded-xl shadow-sm hover:bg-[var(--brand-active-hover)] transition-all  flex items-center justify-center gap-3 mt-2"
-                >
-                    <Icon name="clipboard" className="h-5 w-5" /> Proceed to Patient Consent →
-                </button>
-            )}
         </div>
     );
 }
@@ -152,27 +140,17 @@ function PatientDetailsPanel({
 // ─── Patient Modal ────────────────────────────────────────────────────────────
 function PatientModal({
     patient,
-    rhuPersonnel,
     onClose,
-    onConsentSaved,
 }: {
     patient: any;
     rhuPersonnel: string;
     onClose: () => void;
     onConsentSaved: () => void;
 }) {
-    const [step, setStep] = useState<'details' | 'consent' | 'history'>('details');
-    const [consentSigned, setConsentSigned] = useState(
-        Array.isArray(patient.patient_consent)
-            ? patient.patient_consent.length > 0
-            : !!patient.consent_signed
-    );
-
-    const handleConsentSaved = () => {
-        setConsentSigned(true);
-        setStep('details');
-        onConsentSaved();
-    };
+    const [step, setStep] = useState<'details' | 'history'>('details');
+    const consentSigned = Array.isArray(patient.patient_consent)
+        ? patient.patient_consent.length > 0
+        : !!patient.consent_signed;
 
     return (
         <div className="fixed inset-0 bg-[var(--overlay)] backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 ">
@@ -191,19 +169,8 @@ function PatientModal({
                                 <span aria-hidden="true">←</span>
                             </button>
                         )}
-                        {/* Step pills */}
-                        <div className="flex items-center gap-1.5 text-xs font-bold">
-                            <button
-                                type="button"
-                                onClick={() => setStep('details')}
-                                className={`px-2.5 py-1 rounded-md transition-colors ${step === 'details' ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:bg-[var(--border-soft)]'}`}
-                            >
-                                1 · Details
-                            </button>
-                            <span className="text-[var(--text-muted)]">›</span>
-                            <span className={`px-2.5 py-1 rounded-md ${step === 'consent' ? 'bg-[var(--brand-active)] text-white' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
-                                2 · Consent
-                            </span>
+                        <div className="text-xs font-bold px-2.5 py-1 rounded-md bg-[var(--brand-active)] text-white">
+                            {step === 'details' ? 'Details' : 'History'}
                         </div>
                     </div>
                     <button
@@ -221,18 +188,8 @@ function PatientModal({
                         <PatientDetailsPanel
                             patient={patient}
                             consentSigned={consentSigned}
-                            onProceedToConsent={() => setStep('consent')}
                             onViewHistory={() => setStep('history')}
                         />
-                    ) : step === 'consent' ? (
-                        <div className="">
-                            <PatientConsent
-                                patientId={patient.id}
-                                patientName={`${patient.firstName} ${patient.lastName}`}
-                                rhuPersonnel={rhuPersonnel}
-                                onConsentSaved={handleConsentSaved}
-                            />
-                        </div>
                     ) : (
                         <div className="">
                             <PatientChartIdentityHeader patient={patient} compact className="mb-4" />
@@ -295,10 +252,18 @@ const MidwifeApp = () => {
         };
     }, [handleRealtimeChange]);
 
+    // Mirrors the nurse shell's handleConsultNavigate: the shared initial
+    // consultation form reads the patient id from the query string.
+    const handleStartIntake = (patientId: string) => {
+        window.history.pushState({}, '', `?id=${patientId}`);
+        setActiveTab('consultation');
+    };
+
     const midwifeNavItems = [
         { id: 'dashboard', label: 'Home',           icon: 'home', group: 'Overview' },
         { id: 'analytics', label: 'Analytics',      icon: 'chart', group: 'Insights' },
         { id: 'records',   label: 'Patient Records', icon: 'users', group: 'Patient Care' },
+        { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
         { id: 'census',    label: 'Census Entry',    icon: 'clipboard', group: 'Maternal & Community Care' },
         { id: 'reports',   label: 'FHSIS Reports',   icon: 'chart', group: 'Records & Governance' },
     ];
@@ -322,6 +287,7 @@ const MidwifeApp = () => {
                     title={activeTab === 'dashboard' ? 'Midwife Dashboard'
                         : activeTab === 'analytics' ? 'Analytics'
                         : activeTab === 'records' ? 'Patient Records'
+                        : activeTab === 'consultation' ? 'Initial Consultation'
                         : activeTab === 'census' ? 'Census Entry'
                         : activeTab === 'reports' ? 'FHSIS Reports'
                         : safeTrim(activeTab.replace(/([A-Z])/g, ' $1'))}
@@ -344,7 +310,6 @@ const MidwifeApp = () => {
                                     censusRecords={records}
                                     rhuPersonnel={userData.name}
                                     onNavigateToRecords={() => setActiveTab('records')}
-                                    onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
                                     isLoading={isLoading}
                                     hasLoadError={hasLoadError}
                                 />
@@ -360,7 +325,13 @@ const MidwifeApp = () => {
                                     hasLoadError={hasLoadError}
                                     rhuPersonnel={userData.name}
                                     onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
+                                    onStartIntake={handleStartIntake}
                                 />
+                            )}
+                            {activeTab === 'consultation' && (
+                                <Suspense fallback={<LazyPanelFallback />}>
+                                    <ConsultationComponent />
+                                </Suspense>
                             )}
                             {activeTab === 'census' && (
                                 <CensusEntry

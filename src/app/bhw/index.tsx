@@ -9,6 +9,7 @@ import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { SkeletonKpiGrid, SkeletonList } from '../../components/ui/Skeleton';
 import { safeTrim } from '../../lib/utils/strings';
+import { useToast } from '../../components/feedback/Toast';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -18,8 +19,13 @@ const RecordsComponent = lazy(() => import('../patients/records').then(module =>
 const TemplatesComponent = lazy(() => import('../patients/templates').then(module => ({ default: module.TemplatesComponent })));
 const BHW_PATIENT_LIMIT = 1000;
 const BHW_FHSIS_LIMIT = 1000;
-const BHW_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at';
+const BHW_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at, patient_consent(consent_id)';
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
+const PatientConsentModal = lazy(() => import('../../components/patient/PatientConsentModal').then(module => ({ default: module.PatientConsentModal })));
+
+type ConsentRelation = { consent_id: string } | { consent_id: string }[] | null;
+type BhwPatient = Patient & { patient_consent?: ConsentRelation };
+type ConsentFilter = 'all' | 'pending' | 'signed';
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 
 const LazyPanelFallback = () => (
@@ -39,6 +45,10 @@ const BhwDashboard = () => {
     const [isDashboardLoading, setIsDashboardLoading] = useState(true);
     const [dashboardError, setDashboardError] = useState('');
     const [reloadToken, setReloadToken] = useState(0);
+    const [consentPatient, setConsentPatient] = useState<Patient | null>(null);
+    const [signedConsentIds, setSignedConsentIds] = useState<Set<string>>(new Set());
+    const [consentFilter, setConsentFilter] = useState<ConsentFilter>('all');
+    const { showToast, ToastComponent } = useToast();
 
     // ─── SPA Navigation State ───
     const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
@@ -145,9 +155,41 @@ const BhwDashboard = () => {
 
     const recentPatients = useMemo(() => patients.slice(0, 5), [patients]);
 
+    // Consent recorded during this session is tracked locally so the directory
+    // badge flips immediately after a successful save, without refetching.
+    const isConsentSigned = (p: Patient) => {
+        if (signedConsentIds.has(p.id)) return true;
+        const relation = (p as BhwPatient).patient_consent;
+        return Array.isArray(relation) ? relation.length > 0 : !!relation;
+    };
+
+    const directoryPatients = useMemo(
+        () => patients.filter(p => {
+            if (consentFilter === 'pending') return !isConsentSigned(p);
+            if (consentFilter === 'signed') return isConsentSigned(p);
+            return true;
+        }),
+        [patients, consentFilter, signedConsentIds]
+    );
+
+    // Consent is signed in a dialog on top of the current list so the BHW never
+    // loses their place. The dialog mounts the shared PatientConsent form.
+    const openConsentFlow = (p: Patient) => setConsentPatient(p);
+
+    const handleConsentSaved = (p: Patient) => {
+        setSignedConsentIds(prev => {
+            const next = new Set(prev);
+            next.add(p.id);
+            return next;
+        });
+        setConsentPatient(null);
+        showToast('Patient consent recorded successfully.', false);
+    };
+
     return (
         <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
-            
+            <ToastComponent />
+
             <Sidebar
                 activePage={activePage}
                 userName={userName}
@@ -251,7 +293,7 @@ const BhwDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <div className="ops-panel flex flex-col lg:col-span-4">
+                                    <div className="ops-panel flex flex-col self-start lg:col-span-4">
                                         <div className="ops-panel-header">
                                             <div>
                                                 <h2 className="ops-panel-title">Registry Status</h2>
@@ -281,6 +323,79 @@ const BhwDashboard = () => {
                                         </div>
                                     </div>
                                     </div>
+
+                                    <section className="ops-panel flex w-full flex-col overflow-hidden" aria-labelledby="bhw-patient-directory-heading">
+                                        <div className="ops-panel-header flex-wrap gap-3">
+                                            <div>
+                                                <h2 id="bhw-patient-directory-heading" className="ops-panel-title">Patient Directory</h2>
+                                                <p className="ops-panel-subtitle">
+                                                    <span className="font-semibold tabular-nums text-[var(--text)]">{directoryPatients.length}</span>{' '}
+                                                    {consentFilter === 'all' ? 'registered patients' : `${consentFilter} patients`} · record consent for residents you registered
+                                                </p>
+                                            </div>
+                                            <div className="inline-flex rounded-lg border border-[var(--border)] bg-white p-1" role="group" aria-label="Filter patients by consent status">
+                                                {(['all', 'pending', 'signed'] as const).map(filter => {
+                                                    const isActive = consentFilter === filter;
+                                                    return (
+                                                        <button
+                                                            key={filter}
+                                                            type="button"
+                                                            onClick={() => setConsentFilter(filter)}
+                                                            aria-pressed={isActive}
+                                                            className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold capitalize transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${isActive ? 'bg-[var(--brand-active)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)]'}`}
+                                                        >
+                                                            {filter}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        <div className="max-h-[520px] flex-1 divide-y divide-[var(--border-soft)] overflow-y-auto bg-white">
+                                            {directoryPatients.length === 0 ? (
+                                                <div className="role-queue-empty">
+                                                    <span className="role-queue-empty-icon"><Icon name="users" className="h-5 w-5" /></span>
+                                                    <strong>{patients.length === 0 ? 'No patients registered yet' : `No ${consentFilter} patients`}</strong>
+                                                    <span>{patients.length === 0 ? 'Residents you register will appear here.' : 'No patients currently match this consent filter.'}</span>
+                                                </div>
+                                            ) : (
+                                                directoryPatients.map(p => {
+                                                    const signed = isConsentSigned(p);
+                                                    return (
+                                                        <article key={p.id} className="clinical-worklist-row group flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedPatient(p)}
+                                                                aria-label={`Open patient details for ${p.lastName}, ${p.firstName}`}
+                                                                className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left"
+                                                            >
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="ops-row-title truncate">{p.lastName}, {p.firstName}</div>
+                                                                    <div className="ops-row-meta truncate">{p.sex || '-'} · {p.age ?? '-'} yrs · {p.address || 'No address'}</div>
+                                                                </div>
+                                                                <span className="shrink-0">
+                                                                    {signed ? (
+                                                                        <span className="inline-flex items-center gap-1 rounded-md border border-[var(--green-border-soft)] bg-[var(--green-surface)] px-2 py-0.5 text-[0.65rem] font-semibold text-[var(--green-text)]"><Icon name="check" className="h-3 w-3" /> Signed</span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1 rounded-md border border-[var(--amber-border)] bg-[var(--amber-surface)] px-2 py-0.5 text-[0.65rem] font-semibold text-[var(--amber-text)]"><Icon name="alert-triangle" className="h-3 w-3" /> Pending</span>
+                                                                    )}
+                                                                </span>
+                                                            </button>
+                                                            {!signed && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openConsentFlow(p)}
+                                                                    className="clinical-row-action min-h-11 w-full sm:w-auto sm:shrink-0"
+                                                                    aria-label={`Record consent for ${p.lastName}, ${p.firstName}`}
+                                                                >
+                                                                    <Icon name="clipboard" className="mr-1 inline h-3.5 w-3.5" /> Record Consent
+                                                                </button>
+                                                            )}
+                                                        </article>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </section>
                                     </>
                                     )}
                                 </div>
@@ -323,6 +438,20 @@ const BhwDashboard = () => {
                         patient={selectedPatient}
                         onClose={() => setSelectedPatient(null)}
                         onPatientUpdate={(updated) => setSelectedPatient(updated)}
+                        consentSigned={isConsentSigned(selectedPatient)}
+                        onRecordConsent={activePage === 'records' ? undefined : openConsentFlow}
+                    />
+                </Suspense>
+            )}
+
+            {consentPatient && (
+                <Suspense fallback={null}>
+                    <PatientConsentModal
+                        patientId={consentPatient.id}
+                        patientName={`${consentPatient.firstName} ${consentPatient.lastName}`}
+                        rhuPersonnel={userName}
+                        onClose={() => setConsentPatient(null)}
+                        onConsentSaved={() => handleConsentSaved(consentPatient)}
                     />
                 </Suspense>
             )}

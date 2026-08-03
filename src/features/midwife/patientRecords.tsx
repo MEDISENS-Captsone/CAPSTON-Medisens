@@ -14,6 +14,7 @@ interface Props {
     hasLoadError?: boolean;
     onPatientClick?: (patient: any) => void;
     onNavigateToRecords?: () => void;
+    onStartIntake?: (patientId: string) => void;
 }
 
 // ─── History Modal ────────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ function HistoryModal({ patient, logs, onClose }: { patient: any; logs: any[]; o
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, onPatientClick }: Props) => {
+const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, onPatientClick, onStartIntake }: Props) => {
     const [searchQuery,    setSearchQuery]    = useState('');
     const [historyPatient, setHistoryPatient] = useState<any>(null);
 
@@ -191,6 +192,31 @@ const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, on
                                             <span className="bg-[var(--amber-surface)] border border-[var(--amber-border)] text-[var(--amber-text)] text-[0.6rem] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1"><Icon name="alert-triangle" className="h-3 w-3" /> PENDING</span>
                                         )}
                                     </div>
+
+                                    {/* Initial intake — consent-gated. Consent itself is
+                                        captured by BHW; midwives only read its status. */}
+                                    {onStartIntake && (
+                                        patient.consent_signed ? (
+                                            <button
+                                                type="button"
+                                                onClick={e => { e.stopPropagation(); onStartIntake(patient.id); }}
+                                                className="clinical-row-action min-h-11"
+                                                aria-label={`Begin initial intake for ${patient.lastName}, ${patient.firstName}`}
+                                            >
+                                                <Icon name="clipboard" className="inline h-3.5 w-3.5 mr-1" /> Initial Intake
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                disabled
+                                                className="clinical-row-action min-h-11 cursor-not-allowed opacity-60"
+                                                title="Initial intake is available only for patients with signed consent."
+                                                aria-label={`Initial intake unavailable for ${patient.lastName}, ${patient.firstName}. Initial intake is available only for patients with signed consent.`}
+                                            >
+                                                <Icon name="clipboard" className="inline h-3.5 w-3.5 mr-1" /> Initial Intake
+                                            </button>
+                                        )
+                                    )}
 
                                     {/* History button */}
                                     <button

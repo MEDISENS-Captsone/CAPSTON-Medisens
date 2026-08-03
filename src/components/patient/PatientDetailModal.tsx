@@ -76,6 +76,10 @@ interface PatientDetailModalProps {
     onClose: () => void;
     onPatientUpdate?: (updatedPatient: Patient) => void;
     onConsult?: (patient: Patient) => void;
+    /** BHW-only: whether this patient already has a signed consent record. */
+    consentSigned?: boolean;
+    /** BHW-only: opens the consent-signing flow for this patient. */
+    onRecordConsent?: (patient: Patient) => void;
 }
 
 interface DetailItemProps {
@@ -213,6 +217,8 @@ export function PatientDetailModal({
     onClose,
     onPatientUpdate,
     onConsult,
+    consentSigned,
+    onRecordConsent,
 }: PatientDetailModalProps) {
     const [patient, setPatient] = useState<Patient>(initialPatient);
     const [showHistory, setShowHistory] = useState(false);
@@ -406,6 +412,16 @@ export function PatientDetailModal({
                         <div className="flex flex-wrap items-center justify-end gap-2">
                             {!showHistory && (
                                 <>
+                                    {onRecordConsent && !consentSigned && !isEditing && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onRecordConsent(patient)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--amber-surface)] text-[var(--amber-text)] border border-[var(--amber-border)] hover:bg-[var(--brand-accent-surface)] ${focusCls}`}
+                                        >
+                                            <Icon name="clipboard" className="h-3.5 w-3.5" />
+                                            Record Consent
+                                        </button>
+                                    )}
                                     {onConsult && !isEditing && (
                                         <button
                                             type="button"

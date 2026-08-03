@@ -298,6 +298,7 @@ function sanitizeMetadata(metadata?: Record<string, unknown>): Record<string, un
         'followup_id',
         'profile_id',
         'name_updated',
+        'consent_id',
     ]);
 
     Object.entries(metadata).forEach(([key, value]) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { Icon } from '../../components/shared/Icon';
 import { Badge, Button, EmptyState, Input } from '../../components/ui';
@@ -24,6 +24,7 @@ const MALVAR_BARANGAYS = [
 
 const OUTSIDE_MALVAR = '__outside__';
 const PATIENT_REGISTRY_LIMIT = 1000;
+const PATIENTS_PER_PAGE = 10;
 const PATIENT_REGISTRY_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at, archive_status, archive_protected';
 
 interface Patient {
@@ -54,13 +55,26 @@ interface Patient {
     archive_protected?: boolean | null;
 }
 
-export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient: Patient) => void } = {}) {
+type RecordsComponentProps = {
+    onPatientClick?: (patient: Patient) => void;
+};
+
+function getVisiblePageNumbers(currentPage: number, totalPages: number): Array<number | 'ellipsis'> {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1);
+    if (currentPage <= 3) return [1, 2, 3, 4, 'ellipsis', totalPages];
+    if (currentPage >= totalPages - 2) return [1, 'ellipsis', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
+}
+
+export function RecordsComponent({ onPatientClick }: RecordsComponentProps = {}) {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [allPatients, setAllPatients] = useState<Patient[]>([]);
     const [search, setSearch] = useState('');
     const [selectedBarangay, setSelectedBarangay] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const registrySectionRef = useRef<HTMLElement>(null);
 
     const fetchPatients = useCallback(async () => {
         setLoading(true);
@@ -104,6 +118,31 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
         setPatients(filtered);
     }, [search, selectedBarangay, allPatients]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, selectedBarangay]);
+
+    const totalPages = Math.max(1, Math.ceil(patients.length / PATIENTS_PER_PAGE));
+    const pageStart = (currentPage - 1) * PATIENTS_PER_PAGE;
+    const visiblePatients = patients.slice(pageStart, pageStart + PATIENTS_PER_PAGE);
+    const visiblePageNumbers = useMemo(
+        () => getVisiblePageNumbers(currentPage, totalPages),
+        [currentPage, totalPages],
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(totalPages);
+    }, [currentPage, totalPages]);
+
+    const changePage = (page: number) => {
+        const nextPage = Math.min(Math.max(page, 1), totalPages);
+        if (nextPage === currentPage) return;
+        setCurrentPage(nextPage);
+        requestAnimationFrame(() => {
+            registrySectionRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+        });
+    };
+
     const handleRowClick = (p: Patient) => {
         if (onPatientClick) {
             onPatientClick(p);
@@ -114,7 +153,7 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
 
     return (
         <div className="w-full">
-            <section className="clinical-table-panel">
+            <section ref={registrySectionRef} className="clinical-table-panel">
                 <div className="clinical-table-titlebar">
                     <div>
                         <h2 className="clinical-table-title">Patient Registry</h2>
@@ -215,7 +254,7 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                                     </td>
                                 </tr>
                             ) : (
-                                patients.map(p => (
+                                visiblePatients.map(p => (
                                     <tr key={p.id} onClick={() => handleRowClick(p)} className="cursor-pointer">
                                         <td className="patient-records-col-patient">
                                             <div className="patient-records-primary-cell">
@@ -247,6 +286,50 @@ export function RecordsComponent({ onPatientClick }: { onPatientClick?: (patient
                         </tbody>
                     </table>
                 </div>
+
+                {!loading && !loadError && patients.length > 0 && (
+                    <footer className="flex flex-col gap-3 border-t border-[var(--border-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-center text-[length:var(--type-supporting-size)] text-[var(--text-secondary)] sm:text-left" aria-live="polite">
+                            Showing {pageStart + 1}&ndash;{Math.min(pageStart + PATIENTS_PER_PAGE, patients.length)} of {patients.length} patients
+                        </p>
+                        <nav className="flex flex-wrap items-center justify-center gap-1.5" aria-label="Patient registry pagination">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={currentPage === 1}
+                                onClick={() => changePage(currentPage - 1)}
+                            >
+                                Previous
+                            </Button>
+                            {visiblePageNumbers.map((page, index) => page === 'ellipsis' ? (
+                                <span key={`ellipsis-${index}`} className="inline-flex min-h-11 min-w-7 items-center justify-center text-[var(--text-muted)]" aria-hidden="true">&hellip;</span>
+                            ) : (
+                                <Button
+                                    key={page}
+                                    type="button"
+                                    variant={page === currentPage ? 'primary' : 'ghost'}
+                                    size="sm"
+                                    aria-label={`Go to page ${page}`}
+                                    aria-current={page === currentPage ? 'page' : undefined}
+                                    onClick={() => changePage(page)}
+                                    className="min-h-11 min-w-11 px-2"
+                                >
+                                    {page}
+                                </Button>
+                            ))}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={currentPage === totalPages}
+                                onClick={() => changePage(currentPage + 1)}
+                            >
+                                Next
+                            </Button>
+                        </nav>
+                    </footer>
+                )}
             </section>
         </div>
     );

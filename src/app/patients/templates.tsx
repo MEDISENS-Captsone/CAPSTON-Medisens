@@ -7,6 +7,7 @@ import { calcAge, formatPhilhealth, philhealthDigits, toPatientRegistrationPaylo
 import { createPatient } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
+import { MALVAR_BARANGAYS } from '../../lib/utils/malvarBarangays';
 
 // ─── Reusable Tailwind Classes ───────────────────────────────────────────────
 const inputClasses = clinicalInputClass;
@@ -40,18 +41,6 @@ const EDUCATION_LEVELS = [
     'College Level', 'College Graduate', 'Post-Graduate'
 ] as const;
 const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Self-Employed', 'Student', 'Retired'] as const;
-
-// ─── Malvar Barangays ─────────────────────────────────────────────────────────
-const MALVAR_BARANGAYS = [
-    'Bagong Pook, Malvar, Batangas', 'Bilucao, Malvar, Batangas',
-    'Bulihan, Malvar, Batangas', 'Luta del Norte, Malvar, Batangas',
-    'Luta del Sur, Malvar, Batangas', 'Poblacion, Malvar, Batangas',
-    'San Andres, Malvar, Batangas', 'San Fernando, Malvar, Batangas',
-    'San Gregorio, Malvar, Batangas', 'San Isidro, Malvar, Batangas',
-    'San Juan, Malvar, Batangas', 'San Pedro I, Malvar, Batangas',
-    'San Pedro II, Malvar, Batangas', 'San Pioquinto, Malvar, Batangas',
-    'Santiago, Malvar, Batangas',
-] as const;
 
 const OUTSIDE_MALVAR = '__outside__';
 

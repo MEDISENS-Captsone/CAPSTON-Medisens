@@ -6,6 +6,7 @@ import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { safeTrim, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
 import { Icon } from '../../components/shared/Icon';
 import { clinicalInputClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
+import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
 
 // Shared clinical form classes
 const inputClasses = clinicalInputClass;
@@ -20,9 +21,10 @@ interface InitialConsultationData {
     modeOfTransaction: string; modeOfTransfer: string; chiefComplaints: string;
     diagnosis: string; diagnosisOther: string; historyOfPresentIllness: string;
     bp: string; hr: string; rr: string; temp: string; weight: string; height: string;
-    o2Sat: string; muac: string; nutritionalStatus: string; bmi: string;
+    o2Sat: string; nutritionalStatus: string; bmi: string;
     visualAcuityLeft: string; visualAcuityRight: string; bloodType: string;
     generalSurvey: string;
+    visitDisposition: 'referred' | 'completed' | '';
 }
 
 // ─── Helper: get current date (YYYY-MM-DD) and time (HH:MM) ─────────────────
@@ -39,8 +41,9 @@ const makeEmptyForm = (): InitialConsultationData => ({
     modeOfTransaction: '', modeOfTransfer: '', chiefComplaints: '',
     diagnosis: '', diagnosisOther: '', historyOfPresentIllness: '',
     bp: '', hr: '', rr: '', temp: '', weight: '', height: '',
-    o2Sat: '', muac: '', nutritionalStatus: '', bmi: '',
+    o2Sat: '', nutritionalStatus: '', bmi: '',
     visualAcuityLeft: '', visualAcuityRight: '', bloodType: '', generalSurvey: '',
+    visitDisposition: '',
 });
 
 const DIAGNOSIS_OPTIONS = [
@@ -60,7 +63,6 @@ const VITAL_FIELDS: {
     { label: 'Weight (kg)',      name: 'weight',           type: 'number', step: '0.1' },
     { label: 'Height (cm)',      name: 'height',           type: 'number', step: '0.1' },
     { label: 'BMI',              name: 'bmi',              type: 'text',   readOnly: true },
-    { label: 'MUAC',             name: 'muac',             type: 'text',   allowedPattern: /^[\d.]*$/ },
     { label: 'Nutrition Status', name: 'nutritionalStatus', type: 'text',  readOnly: true },
     { label: 'Vis. Acuity (L)', name: 'visualAcuityLeft',  type: 'text',  placeholder: '20/20', allowedPattern: /^[\d/]*$/ },
     { label: 'Vis. Acuity (R)', name: 'visualAcuityRight', type: 'text',  placeholder: '20/20', allowedPattern: /^[\d/]*$/ },
@@ -99,7 +101,6 @@ export function ConsultationComponent() {
     const [patientInfo, setPatientInfo] = useState<any>(null);
 
     // New states for Patient Search
-    const [searchQuery, setSearchQuery] = useState('');
     const [consentedPatients, setConsentedPatients] = useState<any[]>([]);
 
     const { showToast, ToastComponent } = useToast();
@@ -191,8 +192,13 @@ export function ConsultationComponent() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
         if (!currentPatientId) {
             showToast('Select a patient before recording the initial intake.', true);
+            return;
+        }
+        if (!formData.visitDisposition) {
+            showToast('Choose whether to complete this visit or refer the patient to the doctor.', true);
             return;
         }
 
@@ -209,6 +215,7 @@ export function ConsultationComponent() {
                 mode_of_transfer: formData.modeOfTransfer || null,
                 chief_complaint: formData.chiefComplaints || null,
                 diagnosis: resolvedDiagnosis || null,
+                visit_disposition: formData.visitDisposition,
             }, {
                 patient_id: currentPatientId,
                 bp: formData.bp || null,
@@ -218,7 +225,6 @@ export function ConsultationComponent() {
                 o2_saturation: toNumberOrNull(formData.o2Sat),
                 weight: toNumberOrNull(formData.weight),
                 height: toNumberOrNull(formData.height),
-                muac: toNumberOrNull(formData.muac),
                 nutritional_status: formData.nutritionalStatus || null,
                 bmi: toNumberOrNull(formData.bmi),
                 visual_acuity_left: formData.visualAcuityLeft || null,
@@ -226,12 +232,23 @@ export function ConsultationComponent() {
                 general_survey: formData.generalSurvey || null,
             });
 
-            showToast('Initial intake recorded.', false);
+            showToast(
+                formData.visitDisposition === 'referred'
+                    ? 'Initial intake recorded. Patient referred to the doctor queue.'
+                    : 'Initial intake recorded. Visit marked complete.',
+                false
+            );
             // Reset form but keep blood type and refresh date/time for next entry
             setFormData({ ...makeEmptyForm(), bloodType: formData.bloodType });
 
+            // Return to the patient-selection view in place (same pattern as the
+            // "Change Patient" action below) instead of navigating away, so the
+            // surrounding shell, active tab, and scroll position are preserved.
             redirectTimerRef.current = setTimeout(() => {
-                window.location.href = '/pages/nurse.html';
+                setCurrentPatientId(null);
+                setPatientInfo(null);
+                setPatientName('No Patient Selected');
+                window.history.pushState({}, '', '?');
             }, 1500);
         } catch (err) {
             logError('Failed to save initial consultation', err);
@@ -240,10 +257,6 @@ export function ConsultationComponent() {
             setIsSubmitting(false);
         }
     };
-
-    const filteredPatients = consentedPatients.filter(p =>
-        `${p.firstName} ${p.middleName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     return (
         <div className="relative mx-auto w-full max-w-[72rem] px-3 pb-12 sm:px-5 lg:px-6">
@@ -272,52 +285,15 @@ export function ConsultationComponent() {
             </div>
 
             {!currentPatientId ? (
-                <div className="mx-auto w-full max-w-[56rem] pwa-dense-panel">
-                    <div className="w-full">
-                        <div className="relative mb-6">
-                            <label htmlFor="ic-patient-search" className="sr-only">Search consented patients by name</label>
-                            <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
-                            <input
-                                type="text"
-                                id="ic-patient-search"
-                                placeholder="Search consented patients by name..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-lg border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--focus-color)] bg-white text-[var(--text)] font-medium"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1 sm:pr-2 scrollbar-thin">
-                            {filteredPatients.length === 0 ? (
-                                <div className="text-center py-8 text-[var(--text-secondary)] font-medium bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">No consented patients found.</div>
-                            ) : (
-                                filteredPatients.map(p => (
-                                    <div 
-                                        key={p.id}
-                                        onClick={() => handleSelectPatient(p.id)}
-                                        className="grid grid-cols-[3rem_minmax(0,1fr)_2.25rem] items-center gap-4 p-4 bg-white hover:bg-[var(--surface-subtle)] border border-[var(--border)] hover:border-[var(--border)] rounded-lg cursor-pointer transition-colors shadow-sm group"
-                                    >
-                                        <div className="w-12 h-12 rounded-md bg-[var(--surface-subtle)] text-[var(--text-2)] flex items-center justify-center font-semibold text-lg shrink-0 group-hover:bg-[var(--brand-active)] group-hover:text-white transition-colors">
-                                            {(p.firstName?.[0] || '').toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="font-semibold text-[var(--text)] truncate">{p.lastName}, {p.firstName} {p.middleName || ''}</div>
-                                            <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)] sm:grid-cols-[minmax(4.5rem,0.8fr)_minmax(4.5rem,0.8fr)_minmax(5rem,1fr)]">
-                                                <span className="inline-flex min-w-0 items-center gap-1.5"><Icon name="user" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{p.sex || '—'}</span></span>
-                                                <span className="inline-flex min-w-0 items-center gap-1.5"><Icon name="calendar" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{p.age ?? '—'} yrs</span></span>
-                                                <span className="inline-flex min-w-0 items-center gap-1.5 col-span-2 sm:col-span-1"><Icon name="droplet" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{p.bloodType || '—'}</span></span>
-                                            </div>
-                                        </div>
-                                        <span className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] group-hover:bg-[var(--surface-subtle)] group-hover:text-[var(--text-2)] group- transition-all">
-                                            <Icon name="clipboard" className="h-4 w-4" />
-                                        </span>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <ClinicalPatientWorklist
+                    patients={consentedPatients}
+                    onSelect={(patient) => handleSelectPatient(String(patient.id))}
+                    title="Initial consultation worklist"
+                    instruction="Patients with signed consent are ready for vitals and initial consultation."
+                    emptyMessage="No consented patients are currently available."
+                    actionLabel="Begin intake"
+                    showBarangayFilter
+                />
             ) : (
                 <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5 sm:gap-6">
                     <fieldset className={fieldsetClasses}>
@@ -408,9 +384,27 @@ export function ConsultationComponent() {
                         </div>
                     </fieldset>
 
+                    <fieldset className={fieldsetClasses}>
+                        <div className={legendClasses}><Icon name="clipboard" className="h-4 w-4 text-[var(--text-2)]" /> Visit Outcome</div>
+                        <div className="p-4 sm:p-5 lg:p-6">
+                            <span id="ic-visitDisposition-label" className={labelClasses}>What happens next for this patient?</span>
+                            <div className="flex flex-wrap gap-3 mt-2" role="radiogroup" aria-labelledby="ic-visitDisposition-label">
+                                <label className={`clinical-choice-label cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${formData.visitDisposition === 'completed' ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
+                                    <input type="radio" name="visitDisposition" value="completed" onChange={handleRadioChange} checked={formData.visitDisposition === 'completed'} className="sr-only" />
+                                    <Icon name="check" className="h-4 w-4" /> Complete Visit
+                                </label>
+                                <label className={`clinical-choice-label cursor-pointer px-4 py-3 border rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${formData.visitDisposition === 'referred' ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)] ring-1 ring-[var(--brand-primary)]' : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)]'}`}>
+                                    <input type="radio" name="visitDisposition" value="referred" onChange={handleRadioChange} checked={formData.visitDisposition === 'referred'} className="sr-only" />
+                                    <Icon name="clipboard" className="h-4 w-4" /> Refer to Doctor
+                                </label>
+                            </div>
+                            <p className="mt-3 text-xs text-[var(--text-secondary)]">Completed visits will not appear in the doctor's queue. Referred visits are sent to the doctor for consultation.</p>
+                        </div>
+                    </fieldset>
+
                     <div className="flex flex-col items-center justify-end gap-4 border-t border-[var(--border)] pt-5 sm:flex-row sm:pt-6">
                         <button type="submit" disabled={isSubmitting} className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white shadow-sm text-sm transition-colors ${isSubmitting ? 'bg-[var(--text-muted)] cursor-not-allowed shadow-none' : 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)]'}`}>
-                            {isSubmitting ? 'Recording Initial Intake...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Record Initial Intake</>}
+                            {isSubmitting ? 'Recording Initial Consultation...' : <><Icon name="save" className="inline h-4 w-4 mr-2" />Record Initial Consultation</>}
                         </button>
                     </div>
                 </form>
