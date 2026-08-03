@@ -14,6 +14,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { AuditLogPage } from '../../features/audit/AuditLogPage';
 import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
+import { SkeletonKpiGrid } from '../../components/ui';
 
 const ConsultationPage = lazy(() => import('../consultation'));
 const RecordsComponent = lazy(() => import('../patients/records').then(module => ({ default: module.RecordsComponent })));
@@ -93,6 +94,9 @@ const DoctorDashboard = () => {
     const [followUps, setFollowUps] = useState<any[]>([]);
     const [morbidityData, setMorbidityData] = useState<any[]>([]);
     const [trendData, setTrendData] = useState<any[]>([]);
+    const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+    const [dashboardError, setDashboardError] = useState('');
+    const [reloadToken, setReloadToken] = useState(0);
 
     const [trendFilter, setTrendFilter] = useState<FilterPeriod>('week');
     const [morbFilter, setMorbFilter] = useState<FilterPeriod>('week');
@@ -273,6 +277,7 @@ const DoctorDashboard = () => {
     // ─────────────────────────────────────────────────────────────────────────
     const loadDashboardData = useCallback(async () => {
         try {
+            setDashboardError('');
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
             const { count: pCount } = await supabase
@@ -288,6 +293,9 @@ const DoctorDashboard = () => {
             await loadQueueAndFollowUps();
         } catch (err) {
             console.error('Dashboard Load Error:', err);
+            setDashboardError("Couldn't load the clinical work queue. Check your connection and try again.");
+        } finally {
+            setIsDashboardLoading(false);
         }
     }, [loadQueueAndFollowUps]);
 
@@ -301,6 +309,7 @@ const DoctorDashboard = () => {
         window.addEventListener('offline', handleOffline);
 
         const init = async () => {
+            setIsDashboardLoading(true);
             const profile = await requireRole('doctor');
             const name = profile.fullName || 'Dr. User';
             setUserName(name);
@@ -317,7 +326,7 @@ const DoctorDashboard = () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, []); // runs once on mount
+    }, [reloadToken]); // runs once on mount, and again when retry is pressed
 
     // ─────────────────────────────────────────────────────────────────────────
     // Realtime subscriptions
@@ -535,17 +544,39 @@ const DoctorDashboard = () => {
                                 title="Clinical Work Queue"
                                 subtitle="Review waiting patients, follow-ups, morbidity trends, and visit volume."
                             />
-                            <div className="pwa-page-pad flex flex-col pwa-panel-gap">
+                            <div className="pwa-page-pad flex flex-col pwa-panel-gap doctor-dashboard-workspace">
+                                {dashboardError && (
+                                    <div className="role-dashboard-alert" role="alert">
+                                        <div>
+                                            <p className="role-dashboard-alert-title">Clinical work queue unavailable</p>
+                                            <p className="role-dashboard-alert-copy">{dashboardError}</p>
+                                        </div>
+                                        <button type="button" onClick={() => { setIsDashboardLoading(true); setReloadToken(value => value + 1); }} className="role-dashboard-retry">Try again</button>
+                                    </div>
+                                )}
 
+                                {isDashboardLoading ? (
+                                    <>
+                                        <SkeletonKpiGrid count={4} className="role-dashboard-skeleton-grid" />
+                                        <div className="ops-grid">
+                                            <div className="lg:col-span-5 ops-panel"><SkeletonList rows={5} /></div>
+                                            <div className="lg:col-span-7 ops-panel"><SkeletonList rows={5} /></div>
+                                        </div>
+                                    </>
+                                ) : (
+                                <>
                                 <div className="ops-summary-grid">
                                     {[
-                                        ['Waiting Patients', queue.length, 'Ready for consultation'],
-                                        ['Follow-ups Due', followUps.length, 'Scheduled returns'],
-                                        ['Visits Today', visitsToday, 'Completed encounters'],
-                                        ['Total Patients', totalPatients, 'Registry baseline'],
-                                    ].map(([label, value, note]) => (
-                                        <div key={label} className="ops-summary-card">
-                                            <p className="ops-summary-label">{label}</p>
+                                        ['Waiting Patients', queue.length, 'Ready for consultation', 'clipboard'],
+                                        ['Follow-ups Due', followUps.length, 'Scheduled returns', 'clock'],
+                                        ['Visits Today', visitsToday, 'Completed encounters', 'chart'],
+                                        ['Total Patients', totalPatients, 'Registry baseline', 'users'],
+                                    ].map(([label, value, note, icon]) => (
+                                        <div key={label} className="ops-summary-card role-summary-card">
+                                            <div className="role-summary-card-topline">
+                                                <p className="ops-summary-label">{label}</p>
+                                                <span className="role-summary-icon"><Icon name={icon as string} className="h-4 w-4" /></span>
+                                            </div>
                                             <p className="ops-summary-value tabular-nums">{value}</p>
                                             <p className="ops-summary-note">{note}</p>
                                         </div>
@@ -565,7 +596,11 @@ const DoctorDashboard = () => {
                                         </div>
                                         <div className="flex-1 overflow-y-auto">
                                             {queue.length === 0 ? (
-                                                <div className="clinical-table-state">No patients in queue</div>
+                                                <div className="role-queue-empty">
+                                                    <span className="role-queue-empty-icon"><Icon name="clipboard" className="h-5 w-5" /></span>
+                                                    <strong>No patients in queue</strong>
+                                                    <span>Patients checked in today will appear here.</span>
+                                                </div>
                                             ) : (
                                                 <div>
                                                     {queue.map((q, index) => (
@@ -630,7 +665,11 @@ const DoctorDashboard = () => {
                                         </div>
                                         <div className="flex-1 overflow-y-auto">
                                             {followUps.length === 0 ? (
-                                                <div className="clinical-table-state">No follow-ups scheduled</div>
+                                                <div className="role-queue-empty">
+                                                    <span className="role-queue-empty-icon"><Icon name="clock" className="h-5 w-5" /></span>
+                                                    <strong>No follow-ups scheduled</strong>
+                                                    <span>Upcoming return visits will appear here.</span>
+                                                </div>
                                             ) : (
                                                 <div>
                                                     {followUps.map(f => {
@@ -662,6 +701,8 @@ const DoctorDashboard = () => {
                                         )}
                                     </div>
                                 </div>
+                                </>
+                                )}
                             </div>
                         </>
                     )}

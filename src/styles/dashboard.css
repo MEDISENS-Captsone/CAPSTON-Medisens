@@ -3359,6 +3359,97 @@ button.clinical-worklist-row {
     background: var(--surface-subtle);
 }
 
+/* Phase 6C: Doctor dashboard presentation */
+.doctor-dashboard-workspace {
+    gap: clamp(1rem, 1.6vw, 1.5rem);
+}
+
+.doctor-dashboard-workspace .ops-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.875rem;
+}
+
+.doctor-dashboard-workspace .role-summary-card {
+    min-height: 8rem;
+    padding: 1rem;
+    border-color: var(--border-soft);
+    box-shadow: var(--shadow-sm);
+}
+
+.doctor-dashboard-workspace .role-summary-card:first-child {
+    border-color: var(--brand-accent-surface);
+    background: linear-gradient(145deg, var(--surface) 0%, var(--brand-soft-surface) 100%);
+}
+
+.doctor-dashboard-workspace .ops-summary-value {
+    margin-top: 0.625rem;
+    font-size: clamp(1.5rem, 2vw, 1.875rem);
+    line-height: 1.1;
+}
+
+.doctor-dashboard-workspace .ops-panel {
+    border-color: var(--border-soft);
+    box-shadow: var(--shadow-sm);
+}
+
+.doctor-dashboard-workspace .ops-panel-header {
+    min-height: 4.75rem;
+    padding: 1rem 1.125rem;
+    background: var(--surface);
+}
+
+.doctor-dashboard-workspace .clinical-worklist-row {
+    padding: 0.875rem 1.125rem;
+}
+
+.doctor-dashboard-workspace button.clinical-worklist-row:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid var(--focus-color);
+    outline-offset: -2px;
+}
+
+@media (max-width: 1023px) {
+    .doctor-dashboard-workspace .ops-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .doctor-dashboard-workspace .ops-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-dashboard-workspace .ops-grid > * {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 767px) {
+    .doctor-dashboard-workspace .ops-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.625rem;
+    }
+
+    .doctor-dashboard-workspace .role-summary-card {
+        min-height: 7.25rem;
+        padding: 0.875rem;
+    }
+
+    .doctor-dashboard-workspace .ops-panel-header {
+        align-items: flex-start;
+        padding: 0.875rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .doctor-dashboard-workspace .ops-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-dashboard-workspace .role-summary-card {
+        min-height: auto;
+    }
+}
+
 .nurse-dashboard-workspace .nurse-consented-table tbody tr {
     transition: background-color var(--motion-fast);
 }
