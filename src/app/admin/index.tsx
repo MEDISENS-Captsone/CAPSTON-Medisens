@@ -455,7 +455,7 @@ const AdminDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="app-content-canvas w-full flex flex-col gap-5">
+                <div className="app-content-canvas w-full flex flex-col gap-5 overflow-x-hidden">
                     {activePage === 'audit-log' ? (
                         <>
                             <PageHeader
@@ -473,21 +473,19 @@ const AdminDashboard = () => {
                     <div className="pwa-page-pad flex flex-col gap-5 sm:gap-6">
 
                     {/* Stats Row */}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="User management summary">
+                    <div className="ops-summary-grid" aria-label="User management summary">
                         {[
                             ['users', 'Total Users', allUsers.length, 'RHU staff accounts'],
                             ['shield-plus', 'Active Accounts', allUsers.length, 'Available staff profiles'],
                             ['lock', 'Configured Roles', ROLES.length, 'Permission groups'],
                         ].map(([icon, label, value, note]) => (
-                            <Card key={label} className="flex min-h-[132px] items-start gap-4 p-4 sm:p-5">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]">
-                                    <Icon name={String(icon)} className="h-5 w-5" />
+                            <Card key={label} className="ops-summary-card role-summary-card">
+                                <div className="role-summary-card-topline">
+                                    <div className="ops-summary-label">{label}</div>
+                                    <span className="role-summary-icon"><Icon name={String(icon)} className="h-4 w-4" /></span>
                                 </div>
-                                <div className="min-w-0">
-                                    <div className="text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{label}</div>
-                                    <div className="mt-1 text-2xl font-semibold leading-tight tabular-nums text-[var(--text)]">{value}</div>
-                                    <div className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{note}</div>
-                                </div>
+                                <div className="ops-summary-value tabular-nums">{value}</div>
+                                <div className="ops-summary-note">{note}</div>
                             </Card>
                         ))}
                     </div>
@@ -636,7 +634,7 @@ const AdminDashboard = () => {
                                 <h3 id="user-dialog-title" className="text-xl font-bold text-[var(--text)]">{isEditMode ? `Edit: ${fFullName}` : 'Add New User'}</h3>
                                 <p className="text-xs font-medium text-[var(--text-secondary)] mt-1">{isEditMode ? 'Update name or role assignment' : 'Create a new system account'}</p>
                             </div>
-                            <Button type="button" variant="outline" size="sm" onClick={closeUserModal} aria-label="Close user dialog" className="h-10 w-10 -m-1 rounded-xl p-0 text-[var(--text-muted)]"><Icon name="close" className="h-4 w-4" /></Button>
+                            <Button type="button" variant="outline" size="sm" onClick={closeUserModal} aria-label="Close user dialog" className="h-11 w-11 -m-0.5 rounded-xl p-0 text-[var(--text-muted)]"><Icon name="close" className="h-4 w-4" /></Button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">

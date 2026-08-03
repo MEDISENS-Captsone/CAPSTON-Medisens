@@ -341,10 +341,12 @@ function PharmacyDashboard() {
                                             ['search', 'Visible Results', filteredRx.length, searchQuery ? 'Matching your search' : 'Ready for review'],
                                         ].map(([icon, label, value, note]) => (
                                             <div key={label} className="ops-summary-card role-summary-card">
-                                                <div className="role-summary-icon"><Icon name={icon as 'pill' | 'search'} className="h-4 w-4" /></div>
-                                                <div><div className="ops-summary-label">{label}</div>
+                                                <div className="role-summary-card-topline">
+                                                    <div className="ops-summary-label">{label}</div>
+                                                    <span className="role-summary-icon"><Icon name={icon as 'pill' | 'search'} className="h-4 w-4" /></span>
+                                                </div>
                                                 <div className="ops-summary-value tabular-nums">{value}</div>
-                                                <div className="ops-summary-note">{note}</div></div>
+                                                <div className="ops-summary-note">{note}</div>
                                             </div>
                                         ))}
                                     </div>

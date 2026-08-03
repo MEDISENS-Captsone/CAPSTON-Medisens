@@ -38,7 +38,7 @@ export function Toast({ message, type = 'success', subText, onClose, className, 
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white/10 text-[length:var(--type-label-size)] font-semibold opacity-80 transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                            className="-my-2 -mr-1 ml-auto flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-white/10 text-[length:var(--type-label-size)] font-semibold opacity-80 transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                             aria-label="Close message"
                             type="button"
                         >

@@ -209,7 +209,7 @@ function LabRequestDetail({
                         <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor(request.status)}`}>
                             {request.status || 'Pending'}
                         </span>
-                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="h-10 w-10 -m-1 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
+                        <button type="button" onClick={onClose} aria-label="Close laboratory request" className="h-11 w-11 -m-0.5 flex items-center justify-center rounded-lg hover:bg-[var(--surface-subtle)] text-[var(--text-muted)] font-bold text-lg transition-colors"><Icon name="close" className="h-4 w-4" label="Close laboratory request" /></button>
                     </div>
                 </div>
 
@@ -569,10 +569,12 @@ const LaboratoryDashboard = () => {
                                     ['flask', 'Total Requests', stats.total, 'Current worklist'],
                                 ].map(([icon, label, value, note]) => (
                                     <div key={label} className="ops-summary-card role-summary-card">
-                                        <div className="role-summary-icon"><Icon name={icon as 'clock' | 'check' | 'flask'} className="h-4 w-4" /></div>
-                                        <div><div className="ops-summary-label">{label}</div>
+                                        <div className="role-summary-card-topline">
+                                            <div className="ops-summary-label">{label}</div>
+                                            <span className="role-summary-icon"><Icon name={icon as 'clock' | 'check' | 'flask'} className="h-4 w-4" /></span>
+                                        </div>
                                         <div className="ops-summary-value tabular-nums">{value}</div>
-                                        <div className="ops-summary-note">{note}</div></div>
+                                        <div className="ops-summary-note">{note}</div>
                                     </div>
                                 ))}
                             </div>
