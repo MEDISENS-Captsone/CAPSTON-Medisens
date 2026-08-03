@@ -438,23 +438,18 @@ function ClinicalAnalyticsSkeleton() {
             </section>
 
             <section aria-label="Loading clinical insights" className="doctor-analytics-section">
-                <SectionHeading title="Clinical Insights" subtitle="Preparing recorded diagnoses and complaints." />
+                <SectionHeading title="Clinical Insights" subtitle="Preparing recorded diagnoses." />
                 <div className="doctor-clinical-grid">
-                    {['diagnoses', 'complaints'].map(key => (
-                        <SectionPanel key={key} title={key === 'diagnoses' ? 'Top Diagnoses' : 'Top Complaints'} subtitle="Preparing ranking.">
-                            <div className="doctor-ranking-list" aria-hidden="true">
+                    <SectionPanel title="Top Diagnoses" subtitle="Preparing diagnosis distribution.">
+                        <div className="doctor-diagnosis-donut-layout" aria-hidden="true">
+                            <Skeleton className="doctor-diagnosis-donut-skeleton" />
+                            <div className="doctor-diagnosis-legend-skeleton">
                                 {[0, 1, 2, 3, 4].map(row => (
-                                    <div className="doctor-ranking-row" key={row}>
-                                        <Skeleton className="h-7 w-7 rounded-full" />
-                                        <div className="min-w-0 flex-1">
-                                            <Skeleton className="clinical-skeleton-line w-32" />
-                                            <Skeleton className="clinical-skeleton-line mt-2 w-full" />
-                                        </div>
-                                    </div>
+                                    <Skeleton className="h-9 w-full" key={row} />
                                 ))}
                             </div>
-                        </SectionPanel>
-                    ))}
+                        </div>
+                    </SectionPanel>
                 </div>
             </section>
 
@@ -633,33 +628,71 @@ function ServiceTrendChart({ rows, bucket }: { rows: AnalyticsRow[]; bucket: Ana
     );
 }
 
-function RankingList({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle: string }) {
-    const ranked = rows.slice(0, 5);
-    const maxValue = Math.max(...ranked.map(row => row.current_count ?? 0), 1);
-    if (ranked.length === 0) {
-        return <EmptyState title={emptyTitle} description="No aggregate rows were returned for this period." className="m-4" />;
+const DIAGNOSIS_DONUT_COLORS = ['is-blue', 'is-green', 'is-amber', 'is-violet', 'is-slate'];
+
+function DiagnosisDonutChart({ rows }: { rows: AnalyticsRow[] }) {
+    const diagnoses = rows.slice(0, 5).map((row, index) => ({
+        key: `${row.metric_key}-${row.dimension_key ?? 'all'}-${index}`,
+        label: titleCase(row.dimension_key),
+        value: row.current_count ?? 0,
+        color: DIAGNOSIS_DONUT_COLORS[index],
+    }));
+    const total = diagnoses.reduce((sum, diagnosis) => sum + diagnosis.value, 0);
+    const circumference = 2 * Math.PI * 45;
+    let offset = 0;
+
+    if (diagnoses.length === 0 || total === 0) {
+        return <EmptyState title="No diagnosis aggregates" description="No diagnosis aggregates were returned for this period." className="m-4" />;
     }
 
     return (
-        <ol className="doctor-ranking-list">
-            {ranked.map((row, index) => {
-                const value = row.current_count ?? 0;
-                return (
-                    <li className="doctor-ranking-row" key={`${row.metric_key}-${row.dimension_key ?? 'all'}-${index}`}>
-                        <span className="doctor-ranking-index tabular-nums">{index + 1}</span>
-                        <div className="doctor-ranking-main">
-                            <div className="doctor-ranking-meta">
-                                <span className="doctor-ranking-label" title={titleCase(row.dimension_key)}>{titleCase(row.dimension_key)}</span>
-                                <strong className="doctor-ranking-value tabular-nums">{value.toLocaleString()}</strong>
-                            </div>
-                            <div className="doctor-ranking-track" aria-hidden="true">
-                                <span className={value > 0 ? 'is-nonzero' : ''} style={{ width: `${safePercent(value, maxValue)}%` }} />
-                            </div>
-                        </div>
-                    </li>
-                );
-            })}
-        </ol>
+        <div className="doctor-diagnosis-donut-layout">
+            <figure className="doctor-diagnosis-donut-figure">
+                <svg className="doctor-diagnosis-donut" viewBox="0 0 120 120" role="img" aria-label={`Top diagnoses distribution. ${total.toLocaleString()} total records.`}>
+                    <circle className="doctor-diagnosis-donut-track" cx="60" cy="60" r="45" />
+                    {diagnoses.map(diagnosis => {
+                        const percentage = safePercent(diagnosis.value, total);
+                        const segmentLength = (diagnosis.value / total) * circumference;
+                        const segmentOffset = offset;
+                        offset += segmentLength;
+                        const detail = `${diagnosis.label}: ${diagnosis.value.toLocaleString()} records, ${percentage}% of the displayed top diagnoses`;
+                        return (
+                            <circle
+                                key={diagnosis.key}
+                                className={`doctor-diagnosis-donut-segment ${diagnosis.color}`}
+                                cx="60"
+                                cy="60"
+                                r="45"
+                                pathLength={circumference}
+                                strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
+                                strokeDashoffset={-segmentOffset}
+                                tabIndex={0}
+                                role="img"
+                                aria-label={detail}
+                            >
+                                <title>{detail}</title>
+                            </circle>
+                        );
+                    })}
+                    <text x="60" y="56" className="doctor-diagnosis-donut-total" textAnchor="middle">{total.toLocaleString()}</text>
+                    <text x="60" y="68" className="doctor-diagnosis-donut-caption" textAnchor="middle">records</text>
+                </svg>
+                <figcaption>Top {diagnoses.length} diagnosis categories in the selected period</figcaption>
+            </figure>
+            <ul className="doctor-diagnosis-legend" aria-label="Diagnosis chart legend">
+                {diagnoses.map(diagnosis => {
+                    const percentage = safePercent(diagnosis.value, total);
+                    return (
+                        <li key={diagnosis.key}>
+                            <span className={`doctor-diagnosis-legend-swatch ${diagnosis.color}`} aria-hidden="true" />
+                            <span className="doctor-diagnosis-legend-label">{diagnosis.label}</span>
+                            <strong className="tabular-nums">{diagnosis.value.toLocaleString()}</strong>
+                            <span className="doctor-diagnosis-legend-percent tabular-nums">{percentage}%</span>
+                        </li>
+                    );
+                })}
+            </ul>
+        </div>
     );
 }
 
@@ -2143,14 +2176,15 @@ function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
     }
 
     return (
-        <div className="clinical-table-scroll">
-            <table className="clinical-table doctor-analytics-detail-table min-w-[760px]">
+        <div className="doctor-frequency-table-wrap">
+            <table className="clinical-table doctor-analytics-detail-table doctor-frequency-table">
+                <caption className="sr-only">Recorded diagnosis aggregates for the selected reporting period</caption>
                 <colgroup>
-                    <col className="doctor-table-col-metric" />
-                    <col className="doctor-table-col-group" />
-                    <col className="doctor-table-col-number" />
-                    <col className="doctor-table-col-number" />
-                    <col className="doctor-table-col-state" />
+                    <col className="doctor-frequency-col-metric" />
+                    <col className="doctor-frequency-col-group" />
+                    <col className="doctor-frequency-col-number" />
+                    <col className="doctor-frequency-col-number" />
+                    <col className="doctor-frequency-col-state" />
                 </colgroup>
                 <thead>
                     <tr>
@@ -2164,13 +2198,13 @@ function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
                 <tbody>
                     {rows.map((row, index) => (
                         <tr key={`${row.metric_key}-${row.dimension_key ?? 'all'}-${index}`}>
-                            <td>
+                            <td data-label="Metric">
                                 <div className="clinical-primary">{titleCase(row.metric_key)}</div>
                             </td>
-                            <td>{titleCase(row.dimension_key)}</td>
-                            <td className="doctor-table-number tabular-nums">{(row.current_count ?? 0).toLocaleString()}</td>
-                            <td className="doctor-table-number tabular-nums">{row.previous_count === null ? 'n/a' : (row.previous_count ?? 0).toLocaleString()}</td>
-                            <td className="doctor-table-state"><span className={`doctor-reliability-text is-${reliabilityTone(row.reliability)}`}>{row.reliability ?? 'Informational'}</span></td>
+                            <td data-label="Group">{titleCase(row.dimension_key)}</td>
+                            <td data-label="Current" className="doctor-table-number tabular-nums">{(row.current_count ?? 0).toLocaleString()}</td>
+                            <td data-label="Previous" className="doctor-table-number tabular-nums">{row.previous_count === null ? 'n/a' : (row.previous_count ?? 0).toLocaleString()}</td>
+                            <td data-label="Reliability" className="doctor-table-state"><span className={`doctor-reliability-text is-${reliabilityTone(row.reliability)}`}>{row.reliability ?? 'Informational'}</span></td>
                         </tr>
                     ))}
                 </tbody>
@@ -2180,7 +2214,7 @@ function FrequencyTable({ rows, emptyTitle }: { rows: AnalyticsRow[]; emptyTitle
 }
 
 const DETAIL_TABS = [
-    { key: 'clinical', label: 'Diagnoses & Complaints' },
+    { key: 'clinical', label: 'Recorded Diagnoses' },
     { key: 'laboratory', label: 'Lab Trends' },
     { key: 'prescriptions', label: 'Prescription Trends' },
 ] as const;
@@ -2577,11 +2611,17 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
             )}
 
             <header className="doctor-analytics-period">
-                <div className="min-w-0 flex-1">
+                <div className="doctor-analytics-period-intro">
+                    <span className="doctor-analytics-eyebrow">Clinical intelligence</span>
                     <h2 className="doctor-analytics-page-title">Analytics Overview</h2>
-                    <p className="doctor-analytics-period-label">{displayPeriod.from} to {displayPeriod.toExclusive}</p>
+                    <p className="doctor-analytics-page-description">Review service activity, community coverage, and operational performance.</p>
+                    <p className="doctor-analytics-period-label">
+                        <span>Reporting period</span>
+                        <strong className="tabular-nums">{displayPeriod.from} to {displayPeriod.toExclusive}</strong>
+                    </p>
                 </div>
                 <div className="doctor-analytics-controls">
+                    <span className="doctor-analytics-control-label">Period</span>
                     <div className="clinical-filter-group" aria-label="Analytics date presets">
                         {PRESETS.map(item => (
                             <button
@@ -2761,13 +2801,10 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                 </section>
 
                 <section aria-label="Clinical insights" className="doctor-analytics-section">
-                    <SectionHeading title="Clinical Insights" subtitle="The most common free-text diagnoses and complaints in this period." />
+                    <SectionHeading title="Clinical Insights" subtitle="The most common free-text diagnoses in this period." />
                     <div className="doctor-clinical-grid">
                         <SectionPanel title="Top Diagnoses" subtitle="Most frequently recorded diagnosis text.">
-                            {renderSection(data.diagnoses, rows => <RankingList rows={rows} emptyTitle="No diagnosis aggregates" />)}
-                        </SectionPanel>
-                        <SectionPanel title="Top Complaints" subtitle="Most frequently recorded complaint text.">
-                            {renderSection(data.complaints, rows => <RankingList rows={rows} emptyTitle="No complaint aggregates" />)}
+                            {renderSection(data.diagnoses, rows => <DiagnosisDonutChart rows={rows} />)}
                         </SectionPanel>
                     </div>
                 </section>
@@ -2803,15 +2840,9 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                             aria-labelledby={`analytics-detail-tab-${detailTab}`}
                         >
                             {detailTab === 'clinical' && (
-                                <div className="ops-grid">
-                                    <div className="col-span-12 lg:col-span-6">
-                                        <h3 className="doctor-detail-heading">Recorded Diagnoses</h3>
-                                        {renderSection(data.diagnoses, rows => <FrequencyTable rows={rows} emptyTitle="No diagnosis aggregates" />)}
-                                    </div>
-                                    <div className="col-span-12 lg:col-span-6">
-                                        <h3 className="doctor-detail-heading">Recorded Complaints</h3>
-                                        {renderSection(data.complaints, rows => <FrequencyTable rows={rows} emptyTitle="No complaint aggregates" />)}
-                                    </div>
+                                <div className="doctor-recorded-diagnoses">
+                                    <h3 className="doctor-detail-heading">Recorded Diagnoses</h3>
+                                    {renderSection(data.diagnoses, rows => <FrequencyTable rows={rows} emptyTitle="No diagnosis aggregates" />)}
                                 </div>
                             )}
                             {detailTab === 'laboratory' && renderSection(
