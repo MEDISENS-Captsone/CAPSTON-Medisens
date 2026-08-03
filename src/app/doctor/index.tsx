@@ -536,7 +536,7 @@ const DoctorDashboard = () => {
                     isNavigationOpen={isMobileMenuOpen}
                 />
 
-                <div className="app-content-canvas w-full flex flex-col gap-5">
+                <div className="app-content-canvas w-full flex flex-col gap-5 overflow-x-hidden">
 
                     {activePage === 'dashboard' && (
                         <>
@@ -765,7 +765,7 @@ const DoctorDashboard = () => {
                                 <p className="text-xs text-[var(--text-muted)] mt-0.5">{allFollowUps.length} pending • sorted by date</p>
                             </div>
                             <button type="button" onClick={() => setShowFollowUpsModal(false)}
-                                aria-label="Close follow-up dialog" className="h-10 w-10 -m-1 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)] transition-colors"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
+                                aria-label="Close follow-up dialog" className="h-11 w-11 -m-0.5 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)] transition-colors"><Icon name="close" className="h-4 w-4" label="Close follow-up dialog" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {allFollowUps.length === 0 ? (

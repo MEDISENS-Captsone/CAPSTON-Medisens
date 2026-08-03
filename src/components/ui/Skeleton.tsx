@@ -36,10 +36,13 @@ export function SkeletonKpiGrid({ count = 4, className = '' }: SkeletonKpiGridPr
     return (
         <div className={cn('doctor-kpi-grid', className)} aria-hidden="true">
             {Array.from({ length: count }).map((_, index) => (
-                <div className="ops-summary-card" key={index}>
-                    <Skeleton className="clinical-skeleton-line w-24" />
-                    <Skeleton className="clinical-skeleton-value mt-3 w-16" />
-                    <Skeleton className="clinical-skeleton-line mt-3 w-32" />
+                <div className="ops-summary-card role-summary-card" key={index}>
+                    <div className="role-summary-card-topline">
+                        <Skeleton className="clinical-skeleton-line w-24" />
+                        <Skeleton className="clinical-skeleton-avatar h-8 w-8 rounded-[var(--radius-sm)]" />
+                    </div>
+                    <Skeleton className="clinical-skeleton-value mt-2 w-16" />
+                    <Skeleton className="clinical-skeleton-line mt-2 w-32" />
                 </div>
             ))}
         </div>

@@ -63,14 +63,18 @@ const Dashboard = ({ patients, censusRecords, onNavigateToRecords, onPatientClic
 
             <div className="ops-summary-grid mb-5 w-full" aria-label="Midwife operational summary">
                 {[
-                    { icon: 'users', label: 'Master Registry', value: totalPatients, bg: 'bg-[var(--surface-subtle)]', text: 'text-[var(--text-2)]' },
-                    { icon: 'heart-pulse', label: 'Maternal Care', value: maternalCount, bg: 'bg-[var(--brand-soft-surface)]', text: 'text-[var(--brand-active)]' },
-                    { icon: 'baby', label: 'Child Care & Vaccination', value: childCount, bg: 'bg-[var(--brand-soft-surface)]', text: 'text-[var(--brand-active)]' },
-                    { icon: 'pill', label: 'Family Planning', value: fpCount, bg: 'bg-[var(--brand-soft-surface)]', text: 'text-[var(--brand-active)]' },
-                ].map(({ icon, label, value, bg, text }) => (
-                    <div key={label} className="ops-summary-card flex min-h-24 w-full items-center gap-3">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bg} ${text}`}><Icon name={icon} className="h-5 w-5" /></div>
-                        <div className="min-w-0"><div className="ops-summary-label truncate">{label}</div><div className="ops-summary-value tabular-nums">{value}</div></div>
+                    { icon: 'users', label: 'Master Registry', value: totalPatients, note: 'All registered patients' },
+                    { icon: 'heart-pulse', label: 'Maternal Care', value: maternalCount, note: 'Active maternal records' },
+                    { icon: 'baby', label: 'Child Care & Vaccination', value: childCount, note: 'Child health entries' },
+                    { icon: 'pill', label: 'Family Planning', value: fpCount, note: 'Family planning entries' },
+                ].map(({ icon, label, value, note }) => (
+                    <div key={label} className="ops-summary-card role-summary-card">
+                        <div className="role-summary-card-topline">
+                            <div className="ops-summary-label">{label}</div>
+                            <span className="role-summary-icon"><Icon name={icon} className="h-4 w-4" /></span>
+                        </div>
+                        <div className="ops-summary-value tabular-nums">{value}</div>
+                        <div className="ops-summary-note">{note}</div>
                     </div>
                 ))}
             </div>

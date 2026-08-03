@@ -134,6 +134,14 @@ textarea {
 
 .app-sidebar {
     box-shadow: 1px 0 0 var(--sidebar-divider);
+    /* Installed PWA: keep the drawer clear of a left notch and the home indicator. */
+    padding-left: var(--safe-left);
+    padding-bottom: var(--safe-bottom);
+}
+
+.app-topbar {
+    /* Installed PWA: push the sticky header below a status-bar notch. */
+    padding-top: var(--safe-top);
 }
 
 .app-shell-main {
@@ -1331,6 +1339,8 @@ button.clinical-worklist-row {
 }
 
 .ops-summary-label {
+    flex: 1 1 auto;
+    min-width: 0;
     color: var(--text-muted);
     font-size: var(--type-caption-size);
     font-weight: var(--font-weight-semibold);
@@ -1365,12 +1375,17 @@ button.clinical-worklist-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Canonical KPI/summary card shape shared by every role dashboard (Doctor, BHW,
+   Nurse, Laboratory, Pharmacist, Midwife, Admin): icon + label on one row,
+   large value below, supporting text below that. Column direction is required —
+   the topline/value/note children must stack, not sit side by side. */
 .role-summary-card {
     display: flex;
-    min-height: 6.75rem;
-    align-items: flex-start;
-    gap: 0.875rem;
+    flex-direction: column;
+    min-height: 8rem;
     padding: 1rem;
+    border-color: var(--border-soft);
+    box-shadow: var(--shadow-sm);
 }
 
 .role-summary-icon {
@@ -1387,8 +1402,9 @@ button.clinical-worklist-row {
 }
 
 .role-summary-card .ops-summary-value {
-    margin-top: 0.4rem;
-    font-size: 1.625rem;
+    margin-top: 0.5rem;
+    font-size: clamp(1.5rem, 2vw, 1.875rem);
+    line-height: 1.15;
 }
 
 .role-queue-panel {
@@ -1699,7 +1715,8 @@ button.clinical-worklist-row {
     }
 
     .role-summary-card {
-        min-height: 0;
+        min-height: 7.25rem;
+        padding: 0.875rem;
     }
 
     .role-queue-panel {
@@ -3736,45 +3753,12 @@ button.clinical-worklist-row {
     gap: 0.875rem;
 }
 
-.bhw-dashboard-workspace .role-summary-card,
-.nurse-dashboard-workspace .role-summary-card {
-    min-height: 8rem;
-    padding: 1rem;
-    border-color: var(--border-soft);
-    box-shadow: var(--shadow-sm);
-}
-
-.bhw-dashboard-workspace .role-summary-card:first-child,
-.nurse-dashboard-workspace .role-summary-card:first-child {
-    border-color: var(--brand-accent-surface);
-    background: linear-gradient(145deg, var(--surface) 0%, var(--brand-soft-surface) 100%);
-}
-
 .role-summary-card-topline {
     display: flex;
+    min-height: 2.75rem;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
-}
-
-.role-summary-icon {
-    display: inline-flex;
-    width: 2rem;
-    height: 2rem;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--brand-accent-surface);
-    border-radius: var(--radius-control);
-    background: var(--brand-soft-surface);
-    color: var(--brand-active);
-}
-
-.bhw-dashboard-workspace .ops-summary-value,
-.nurse-dashboard-workspace .ops-summary-value {
-    margin-top: 0.625rem;
-    font-size: clamp(1.5rem, 2vw, 1.875rem);
-    line-height: 1.1;
 }
 
 .bhw-dashboard-workspace .ops-panel,
@@ -3894,24 +3878,6 @@ button.clinical-worklist-row {
     gap: 0.875rem;
 }
 
-.doctor-dashboard-workspace .role-summary-card {
-    min-height: 8rem;
-    padding: 1rem;
-    border-color: var(--border-soft);
-    box-shadow: var(--shadow-sm);
-}
-
-.doctor-dashboard-workspace .role-summary-card:first-child {
-    border-color: var(--brand-accent-surface);
-    background: linear-gradient(145deg, var(--surface) 0%, var(--brand-soft-surface) 100%);
-}
-
-.doctor-dashboard-workspace .ops-summary-value {
-    margin-top: 0.625rem;
-    font-size: clamp(1.5rem, 2vw, 1.875rem);
-    line-height: 1.1;
-}
-
 .doctor-dashboard-workspace .ops-panel {
     border-color: var(--border-soft);
     box-shadow: var(--shadow-sm);
@@ -3954,11 +3920,6 @@ button.clinical-worklist-row {
         gap: 0.625rem;
     }
 
-    .doctor-dashboard-workspace .role-summary-card {
-        min-height: 7.25rem;
-        padding: 0.875rem;
-    }
-
     .doctor-dashboard-workspace .ops-panel-header {
         align-items: flex-start;
         padding: 0.875rem;
@@ -3970,7 +3931,7 @@ button.clinical-worklist-row {
         grid-template-columns: 1fr;
     }
 
-    .doctor-dashboard-workspace .role-summary-card {
+    .role-summary-card {
         min-height: auto;
     }
 }
@@ -3999,12 +3960,6 @@ button.clinical-worklist-row {
     .nurse-dashboard-workspace .ops-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.625rem;
-    }
-
-    .bhw-dashboard-workspace .role-summary-card,
-    .nurse-dashboard-workspace .role-summary-card {
-        min-height: 7.25rem;
-        padding: 0.875rem;
     }
 
     .bhw-dashboard-workspace .ops-panel-header,
@@ -4093,11 +4048,6 @@ button.clinical-worklist-row {
     .nurse-dashboard-workspace .ops-summary-grid {
         grid-template-columns: 1fr;
     }
-
-    .bhw-dashboard-workspace .role-summary-card,
-    .nurse-dashboard-workspace .role-summary-card {
-        min-height: auto;
-    }
 }
 
 .ops-row-title {
@@ -4180,6 +4130,9 @@ button.clinical-worklist-row {
     background: var(--surface);
     box-shadow: -24px 0 48px var(--shadow-navy-drawer);
     animation: lab-drawer-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    /* Installed PWA: full-height right slide-over sits flush against a right
+       notch/home-indicator area on landscape phones, so pad it clear. */
+    padding-right: var(--safe-right);
 }
 
 .clinical-drawer-header,
@@ -4191,7 +4144,7 @@ button.clinical-worklist-row {
     gap: 1rem;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
-    padding: 1rem 1.25rem;
+    padding: calc(1rem + var(--safe-top)) 1.25rem 1rem;
 }
 
 .clinical-drawer-body,
@@ -4211,7 +4164,7 @@ button.clinical-worklist-row {
     gap: 0.75rem;
     border-top: 1px solid var(--border);
     background: var(--surface);
-    padding: 1rem 1.25rem;
+    padding: 1rem 1.25rem calc(1rem + var(--safe-bottom));
 }
 
 /* Audit drawers keep the Laboratory slide-over proportions. The detail panel is
