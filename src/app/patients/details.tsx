@@ -59,7 +59,7 @@ const PATIENT_DETAILS_NAV_ITEMS: Record<(typeof PATIENT_DETAILS_ROLES)[number], 
     midwives: [
         { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
         { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
-        { id: 'reports', label: 'OCR Reports', icon: 'chart', group: 'Records & Governance' },
+        { id: 'reports', label: 'FHSIS Reports', icon: 'chart', group: 'Records & Governance' },
     ],
     BHW: [
         { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },

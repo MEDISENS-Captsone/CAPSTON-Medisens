@@ -300,7 +300,7 @@ const MidwifeApp = () => {
         { id: 'analytics', label: 'Analytics',      icon: 'chart', group: 'Insights' },
         { id: 'records',   label: 'Patient Records', icon: 'users', group: 'Patient Care' },
         { id: 'census',    label: 'Census Entry',    icon: 'clipboard', group: 'Maternal & Community Care' },
-        { id: 'reports',   label: 'OCR Reports',     icon: 'chart', group: 'Records & Governance' },
+        { id: 'reports',   label: 'FHSIS Reports',   icon: 'chart', group: 'Records & Governance' },
     ];
 
     return (
@@ -323,7 +323,7 @@ const MidwifeApp = () => {
                         : activeTab === 'analytics' ? 'Analytics'
                         : activeTab === 'records' ? 'Patient Records'
                         : activeTab === 'census' ? 'Census Entry'
-                        : activeTab === 'reports' ? 'OCR Generation'
+                        : activeTab === 'reports' ? 'FHSIS Reports'
                         : safeTrim(activeTab.replace(/([A-Z])/g, ' $1'))}
                     sectionLabel="Maternal & Community Care"
                     userName={userData.name}

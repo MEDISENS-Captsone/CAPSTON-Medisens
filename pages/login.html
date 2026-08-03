@@ -7,237 +7,114 @@
     <link rel="stylesheet" href="../src/styles/tokens.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        /* Page-local only. Brand, text, and surface values come from tokens.css.
-           Prefixed so it cannot shadow a global token. */
-        :root {
-            --login-error: #c93636;
-        }
 
-        html,
+        :root { --login-error: #b42318; }
+
+        html { min-height: 100%; background: var(--brand-active); }
+
         body {
-            height: 100%;
-            font-family: var(--font-sans);
-            background-color: var(--brand-active);
-            color: var(--text);
-            overflow: hidden;
-        }
-
-        .bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            overflow: hidden;
-            background: var(--text);
-        }
-
-        .bg::before,
-        .bg::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            z-index: 3;
-            pointer-events: none;
-        }
-
-        .bg::before {
-            width: 620px;
-            height: 620px;
-            top: -210px;
-            right: -160px;
-            display: none;
-        }
-
-        .bg::after {
-            width: 480px;
-            height: 480px;
-            bottom: -130px;
-            left: -110px;
-            display: none;
-        }
-
-        .bg-slide {
-            position: absolute;
-            inset: -28px;
-            z-index: 1;
-            background-size: cover;
-            background-position: center;
-            filter: saturate(0.75);
-            opacity: 0;
-        }
-
-        .bg-slide:nth-child(1) { background-image: var(--login-bg-1, none); opacity: 0.62; }
-        .bg-slide:nth-child(2) { background-image: var(--login-bg-2, none); }
-        .bg-slide:nth-child(3) { background-image: var(--login-bg-3, none); }
-
-        .bg-tint {
-            position: absolute;
-            inset: 0;
-            z-index: 2;
-            background:
-                linear-gradient(90deg, rgba(6, 22, 41, 0.68) 0%, rgba(8, 33, 60, 0.48) 48%, rgba(7, 28, 50, 0.68) 100%),
-                rgba(6, 25, 45, 0.08);
-        }
-
-        .grid-overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 4;
-            background-image:
-                linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
-            background-size: 56px 56px;
-        }
-
-        .page {
-            position: relative;
-            z-index: 1;
             min-height: 100vh;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(380px, 520px);
+            min-height: 100dvh;
+            overflow-x: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
         }
 
-        .left {
+        .login-page {
+            position: relative;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: clamp(40px, 6vw, 84px);
+            min-height: 100vh;
+            min-height: 100dvh;
+            align-items: center;
+            justify-content: flex-end;
+            overflow: hidden;
+            padding: clamp(28px, 5vw, 68px) clamp(32px, 10vw, 156px);
+            isolation: isolate;
         }
 
-        .brand {
+        .clinical-background,
+        .background-wash {
+            position: absolute;
+            inset: 0;
+            z-index: -2;
+            width: 100%;
+            height: 100%;
+        }
+
+        .clinical-background {
+            object-fit: cover;
+            object-position: center;
+            filter: blur(1.5px) saturate(0.78);
+            transform: scale(1.01);
+        }
+
+        .background-wash {
+            z-index: -1;
+            background: rgba(226, 236, 241, 0.42);
+        }
+
+        .login-card {
+            width: min(100%, 500px);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            border-radius: 20px;
+            background: var(--surface);
+            box-shadow: 0 22px 58px rgba(11, 34, 48, 0.2);
+        }
+
+        .brand-header {
+            padding: 34px 42px 18px;
+            background: var(--surface);
+        }
+
+        .brand-lockup {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 54px;
+            gap: 14px;
         }
 
         .brand-logo {
-            width: 58px;
-            height: 58px;
+            display: block;
+            width: 70px;
+            height: 70px;
             flex: 0 0 auto;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.96) var(--medisens-logo, none) center / contain no-repeat;
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+            object-fit: contain;
         }
 
         .brand-name {
             display: block;
-            color: var(--white);
-            font-size: 1.55rem;
-            font-weight: 700;
+            color: var(--brand-active);
+            font-size: 1.3rem;
+            font-weight: var(--font-weight-bold);
             line-height: 1;
             letter-spacing: 0.02em;
         }
 
         .brand-subtitle {
             display: block;
-            margin-top: 5px;
-            color: rgba(222, 242, 248, 0.78);
-            font-size: 0.76rem;
-            font-weight: 700;
-            letter-spacing: 0.16em;
+            margin-top: 7px;
+            color: var(--text-secondary);
+            font-size: var(--type-caption-size);
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--type-caption-line);
+            letter-spacing: var(--tracking-category);
             text-transform: uppercase;
         }
 
-        .hero-text h1 {
-            max-width: 650px;
-            margin-bottom: 20px;
-            color: var(--white);
-            font-size: clamp(2.15rem, 3.8vw, 3.45rem);
-            font-weight: 700;
-            line-height: 1.08;
-            letter-spacing: -0.02em;
+        .form-sheet {
+            padding: 12px 42px 36px;
+            background: var(--surface);
         }
-
-        .hero-text p {
-            max-width: 530px;
-            color: rgba(239, 248, 251, 0.76);
-            font-size: 1.03rem;
-            line-height: 1.65;
-        }
-
-        .trust-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            max-width: 600px;
-            margin-top: 34px;
-        }
-
-        .trust-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            min-height: 38px;
-            padding: 8px 13px;
-            border: 1px solid rgba(192, 229, 239, 0.24);
-            border-radius: 999px;
-            background: rgba(8, 31, 58, 0.42);
-            color: rgba(244, 251, 253, 0.88);
-            font-size: 0.82rem;
-            font-weight: 600;
-        }
-
-        .trust-item::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            flex: 0 0 auto;
-            border-radius: 999px;
-            background: var(--brand-primary);
-            box-shadow: 0 0 0 4px var(--ring-brand-legacy-soft);
-        }
-
-        .facility-note {
-            max-width: 480px;
-            margin-top: 48px;
-            padding-left: 18px;
-            border-left: 3px solid rgba(47, 125, 117, 0.72);
-            color: rgba(226, 243, 248, 0.78);
-            font-size: 0.88rem;
-            line-height: 1.55;
-        }
-
-        .right {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px clamp(28px, 4vw, 56px);
-        }
-
-        .card {
-            width: 100%;
-            max-width: 408px;
-            padding: 42px 40px;
-            border: 1px solid rgba(208, 224, 237, 0.95);
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.98);
-            box-shadow: 0 8px 24px rgba(4, 18, 35, 0.18);
-        }
-
-        .card-header { margin-bottom: 30px; }
 
         .card-kicker {
-            margin-bottom: 8px;
-            /* --brand-active rather than --brand-primary: this is small bold uppercase
-               text, where #5A81FA on white falls under 4.5:1. */
+            margin-bottom: 25px;
             color: var(--brand-active);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
+            font-size: 0.76rem;
+            font-weight: var(--font-weight-bold);
+            line-height: 1.3;
+            letter-spacing: 0.13em;
             text-transform: uppercase;
-        }
-
-        .card-header h2 {
-            color: var(--brand-active);
-            font-size: 1.65rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .card-header p {
-            margin-top: 6px;
-            color: var(--text-3);
-            font-size: 0.88rem;
         }
 
         .field { margin-bottom: 18px; }
@@ -246,63 +123,87 @@
             display: block;
             margin-bottom: 7px;
             color: var(--text);
-            font-size: 0.76rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            font-size: var(--type-label-size);
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--type-label-line);
         }
 
         .field input {
             width: 100%;
-            padding: 13px 15px;
-            border: 1px solid var(--border-strong);
-            border-radius: 8px;
-            background: var(--white);
-            color: var(--brand-active);
-            font-family: var(--font-sans);
-            font-size: 0.95rem;
+            min-height: var(--control-height-lg);
+            padding: 11px 13px;
+            border: 1px solid var(--control-border);
+            border-radius: var(--radius-control);
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-size: 1rem;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
         }
 
-        .field input:focus {
-            border-color: var(--brand-primary);
-            box-shadow: 0 0 0 3px var(--ring-brand-legacy);
+        .field input:hover { border-color: var(--brand-primary); }
+        .field input:focus-visible { border-color: var(--focus-color); box-shadow: 0 0 0 3px var(--focus-ring); }
+        .field input[aria-invalid="true"] { border-color: var(--login-error); background: var(--coral-tint); }
+        .field input::placeholder { color: var(--text-muted); opacity: 0.88; }
+
+        .password-control { position: relative; }
+        .password-control input { padding-right: 52px; }
+        .password-control input::-ms-reveal,
+        .password-control input::-ms-clear { display: none; width: 0; height: 0; }
+
+        .password-toggle {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            display: inline-flex;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color var(--motion-fast), background var(--motion-fast);
         }
 
-        .field input::placeholder { color: var(--border-strong); }
+        .password-toggle:hover { color: var(--brand-primary); background: var(--surface-subtle); }
+        .password-toggle:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 1px; }
+        .password-toggle:active { color: var(--brand-active); background: var(--brand-soft-surface); }
+        .password-toggle svg { width: 20px; height: 20px; pointer-events: none; }
 
         .login-btn {
+            display: flex;
             width: 100%;
-            min-height: 46px;
-            margin-top: 6px;
-            padding: 13px 14px;
-            border: none;
-            border-radius: 8px;
+            min-height: var(--control-height-lg);
+            align-items: center;
+            justify-content: center;
+            margin-top: 7px;
+            padding: 12px 16px;
+            border: 1px solid var(--brand-active);
+            border-radius: var(--radius-control);
             background: var(--brand-active);
             color: var(--white);
-            font-family: var(--font-sans);
-            font-size: 0.95rem;
-            font-weight: 700;
-            letter-spacing: 0.01em;
+            font: inherit;
+            font-size: var(--type-button-size);
+            font-weight: var(--font-weight-bold);
+            line-height: var(--type-button-line);
             cursor: pointer;
-            transition: background 0.2s, box-shadow 0.2s;
+            transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
         }
 
-        .login-btn:hover {
-            background: var(--text);
-            box-shadow: 0 4px 12px rgba(43, 49, 138, 0.18);
-        }
-
-        .login-btn:active { background: var(--text); }
-        .login-btn.loading { pointer-events: none; opacity: 0.7; }
+        .login-btn:hover { border-color: var(--brand-active-hover); background: var(--brand-active-hover); box-shadow: 0 7px 18px rgba(16, 46, 64, 0.18); }
+        .login-btn:active { box-shadow: none; }
+        .login-btn:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 3px; }
+        .login-btn.loading { cursor: wait; opacity: 0.78; pointer-events: none; }
 
         .spinner {
             display: none;
             width: 18px;
             height: 18px;
-            margin: 0 auto;
-            border: 2px solid rgba(255, 255, 255, 0.36);
+            border: 2px solid rgba(255, 255, 255, 0.38);
             border-top-color: var(--white);
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
@@ -313,252 +214,240 @@
         .error-msg {
             display: none;
             margin-top: 14px;
-            padding: 10px 14px;
-            border: 1px solid rgba(224, 82, 82, 0.3);
-            border-radius: 8px;
-            background: rgba(224, 82, 82, 0.1);
+            padding: 11px 13px;
+            border: 1px solid var(--coral-border);
+            border-radius: var(--radius-control);
+            background: var(--coral-tint);
             color: var(--login-error);
-            font-size: 0.83rem;
+            font-size: var(--type-supporting-size);
+            font-weight: var(--font-weight-medium);
+            line-height: var(--type-supporting-line);
         }
 
         .privacy-notice {
-            margin-top: 18px;
-            padding-top: 14px;
-            border-top: 1px solid var(--border-strong);
+            margin-top: 23px;
+            padding-top: 17px;
+            border-top: 1px solid var(--border);
             color: var(--text-secondary);
-            font-size: 0.76rem;
+            font-size: var(--type-caption-size);
             line-height: 1.55;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            .left,
-            .right,
-            .bg::before,
-            .bg::after,
-            .bg-slide {
-                animation: none;
-            }
-
-            .bg-slide:first-child { opacity: 0.64; }
+        .legal-footer {
+            margin-top: 14px;
+            color: var(--text-muted);
+            font-size: var(--type-caption-size);
+            line-height: 1.5;
+            text-align: center;
         }
 
-        @media (max-width: 980px) {
-            body { overflow: auto; }
-            .page { grid-template-columns: 1fr; }
-            .left {
-                min-height: auto;
-                padding: 32px 28px 10px;
-            }
-            .brand { margin-bottom: 24px; }
-            .hero-text h1 {
-                max-width: 560px;
-                font-size: clamp(1.85rem, 7vw, 2.6rem);
-            }
-            .hero-text p,
-            .facility-note { display: none; }
-            .trust-list { margin-top: 22px; }
-            .right {
-                min-height: auto;
-                align-items: flex-start;
-                padding: 24px 24px 36px;
-            }
+        .legal-links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
         }
 
-        @media (max-width: 560px) {
+        .legal-link {
+            border-radius: 3px;
+            color: var(--text-secondary);
+            text-decoration-color: transparent;
+            text-underline-offset: 3px;
+            transition: color var(--motion-fast), text-decoration-color var(--motion-fast), background var(--motion-fast);
+        }
+
+        .legal-link:hover {
+            color: var(--brand-primary);
+            text-decoration-color: currentColor;
+        }
+
+        .legal-link:focus-visible {
+            outline: 2px solid var(--focus-color);
+            outline-offset: 3px;
+        }
+
+        .legal-link:active {
+            color: var(--brand-active-hover);
+            background: var(--brand-soft-surface);
+        }
+
+        .legal-separator { color: var(--border-strong); }
+        .copyright { margin-top: 7px; }
+
+        @media (max-width: 900px) {
+            .login-page { justify-content: center; padding: 32px; }
+            .login-card { width: min(100%, 480px); }
+        }
+
+        @media (max-width: 600px) {
             html,
             body {
-                min-height: 100%;
-                overflow: auto;
+                min-height: 0;
+                background: var(--surface);
             }
 
-            .page {
-                display: flex;
-                min-height: 100vh;
-                flex-direction: column;
-            }
-
-            .left {
-                display: contents;
+            .login-page {
+                display: block;
+                min-height: 0;
+                overflow: visible;
                 padding: 0;
+                background: var(--surface);
             }
 
-            .brand {
-                order: 1;
-                gap: 11px;
-                margin-bottom: 0;
-                padding: 14px 16px 4px;
+            .clinical-background,
+            .background-wash { display: none; }
+
+            .login-card {
+                width: 100%;
+                overflow: visible;
+                border: 0;
+                border-radius: 0;
+                background: var(--brand-active);
+                box-shadow: none;
             }
 
-            .brand-logo {
-                width: 40px;
-                height: 40px;
-                border-radius: 10px;
-                box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
-            }
-
-            .brand-name { font-size: 1.08rem; }
-            .brand-subtitle {
-                margin-top: 3px;
-                font-size: 0.58rem;
-                letter-spacing: 0.12em;
-            }
-
-            .hero-text {
-                order: 3;
-                padding: 2px 16px 18px;
-            }
-
-            .hero-text h1 { display: none; }
-
-            .trust-list {
+            .brand-header {
+                position: relative;
+                display: flex;
+                min-height: 154px;
+                align-items: flex-start;
                 justify-content: center;
-                gap: 7px;
-                margin-top: 8px;
+                overflow: hidden;
+                padding: max(22px, env(safe-area-inset-top)) 20px 44px;
+                background: var(--brand-active);
+                isolation: isolate;
             }
 
-            .trust-item {
-                min-height: 30px;
-                padding: 6px 9px;
-                font-size: 0.68rem;
-                background: rgba(8, 31, 58, 0.5);
+            .brand-header::before,
+            .brand-header::after {
+                content: '';
+                position: absolute;
+                pointer-events: none;
             }
 
-            .trust-item::before {
-                width: 6px;
-                height: 6px;
-                box-shadow: 0 0 0 3px var(--ring-brand-legacy-soft);
+            .brand-header::before {
+                inset: -4px;
+                z-index: -2;
+                background-image: var(--mobile-login-background);
+                background-position: center;
+                background-size: cover;
+                filter: blur(2px) saturate(0.8);
+                transform: scale(1.04);
             }
 
-            .right {
-                order: 2;
-                padding: 10px 14px 8px;
+            .brand-header::after {
+                inset: 0;
+                z-index: -1;
+                background: rgba(11, 34, 48, 0.62);
             }
 
-            .card {
-                max-width: 100%;
-                padding: 20px 18px 18px;
-                border-radius: 12px;
-                box-shadow: 0 6px 18px rgba(4, 18, 35, 0.16);
+            .brand-lockup { position: relative; z-index: 1; display: block; text-align: center; }
+            .brand-logo { width: 82px; height: 82px; }
+            .brand-copy { display: none; }
+
+            .form-sheet {
+                position: relative;
+                margin-top: -24px;
+                padding: 31px 22px max(24px, env(safe-area-inset-bottom));
+                border-radius: 24px 24px 0 0;
+                background: var(--surface);
             }
 
-            .card-header {
-                margin-bottom: 18px;
-            }
+            .card-kicker { margin-bottom: 24px; text-align: center; }
+            .privacy-notice { margin-top: 22px; }
+            .legal-footer { margin-top: 13px; }
+        }
 
-            .card-kicker {
-                margin-bottom: 5px;
-                font-size: 0.66rem;
-                letter-spacing: 0.11em;
-            }
+        @media (max-width: 390px) {
+            .brand-header { min-height: 142px; padding-bottom: 40px; }
+            .brand-logo { width: 74px; height: 74px; }
+            .form-sheet { margin-top: -22px; padding: 28px 18px 22px; }
+            .field { margin-bottom: 16px; }
+        }
 
-            .card-header h2 {
-                font-size: 1.32rem;
-                letter-spacing: -0.01em;
-            }
+        @media (max-height: 620px) and (max-width: 600px) {
+            .brand-header { min-height: 126px; padding-top: 16px; padding-bottom: 34px; }
+            .brand-logo { width: 68px; height: 68px; }
+            .form-sheet { margin-top: -20px; padding-top: 24px; }
+            .card-kicker { margin-bottom: 18px; }
+            .field { margin-bottom: 14px; }
+            .privacy-notice { margin-top: 18px; padding-top: 14px; }
+            .legal-footer { margin-top: 11px; }
+        }
 
-            .card-header p {
-                margin-top: 4px;
-                font-size: 0.8rem;
-                line-height: 1.35;
-            }
+        @media (max-height: 650px) and (min-width: 601px) {
+            .login-page { padding-block: 22px; }
+            .brand-header { padding-top: 24px; padding-bottom: 12px; }
+            .brand-logo { width: 58px; height: 58px; }
+            .form-sheet { padding-top: 8px; padding-bottom: 24px; }
+            .card-kicker { margin-bottom: 18px; }
+            .field { margin-bottom: 14px; }
+            .privacy-notice { margin-top: 17px; padding-top: 13px; }
+        }
 
-            .field {
-                margin-bottom: 13px;
-            }
-
-            .field label {
-                margin-bottom: 5px;
-                font-size: 0.68rem;
-                letter-spacing: 0.06em;
-            }
-
-            .field input {
-                min-height: 44px;
-                padding: 10px 12px;
-                border-radius: 8px;
-                font-size: 0.92rem;
-            }
-
-            .login-btn {
-                min-height: 44px;
-                margin-top: 2px;
-                padding: 11px 13px;
-            }
-
-            .error-msg {
-                margin-top: 10px;
-                padding: 9px 11px;
-                font-size: 0.78rem;
-            }
-
-            .privacy-notice {
-                margin-top: 12px;
-                padding-top: 10px;
-                font-size: 0.68rem;
-                line-height: 1.38;
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
 <body>
+<main class="login-page">
+    <img class="clinical-background" id="loginBackground" alt="" aria-hidden="true">
+    <div class="background-wash" aria-hidden="true"></div>
 
-<div class="bg" aria-hidden="true">
-    <div class="bg-slide"></div>
-    <div class="bg-slide"></div>
-    <div class="bg-slide"></div>
-    <div class="bg-tint"></div>
-    <div class="grid-overlay"></div>
-</div>
+    <article class="login-card">
+        <header class="brand-header">
+            <div class="brand-lockup">
+                <img class="brand-logo" id="medisensLogo" alt="MEDISENS logo">
+                <div class="brand-copy">
+                    <span class="brand-name">MEDISENS</span>
+                    <span class="brand-subtitle">RHU Information System</span>
+                </div>
+            </div>
+        </header>
 
-<div class="page">
-    <div class="left">
-        <div class="brand">
-            <div class="brand-logo" role="img" aria-label="MEDISENS logo"></div>
-            <div>
-                <span class="brand-name">MEDISENS</span>
-                <span class="brand-subtitle">RHU Information System</span>
-            </div>
-        </div>
-        <div class="hero-text">
-            <h1>Clinical records access for Rural Health Unit teams.</h1>
-            <p>A secure healthcare information system for authorized RHU personnel managing patients, consultations, laboratory requests, pharmacy actions, and reports.</p>
-            <div class="trust-list" aria-label="System trust indicators">
-                <span class="trust-item">Secure RHU Records</span>
-                <span class="trust-item">Role-Based Access</span>
-                <span class="trust-item">Data Privacy Compliant</span>
-            </div>
-            <p class="facility-note">Use your assigned account to access the modules approved for your healthcare role.</p>
-        </div>
-    </div>
-
-    <div class="right">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-kicker">Authorized Access</div>
-                <h2>Sign in to MEDISENS</h2>
-                <p>Access your RHU workspace using your assigned account.</p>
-            </div>
+        <section class="form-sheet" aria-label="Authorized access">
+            <h1 class="card-kicker">Authorized Access</h1>
             <form id="loginForm" novalidate>
                 <div class="field">
-                    <label for="emailInput">Email Address</label>
-                    <input type="email" id="emailInput" name="email" placeholder="you@medisens.com" autocomplete="email" required aria-describedby="errorMsg">
+                    <label for="emailInput">Email</label>
+                    <input type="email" id="emailInput" name="email" placeholder="Enter your email" autocomplete="email" required aria-describedby="errorMsg">
                 </div>
                 <div class="field">
                     <label for="passwordInput">Password</label>
-                    <input type="password" id="passwordInput" name="password" placeholder="Password" autocomplete="current-password" required aria-describedby="errorMsg">
+                    <div class="password-control">
+                        <input type="password" id="passwordInput" name="password" placeholder="Enter your password" autocomplete="current-password" required aria-describedby="errorMsg">
+                        <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password" aria-pressed="false">
+                            <svg id="passwordVisibilityIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                <circle cx="12" cy="12" r="2.75"></circle>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <button class="login-btn" id="loginBtn" type="submit">
                     <span id="btnText">Sign In</span>
-                    <div class="spinner" id="spinner"></div>
+                    <span class="spinner" id="spinner" aria-hidden="true"></span>
                 </button>
                 <div class="error-msg" id="errorMsg" role="alert"></div>
             </form>
-            <p class="privacy-notice">
-                By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
-            </p>
-        </div>
-    </div>
-</div>
+            <p class="privacy-notice">By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
+            <footer class="legal-footer" aria-label="Legal information">
+                <div class="legal-links">
+                    <a class="legal-link" href="./privacy-policy.html">Privacy Policy</a>
+                    <span class="legal-separator" aria-hidden="true">&middot;</span>
+                    <a class="legal-link" href="./terms-of-service.html">Terms of Service</a>
+                </div>
+                <p class="copyright">&copy; <span id="copyrightYear"></span> MEDISENS. All rights reserved.</p>
+            </footer>
+        </section>
+    </article>
+</main>
 
 <script type="module" src="../src/app/auth/login.ts"></script>
 </body>

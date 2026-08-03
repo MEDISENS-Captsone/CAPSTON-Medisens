@@ -51,7 +51,7 @@ const BhwDashboard = () => {
         { id: 'dashboard', label: 'Home', icon: 'home', group: 'Overview' },
         { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
         { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
-        { id: 'reports', label: 'OCR Generation', icon: 'chart', group: 'Records & Governance' }
+        { id: 'reports', label: 'FHSIS Reports', icon: 'chart', group: 'Records & Governance' }
     ];
 
     useEffect(() => {
@@ -163,7 +163,7 @@ const BhwDashboard = () => {
             <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 
                 <Topbar
-                    title={activePage === 'dashboard' ? 'Dashboard' : activePage === 'records' ? 'Patient Records' : activePage === 'reports' ? 'OCR Reports' : activePage.replace(/-/g, ' ')}
+                    title={activePage === 'dashboard' ? 'Dashboard' : activePage === 'records' ? 'Patient Records' : activePage === 'reports' ? 'FHSIS Reports' : activePage.replace(/-/g, ' ')}
                     sectionLabel="Barangay Health Worker"
                     userName={userName}
                     userInitials={userInitials}

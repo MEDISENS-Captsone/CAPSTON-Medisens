@@ -8,6 +8,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'pages/login.html',
+        privacyPolicy: 'pages/privacy-policy.html',
+        termsOfService: 'pages/terms-of-service.html',
         templates: 'pages/templates.html',
         details: 'pages/details.html',
         records: 'pages/records.html',
