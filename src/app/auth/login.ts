@@ -2,15 +2,45 @@ import { supabase } from '../../lib/supabase/client';
 import { safeTrim } from '../../lib/utils/strings';
 import { getDashboardPath, isRole } from '../../lib/auth/roles';
 import { logAuditEvent } from '../../features/audit/services';
-import loginBg1 from '../../assets/Login Page 1.png';
-import loginBg2 from '../../assets/Login Page 2.png';
-import loginBg3 from '../../assets/Login Page 3.png';
 import medisensLogo from '../../assets/MEDISENS Logo.png';
+import loginBackground from '../../assets/Login Page 3.png';
 
-document.documentElement.style.setProperty('--login-bg-1', `url("${loginBg1}")`);
-document.documentElement.style.setProperty('--login-bg-2', `url("${loginBg2}")`);
-document.documentElement.style.setProperty('--login-bg-3', `url("${loginBg3}")`);
-document.documentElement.style.setProperty('--medisens-logo', `url("${medisensLogo}")`);
+const logoElement = document.getElementById('medisensLogo');
+if (logoElement instanceof HTMLImageElement) logoElement.src = medisensLogo;
+
+const backgroundElement = document.getElementById('loginBackground');
+if (backgroundElement instanceof HTMLImageElement) backgroundElement.src = loginBackground;
+document.documentElement.style.setProperty('--mobile-login-background', `url("${loginBackground}")`);
+
+const copyrightYearElement = document.getElementById('copyrightYear');
+if (copyrightYearElement) copyrightYearElement.textContent = String(new Date().getFullYear());
+
+const passwordInput = document.getElementById('passwordInput');
+const passwordToggle = document.getElementById('passwordToggle');
+const passwordVisibilityIcon = document.getElementById('passwordVisibilityIcon');
+
+const eyeIconMarkup = `
+    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+    <circle cx="12" cy="12" r="2.75"></circle>
+`;
+const eyeOffIconMarkup = `
+    <path d="m3 3 18 18"></path>
+    <path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6 0 9.5 6 9.5 6s-1.3 2.2-3.6 3.9"></path>
+    <path d="M6.1 6.1C3.8 7.7 2.5 12 2.5 12s3.5 6 9.5 6a10 10 0 0 0 3.1-.5"></path>
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+`;
+
+if (passwordInput instanceof HTMLInputElement && passwordToggle instanceof HTMLButtonElement) {
+    passwordToggle.addEventListener('click', () => {
+        const showPassword = passwordInput.type === 'password';
+        passwordInput.type = showPassword ? 'text' : 'password';
+        passwordToggle.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
+        passwordToggle.setAttribute('aria-pressed', String(showPassword));
+        if (passwordVisibilityIcon) {
+            passwordVisibilityIcon.innerHTML = showPassword ? eyeOffIconMarkup : eyeIconMarkup;
+        }
+    });
+}
 
 // Chromium restores previously submitted values into same-URL forms (and replays them
 // out of the bfcache), so after a logout the prior clinician's credentials reappear here
