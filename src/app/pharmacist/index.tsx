@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { supabase } from '../../lib/supabase/client';
 import { requireRole } from '../../lib/auth/roles';
@@ -17,6 +17,7 @@ import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { safeTrim } from '../../lib/utils/strings';
 import { logAuditEvent } from '../../features/audit/services';
 import { SkeletonTable } from '../../components/ui/Skeleton';
+import { useHashPage } from '../../hooks/useHashPage';
 
 
 // --- Interfaces ---
@@ -57,14 +58,15 @@ function PharmacyDashboard() {
     const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
     const [dispenseChecklist, setDispenseChecklist] = useState<Record<number, boolean>>({});
     const [isDispensing, setIsDispensing] = useState(false);
+    // `disabled={isDispensing}` only takes effect after React re-renders, and a state
+    // read inside the handler sees the stale value from the render the click came from.
+    // Two taps landing in the same frame therefore both reached Supabase and dispensed
+    // the prescription twice, so the in-flight latch has to be a ref.
+    const dispensingRef = useRef(false);
     const { showToast, ToastComponent } = useToast();
 
     // Sidebar & Layout State
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'queue');
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('queue');
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const isOnline = useOnlineStatus();
@@ -240,6 +242,7 @@ function PharmacyDashboard() {
 
     const handleDispense = async () => {
         if (!selectedRx) return;
+        if (dispensingRef.current) return;
         if (!isOnline) {
             showToast('You are offline. Dispensing cannot be saved until the connection is restored.', true);
             return;
@@ -249,6 +252,7 @@ function PharmacyDashboard() {
             showToast('Cannot dispense because medication content is missing or malformed.', true);
             return;
         }
+        dispensingRef.current = true;
         setIsDispensing(true);
 
         const { error } = await supabase
@@ -259,6 +263,7 @@ function PharmacyDashboard() {
             })
             .eq('prescription_id', selectedRx.prescription_id);
 
+        dispensingRef.current = false;
         setIsDispensing(false);
         if (!error) {
             void logAuditEvent({

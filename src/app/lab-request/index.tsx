@@ -12,6 +12,11 @@ interface LabRequestData {
   others: string; requestedBy: string; status: 'Pending' | 'Completed'; labNotes: string;
 }
 
+// Blood-based tests in the routine panel. The fasting panel is blood chemistry, so it
+// is only offered when blood work is actually being requested.
+const ROUTINE_BLOOD_TESTS = ['cbc', 'cbcPlatelet', 'hgbHct'] as const;
+const FASTING_BLOOD_TESTS = ['rbs', 'fbs', 'uricAcid', 'cholesterol'] as const;
+
 function LabRequest() {
   const [role, setRole] = useState<string | null>(null);
   const [formData, setFormData] = useState<LabRequestData>({
@@ -31,6 +36,20 @@ function LabRequest() {
   const handleTestCheck = (category: 'tests' | 'fastingTests', key: string) => {
     setFormData(prev => ({ ...prev, [category]: { ...prev[category], [key]: !prev[category][key] } }));
   };
+
+  const bloodTestSelected = ROUTINE_BLOOD_TESTS.some(test => formData.tests[test]);
+
+  // Drop any fasting blood-chemistry selection once the request no longer contains
+  // blood work, so a stale checkbox can never be submitted while hidden.
+  useEffect(() => {
+    if (bloodTestSelected) return;
+    setFormData(prev => {
+      if (!FASTING_BLOOD_TESTS.some(test => prev.fastingTests[test])) return prev;
+      const fastingTests = { ...prev.fastingTests };
+      FASTING_BLOOD_TESTS.forEach(test => { fastingTests[test] = false; });
+      return { ...prev, fastingTests };
+    });
+  }, [bloodTestSelected]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,12 +145,16 @@ function LabRequest() {
 
         <div className="p-4 border border-[var(--border)] rounded bg-[var(--surface-subtle)]">
           <h4 className="font-bold text-sm mb-3">For fasting 8-10 hours</h4>
+          {!bloodTestSelected ? (
+            <p className="text-sm text-[var(--text-secondary)]">Fasting blood chemistry tests appear once a blood test is selected above.</p>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.rbs} onChange={() => handleTestCheck('fastingTests', 'rbs')} disabled={isLab}/> RBS</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.fbs} onChange={() => handleTestCheck('fastingTests', 'fbs')} disabled={isLab}/> FBS</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.uricAcid} onChange={() => handleTestCheck('fastingTests', 'uricAcid')} disabled={isLab}/> Uric Acid</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.cholesterol} onChange={() => handleTestCheck('fastingTests', 'cholesterol')} disabled={isLab}/> Cholesterol</label>
           </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2"><label className="font-bold text-sm">Others:</label><input type="text" value={formData.others} onChange={e => setFormData({...formData, others: e.target.value})} className={inputStyle} disabled={isLab}/></div>

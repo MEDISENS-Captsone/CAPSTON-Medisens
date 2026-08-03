@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useNetworkSync';
 import { useToast } from '../../components/feedback/Toast';
 import { Icon } from '../../components/shared/Icon';
@@ -7,6 +7,7 @@ import { calcAge, formatPhilhealth, philhealthDigits, toPatientRegistrationPaylo
 import { createPatient } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
+import { MALVAR_BARANGAYS } from '../../lib/utils/malvarBarangays';
 
 // ─── Reusable Tailwind Classes ───────────────────────────────────────────────
 const inputClasses = clinicalInputClass;
@@ -40,18 +41,6 @@ const EDUCATION_LEVELS = [
     'College Level', 'College Graduate', 'Post-Graduate'
 ] as const;
 const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Self-Employed', 'Student', 'Retired'] as const;
-
-// ─── Malvar Barangays ─────────────────────────────────────────────────────────
-const MALVAR_BARANGAYS = [
-    'Bagong Pook, Malvar, Batangas', 'Bilucao, Malvar, Batangas',
-    'Bulihan, Malvar, Batangas', 'Luta del Norte, Malvar, Batangas',
-    'Luta del Sur, Malvar, Batangas', 'Poblacion, Malvar, Batangas',
-    'San Andres, Malvar, Batangas', 'San Fernando, Malvar, Batangas',
-    'San Gregorio, Malvar, Batangas', 'San Isidro, Malvar, Batangas',
-    'San Juan, Malvar, Batangas', 'San Pedro I, Malvar, Batangas',
-    'San Pedro II, Malvar, Batangas', 'San Pioquinto, Malvar, Batangas',
-    'Santiago, Malvar, Batangas',
-] as const;
 
 const OUTSIDE_MALVAR = '__outside__';
 
@@ -123,6 +112,10 @@ export function TemplatesComponent() {
     const [form, setForm] = useState<PatientForm>(EMPTY_FORM);
     const [otherReligion, setOtherReligion] = useState('');
     const [saving, setSaving] = useState(false);
+    // `disabled={saving}` only applies once React re-renders, and a state read inside the
+    // handler sees the value from the render the click came from. Taps landing in the same
+    // frame each inserted a patient, so the in-flight latch has to be a ref.
+    const savingRef = useRef(false);
     const { showToast, ToastComponent } = useToast();
     const [errors, setErrors] = useState<FieldErrors>({});
 
@@ -197,10 +190,12 @@ export function TemplatesComponent() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (savingRef.current) return;
         if (!validate()) {
             showToast('Please fix the errors before saving.', true);
             return;
         }
+        savingRef.current = true;
         setSaving(true);
         const payload = toPatientRegistrationPayload(form);
         try {
@@ -217,6 +212,7 @@ export function TemplatesComponent() {
             logError('Failed to save patient registration', error);
             showToast(healthcareErrorMessage("save the patient record"), true);
         } finally {
+            savingRef.current = false;
             setSaving(false);
         }
     };

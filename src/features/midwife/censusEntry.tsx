@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { midwifeAPI } from './api';
 import { useToast } from '../../components/feedback/Toast';
 import { Icon } from '../../components/shared/Icon';
+import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
 import type { VaccineRecord } from '../patients/itemization';
-import { isBlank } from '../../lib/utils/strings';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import {
     OTHER_VACCINE_NAME,
@@ -28,8 +28,6 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
     const [isAddingEntry, setIsAddingEntry] = useState(false);
     
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
     const [formData, setFormData] = useState<any>({});
     const [vaccineRows, setVaccineRows] = useState<VaccineRecord[]>([
         createVaccineRecord({
@@ -47,16 +45,6 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
     const activeRecords = useMemo(() => {
         return records.filter(r => r.category === activeLogbook);
     }, [records, activeLogbook]);
-
-    const filteredPatients = useMemo(() => {
-        if (isBlank(searchQuery)) return [];
-        return patients.filter(p => {
-            const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-            const matchesSearch = fullName.includes(searchQuery.toLowerCase());
-            const isEligible = activeLogbook === 'maternal' ? isFemalePatient(p) : true;
-            return matchesSearch && isEligible;
-        });
-    }, [activeLogbook, patients, searchQuery]);
 
     // Handle generic inputs
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -215,7 +203,6 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                     dose_label: 'Birth dose',
                 })]);
                 setSelectedPatient(null);
-                setSearchQuery('');
                 setIsAddingEntry(false);
                 await onSaveSuccess(); 
             }, 2500);
@@ -347,39 +334,18 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                             <div className="mb-8">
                                 <label className="mb-3 block text-sm font-semibold text-[var(--text)]">1. Select patient</label>
                                 {!selectedPatient ? (
-                                    <div className="relative">
-                                        <input type="text" aria-label="Search patient name for census entry" placeholder="Search patient name..." value={searchQuery} onFocus={() => setShowDropdown(true)} onChange={(e) => setSearchQuery(e.target.value)} className="min-h-12 w-full rounded-lg border border-[var(--border)] px-4 py-3 text-base outline-none focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-ring)]" />
-                                        {showDropdown && searchQuery && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-sm border border-[var(--border)] max-h-64 overflow-y-auto z-50">
-                                                {filteredPatients.length > 0 ? filteredPatients.map(p => (
-                                                    <button
-                                                        key={p.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (activeLogbook === 'maternal' && !isFemalePatient(p)) {
-                                                                setErrorMsg(MATERNAL_ELIGIBILITY_MESSAGE);
-                                                                showToast(MATERNAL_ELIGIBILITY_MESSAGE, true);
-                                                                return;
-                                                            }
-                                                            setErrorMsg('');
-                                                            setSelectedPatient(p);
-                                                            setShowDropdown(false);
-                                                        }}
-                                                        className="flex min-h-14 w-full flex-col justify-center gap-1 border-b border-[var(--border-soft)] px-4 py-3 text-left hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)] sm:flex-row sm:items-center sm:justify-between"
-                                                    >
-                                                        <span className="font-bold text-[var(--text)] capitalize">{p.firstName} {p.lastName}</span>
-                                                        <span className="text-[0.65rem] font-bold text-[var(--text-secondary)] bg-[var(--surface-subtle)] px-2 py-1 rounded uppercase">{p.address}</span>
-                                                    </button>
-                                                )) : (
-                                                    <div className="px-5 py-4 text-sm font-semibold text-[var(--text-secondary)]">
-                                                        {activeLogbook === 'maternal'
-                                                            ? 'No eligible female patients match this search.'
-                                                            : 'No patients match this search.'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <ClinicalPatientWorklist
+                                        patients={patients.filter(patient => activeLogbook === 'maternal' ? isFemalePatient(patient) : true)}
+                                        onSelect={(patient) => {
+                                            const selected = patients.find(item => String(item.id) === String(patient.id));
+                                            if (selected) { setErrorMsg(''); setSelectedPatient(selected); }
+                                        }}
+                                        title="Initial consultation worklist"
+                                        instruction="Select a consented patient to begin a maternal or child care record."
+                                        emptyMessage={activeLogbook === 'maternal' ? 'No eligible female patients are currently available.' : 'No eligible patients are currently available.'}
+                                        actionLabel="Begin record"
+                                        showBarangayFilter
+                                    />
                                 ) : (
                                     <div className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                                         <div>
@@ -390,7 +356,7 @@ const CensusEntry = ({ patients, records, onSaveSuccess }: Props) => {
                                                 {activeLogbook === 'child' && ` • DOB: ${selectedPatient.birthday}`}
                                             </p>
                                         </div>
-                                        <button type="button" onClick={() => { setSelectedPatient(null); setSearchQuery(''); }} className="clinical-row-action min-h-11 self-start sm:self-auto">Change patient</button>
+                                        <button type="button" onClick={() => { setSelectedPatient(null); }} className="clinical-row-action min-h-11 self-start sm:self-auto">Change patient</button>
                                     </div>
                                 )}
                             </div>

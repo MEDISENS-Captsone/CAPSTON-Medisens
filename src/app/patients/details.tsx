@@ -169,9 +169,9 @@ function DetailsPage() {
         return () => { isMounted = false; };
     }, []);
 
-    async function loadPatient() {
+    async function loadPatient(): Promise<Patient | null> {
         const { data: patientData, error: pError } = await supabase.from('patients').select(PATIENT_DETAILS_COLUMNS).eq('id', patientId).single();
-        if (pError || !patientData) { setError('Patient not found.'); return; }
+        if (pError || !patientData) { setError('Patient not found.'); return null; }
 
         const { data: consentData } = await supabase.from('patient_consent').select('consent_id').eq('patient_id', patientId).maybeSingle();
 
@@ -185,7 +185,10 @@ function DetailsPage() {
             firstName: patientData.firstName || '', middleName: patientData.middleName || '', lastName: patientData.lastName || '', age: patientData.age?.toString() ?? '', sex: patientData.sex || '', nationality: patientData.nationality || '', bloodType: patientData.bloodType || 'O+', religion: patientData.religion || '', birthday: patientData.birthday || '', birthPlace: patientData.birthPlace || '', suffix: patientData.suffix || '', civilStatus: patientData.civilStatus || '', address: patientData.address || '', contactNumber: patientData.contactNumber || '', educationalAttain: patientData.educationalAttain || '', employmentStatus: patientData.employmentStatus || '', philhealthNo: patientData.philhealthNo || '', philhealthStatus: patientData.philhealthStatus || '', category: patientData.category || '', categoryOthers: patientData.categoryOthers || '', relativeName: patientData.relativeName || '', relativeRelation: patientData.relativeRelation || '', relativeAddress: patientData.relativeAddress || ''
         });
         setOtherReligion((patientData.religion || '').replace(/^Other:\s*/, ''));
+        return fullPatient as Patient;
     }
+
+    const closeConsentView = () => setShowConsent(false);
 
     const handleOpenHistory = () => setHistoryModalOpen(true);
 
@@ -293,8 +296,8 @@ function DetailsPage() {
                             </div>
                         ) : showConsent ? (
                             <div className="">
-                                <Button type="button" variant="outline" size="sm" onClick={() => setShowConsent(false)} className="mb-4">Back to Details</Button>
-                                <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setPatient(current => current ? { ...current, consent_signed: true } : current); setShowConsent(false); loadPatient(); }} />
+                                <Button type="button" variant="outline" size="sm" onClick={closeConsentView} className="mb-4">Back to Details</Button>
+                                <PatientConsent patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} rhuPersonnel={userName} onConsentSaved={() => { setPatient(current => current ? { ...current, consent_signed: true } : current); closeConsentView(); loadPatient(); }} />
                             </div>
                         ) : editing && !isArchivedPatient ? (
                             // Edit Mode Form...
@@ -476,8 +479,8 @@ function DetailsPage() {
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    {/* Midwife action */}
-                                    {role === 'midwives' && !patient.consent_signed && !isArchivedPatient && (
+                                    {/* BHW action: consent is now recorded by BHW right after registration */}
+                                    {role === 'BHW' && !patient.consent_signed && !isArchivedPatient && (
                                         <Button type="button" variant="primary" size="lg" onClick={() => setShowConsent(true)} className="w-full">
                                             Proceed to Patient Consent
                                         </Button>

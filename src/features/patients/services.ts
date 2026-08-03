@@ -49,6 +49,14 @@ export async function savePatientConsent(payload: PatientConsentPayload): Promis
     if (checkError) throw checkError;
     if (existing) throw new Error('Patient consent is already recorded.');
 
-    const { error } = await supabase.from('patient_consent').insert([payload]);
+    const { data, error } = await supabase.from('patient_consent').insert([payload]).select('consent_id').single();
     if (error) throw error;
+    void logAuditEvent({
+        action: 'create',
+        module: 'Patient Records',
+        recordId: data?.consent_id ?? null,
+        recordType: 'patient_consent',
+        description: 'Recorded patient consent.',
+        metadata: { patient_id: payload.patient_id, consent_id: data?.consent_id },
+    });
 }

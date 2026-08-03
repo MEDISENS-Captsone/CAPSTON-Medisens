@@ -15,6 +15,7 @@ import { AuditLogPage } from '../../features/audit/AuditLogPage';
 import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 import { SkeletonKpiGrid } from '../../components/ui';
+import { useHashPage } from '../../hooks/useHashPage';
 
 const ConsultationPage = lazy(() => import('../consultation'));
 const RecordsComponent = lazy(() => import('../patients/records').then(module => ({ default: module.RecordsComponent })));
@@ -78,11 +79,7 @@ const DoctorDashboard = () => {
     const [userName, setUserName] = useState('Loading...');
     const [userInitials, setUserInitials] = useState('D');
 
-    const [activePage, setActivePage] = useState(() => window.location.hash.replace('#', '') || 'dashboard');
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('dashboard');
 
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [selectedIcid, setSelectedIcid] = useState<string | null>(null);
@@ -238,23 +235,20 @@ const DoctorDashboard = () => {
     const loadQueueAndFollowUps = useCallback(async () => {
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-        // Queue: initial_consultations today that don't yet have a linked consultation row
-        const { data: completedConsults } = await supabase
-            .from('consultation')
-            .select('initial_consultation_id')
-            .not('initial_consultation_id', 'is', null);
-        const completedIds = completedConsults?.map((c: any) => c.initial_consultation_id).filter(Boolean) || [];
-
-        let qQuery = supabase
+        // Queue: today's intakes the nurse explicitly referred to the doctor.
+        // Only 'referred' qualifies — 'completed' visits are resolved at intake,
+        // and 'pending' is a transient default that the intake form never
+        // submits. Historical rows created before the visit_disposition column
+        // existed are classified by the backfill in
+        // 20260804090100_add_initial_consultation_visit_status.sql, so nothing
+        // that was previously queued is dropped by this stricter filter.
+        const { data: qData } = await supabase
             .from('initial_consultation')
-            .select(`initialconsultation_id, patient_id, consultation_time, patients!inner(firstName, lastName, sex, bloodType, archive_status)`)
+            .select(`initialconsultation_id, patient_id, consultation_time, visit_disposition, patients!inner(firstName, lastName, sex, bloodType, archive_status)`)
             .eq('consultation_date', today)
+            .eq('visit_disposition', 'referred')
             .or('archive_status.eq.active,archive_status.is.null', { foreignTable: 'patients' })
             .order('initialconsultation_id', { ascending: true });
-        if (completedIds.length > 0) {
-            qQuery = qQuery.not('initialconsultation_id', 'in', `(${completedIds.join(',')})`);
-        }
-        const { data: qData } = await qQuery;
         setQueue(qData || []);
 
         // Follow-ups preview (5 rows)
@@ -524,7 +518,7 @@ const DoctorDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="app-shell-main flex-1 overflow-auto md:ml-[240px]">
+            <main className="app-shell-main flex-1 overflow-y-auto overflow-x-hidden md:ml-[240px]">
                 <Topbar
                     title={activePage === 'dashboard' ? 'Doctor Dashboard' : activePage === 'analytics' ? 'Doctor Analytics' : activePage === 'records' ? 'Patient Records' : activePage === 'audit-log' ? 'Audit Log' : activePage === 'archive-review' ? 'Archive Review' : 'Consultation Room'}
                     sectionLabel="Clinical Consultation"
@@ -729,7 +723,9 @@ const DoctorDashboard = () => {
                                 doctorInitials={userInitials}
                                 patientIdProp={selectedPatientId}
                                 icidProp={selectedIcid}
+                                onSelectPatient={(patientId, icid) => { setSelectedPatientId(patientId); setSelectedIcid(icid); }}
                                 onBack={() => setActivePage('dashboard')}
+                                onReturnToQueue={() => { setSelectedPatientId(null); setSelectedIcid(null); }}
                             />
                         </Suspense>
                     )}

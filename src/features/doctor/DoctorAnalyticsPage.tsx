@@ -2434,6 +2434,7 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
         clinicalRequestKeyRef.current = requestKey;
 
         let isCurrent = true;
+        let hasSettled = false;
         setIsLoading(true);
         setError(null);
 
@@ -2460,12 +2461,19 @@ export function DoctorAnalyticsPage({ isOnline, role = 'doctor' }: { isOnline: b
                         : healthcareErrorMessage('load analytics'));
                 }
             } finally {
+                hasSettled = true;
                 if (isCurrent) setIsLoading(false);
             }
         })();
 
         return () => {
             isCurrent = false;
+            // The request key is claimed before the fetch starts. If this run is torn
+            // down while still in flight, its result is discarded and `isLoading` is
+            // never cleared — so the key must be released, otherwise the next run
+            // matches it, returns early, and the workspace stays on its skeleton
+            // forever. (Reproduced under the midwife shell's StrictMode double-invoke.)
+            if (!hasSettled) clinicalRequestKeyRef.current = null;
         };
     }, [needsClinicalData, period, clinicalRetryToken]);
 
