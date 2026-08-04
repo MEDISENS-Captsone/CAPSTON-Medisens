@@ -7,6 +7,7 @@ export default defineConfig({
     target: 'es2022',
     rollupOptions: {
       input: {
+        root: 'index.html',
         main: 'pages/login.html',
         privacyPolicy: 'pages/privacy-policy.html',
         termsOfService: 'pages/terms-of-service.html',
@@ -24,7 +25,7 @@ export default defineConfig({
         laboratory: 'pages/laboratory.html',
         midwife: 'pages/midwife.html',
         admin: 'pages/admin.html',
-      }
-    }
-  }
+      },
+    },
+  },
 })
