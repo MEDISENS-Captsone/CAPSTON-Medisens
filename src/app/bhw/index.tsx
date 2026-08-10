@@ -20,11 +20,11 @@ const RecordsComponent = lazy(() => import('../patients/records').then(module =>
 const TemplatesComponent = lazy(() => import('../patients/templates').then(module => ({ default: module.TemplatesComponent })));
 const BHW_PATIENT_LIMIT = 1000;
 const BHW_FHSIS_LIMIT = 1000;
-const BHW_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at, patient_consent(consent_id)';
+const BHW_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at, patient_consent(consent_id, consent_date, created_at)';
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
 const PatientConsentModal = lazy(() => import('../../components/patient/PatientConsentModal').then(module => ({ default: module.PatientConsentModal })));
 
-type ConsentRelation = { consent_id: string } | { consent_id: string }[] | null;
+type ConsentRelation = { consent_id: string; consent_date?: string | null; created_at?: string | null } | { consent_id: string; consent_date?: string | null; created_at?: string | null }[] | null;
 type BhwPatient = Patient & { patient_consent?: ConsentRelation };
 type ConsentFilter = 'all' | 'pending' | 'signed';
 const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
@@ -43,11 +43,13 @@ const BhwDashboard = () => {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [records, setRecords] = useState<any[]>([]); // State for FHSIS Census Logs
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [lastUpdatedPatient, setLastUpdatedPatient] = useState<Patient | null>(null);
     const [isDashboardLoading, setIsDashboardLoading] = useState(true);
     const [dashboardError, setDashboardError] = useState('');
     const [reloadToken, setReloadToken] = useState(0);
     const [consentPatient, setConsentPatient] = useState<Patient | null>(null);
     const [signedConsentIds, setSignedConsentIds] = useState<Set<string>>(new Set());
+    const [signedConsentDates, setSignedConsentDates] = useState<Map<string, string>>(new Map());
     const [consentFilter, setConsentFilter] = useState<ConsentFilter>('all');
     const { showToast, ToastComponent } = useToast();
 
@@ -160,27 +162,50 @@ const BhwDashboard = () => {
         return Array.isArray(relation) ? relation.length > 0 : !!relation;
     };
 
+    const getLatestConsentTime = (p: Patient) => {
+        const locallySignedAt = signedConsentDates.get(p.id);
+        if (locallySignedAt) return Date.parse(locallySignedAt) || 0;
+
+        const relation = (p as BhwPatient).patient_consent;
+        const consents = Array.isArray(relation) ? relation : relation ? [relation] : [];
+        return consents.reduce((latest, consent) => {
+            const signedAt = Date.parse(consent.consent_date || consent.created_at || '') || 0;
+            return Math.max(latest, signedAt);
+        }, 0);
+    };
+
     const directoryPatients = useMemo(
-        () => patients.filter(p => {
-            if (consentFilter === 'pending') return !isConsentSigned(p);
-            if (consentFilter === 'signed') return isConsentSigned(p);
-            return true;
-        }),
-        [patients, consentFilter, signedConsentIds]
+        () => patients
+            .filter(p => {
+                if (consentFilter === 'pending') return !isConsentSigned(p);
+                if (consentFilter === 'signed') return isConsentSigned(p);
+                return true;
+            })
+            .sort((first, second) => getLatestConsentTime(second) - getLatestConsentTime(first)),
+        [patients, consentFilter, signedConsentIds, signedConsentDates]
     );
 
     // Consent is signed in a dialog on top of the current list so the BHW never
     // loses their place. The dialog mounts the shared PatientConsent form.
     const openConsentFlow = (p: Patient) => setConsentPatient(p);
 
-    const handleConsentSaved = (p: Patient) => {
+    const handleConsentSaved = (p: Patient, consentDate: string) => {
         setSignedConsentIds(prev => {
             const next = new Set(prev);
             next.add(p.id);
             return next;
         });
+        setSignedConsentDates(prev => new Map(prev).set(p.id, consentDate));
         setConsentPatient(null);
         showToast('Patient consent recorded successfully.', false);
+    };
+
+    const handlePatientUpdated = (updatedPatient: Patient) => {
+        setPatients(currentPatients => currentPatients.map(patient =>
+            patient.id === updatedPatient.id ? { ...patient, ...updatedPatient } : patient,
+        ));
+        setSelectedPatient(updatedPatient);
+        setLastUpdatedPatient(updatedPatient);
     };
 
     return (
@@ -403,7 +428,10 @@ const BhwDashboard = () => {
                         {activePage === 'records' && (
                             <div className="pwa-page-pad patient-list-page-shell">
                                 <Suspense fallback={<LazyPanelFallback />}>
-                                    <RecordsComponent onPatientClick={(p) => setSelectedPatient(p as any)} />
+                                    <RecordsComponent
+                                        onPatientClick={(p) => setSelectedPatient(p as any)}
+                                        updatedPatient={lastUpdatedPatient}
+                                    />
                                 </Suspense>
                             </div>
                         )}
@@ -434,7 +462,7 @@ const BhwDashboard = () => {
                     <PatientDetailModal
                         patient={selectedPatient}
                         onClose={() => setSelectedPatient(null)}
-                        onPatientUpdate={(updated) => setSelectedPatient(updated)}
+                        onPatientUpdate={handlePatientUpdated}
                         consentSigned={isConsentSigned(selectedPatient)}
                         onRecordConsent={activePage === 'records' ? undefined : openConsentFlow}
                     />
@@ -448,7 +476,7 @@ const BhwDashboard = () => {
                         patientName={`${consentPatient.firstName} ${consentPatient.lastName}`}
                         rhuPersonnel={userName}
                         onClose={() => setConsentPatient(null)}
-                        onConsentSaved={() => handleConsentSaved(consentPatient)}
+                        onConsentSaved={(consentDate) => handleConsentSaved(consentPatient, consentDate)}
                     />
                 </Suspense>
             )}

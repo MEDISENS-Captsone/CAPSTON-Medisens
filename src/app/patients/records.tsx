@@ -57,6 +57,7 @@ interface Patient {
 
 type RecordsComponentProps = {
     onPatientClick?: (patient: Patient) => void;
+    updatedPatient?: (Partial<Patient> & { id: string }) | null;
 };
 
 function getVisiblePageNumbers(currentPage: number, totalPages: number): Array<number | 'ellipsis'> {
@@ -66,7 +67,7 @@ function getVisiblePageNumbers(currentPage: number, totalPages: number): Array<n
     return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
 }
 
-export function RecordsComponent({ onPatientClick }: RecordsComponentProps = {}) {
+export function RecordsComponent({ onPatientClick, updatedPatient = null }: RecordsComponentProps = {}) {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [allPatients, setAllPatients] = useState<Patient[]>([]);
     const [search, setSearch] = useState('');
@@ -101,6 +102,13 @@ export function RecordsComponent({ onPatientClick }: RecordsComponentProps = {})
     useEffect(() => {
         fetchPatients();
     }, [fetchPatients]);
+
+    useEffect(() => {
+        if (!updatedPatient) return;
+        setAllPatients(currentPatients => currentPatients.map(patient =>
+            patient.id === updatedPatient.id ? { ...patient, ...updatedPatient } : patient,
+        ));
+    }, [updatedPatient]);
 
     useEffect(() => {
         const lower = search.toLowerCase();

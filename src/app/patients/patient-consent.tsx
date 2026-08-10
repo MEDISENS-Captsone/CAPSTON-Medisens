@@ -25,7 +25,7 @@ interface ConsentProps {
     patientId: string;
     patientName: string;
     rhuPersonnel?: string;
-    onConsentSaved: () => void;
+    onConsentSaved: (consentDate: string) => void;
 }
 
 interface SigPadProps {
@@ -126,17 +126,18 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
             const patientSignatureDataUrl = patientSigCanvas.current?.getCanvas().toDataURL('image/png');
             const personnelSignatureDataUrl = personnelSigCanvas.current?.getCanvas().toDataURL('image/png');
 
+            const consentDate = new Date().toISOString();
             await savePatientConsent({
                 patient_id: patientId,
                 consent_signer: true,
                 consent_signature: patientSignatureDataUrl,
                 consent_personnel: rhuPersonnel,
                 consent_personnel_signature: personnelSignatureDataUrl,
-                consent_date: new Date().toISOString(),
+                consent_date: consentDate,
             });
 
             showToast('Patient consent saved successfully.', false);
-            onConsentSaved();
+            onConsentSaved(consentDate);
         } catch (err) {
             logError('Failed to save patient consent', err);
             showToast(healthcareErrorMessage("save the patient's consent"), true);

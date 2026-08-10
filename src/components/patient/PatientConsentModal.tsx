@@ -8,7 +8,7 @@ interface PatientConsentModalProps {
     rhuPersonnel?: string;
     onClose: () => void;
     /** Fired after the consent record is actually saved by PatientConsent. */
-    onConsentSaved: () => void;
+    onConsentSaved: (consentDate: string) => void;
 }
 
 const TITLE_ID = 'patient-consent-dialog-title';
