@@ -4187,6 +4187,24 @@ button.clinical-worklist-row {
     padding: 1rem 1.25rem calc(1rem + var(--safe-bottom));
 }
 
+/* Consultation history is a focused record-review surface. Keep it narrower
+   than data-entry drawers while retaining the established full-height
+   slide-over behavior and a contained mobile sheet. */
+.clinical-drawer.consultation-history-drawer {
+    width: min(100vw, 40rem);
+    max-width: min(100vw, 40rem);
+}
+
+.consultation-history-drawer .clinical-drawer-body {
+    overflow-x: hidden;
+    background: var(--bg);
+    padding-bottom: 1rem;
+}
+
+.consultation-history-drawer .patient-chart-section-body {
+    background: var(--bg);
+}
+
 /* Audit drawers keep the Laboratory slide-over proportions. The detail panel is
    full-height and edge-aligned; both audit drawers retain a 44px close target. */
 .clinical-drawer.audit-detail-drawer {
