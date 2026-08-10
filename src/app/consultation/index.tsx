@@ -21,6 +21,7 @@ export interface ConsultationPageProps {
     doctorInitials?: string;
     patientIdProp?: string | null;
     icidProp?: string | null;
+    isFollowUpVisit?: boolean;
     onSelectPatient?: (patientId: string, initialConsultationId: string) => void;
     onBack?: () => void;
     onReturnToQueue?: () => void;
@@ -109,7 +110,7 @@ const ROUTINE_BLOOD_TESTS = ['cbc', 'cbcPlatelet', 'hgbHct', 'bloodTyping'] as c
 const FASTING_BLOOD_TESTS = ['rbs', 'fbs', 'uricAcid', 'cholesterol', 'lipidProfile', 'hba1c', 'creatinine', 'sgpt'] as const;
 const FOLLOW_UP_LOAD_COLUMNS = 'followup_id, consultation_id, patient_id, visit_date, visit_time, mode_of_transaction, mode_of_transfer, chief_complaint, diagnosis, history_of_present_illness, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, blood_type, general_survey, medication_treatment, follow_up_status';
 const LATEST_VITAL_COLUMNS = 'vitals_id, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, general_survey, initial_consultation_id';
-const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status';
+const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, past_med_surge_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status';
 
 // --- History Panel Sub-Component ----------------------------------------------
 function HistoryPanel({ patientId, patientName, onClose }: { patientId: string; patientName: string; onClose: () => void; }) {
@@ -401,6 +402,7 @@ export function ConsultationPage({
     doctorName,
     patientIdProp,
     icidProp,
+    isFollowUpVisit = false,
     onSelectPatient,
     onBack,
     onReturnToQueue
@@ -411,17 +413,17 @@ export function ConsultationPage({
     const icidFromUrl = icidProp || urlParams.get('icid');
 
     const [formData, setFormData] = useState({
-        familyHistory: '', immunizationHistory: '', smoking: '', smokingSticksPerDay: '', smokingYears: '',
+        familyHistory: '', pastMedSurgeHistory: '', immunizationHistory: '', smoking: '', smokingSticksPerDay: '', smokingYears: '',
         drinking: '', drinkingFrequency: '', drinkingYears: '', menarche: '', onsetSexualIntercourse: '',
         menopause: '', menopauseAge: '', lmp: '', intervalCycle: '', periodDuration: '', padsPerDay: '',
         birthControlMethod: '', gravidity: '', parity: '', typeOfDelivery: '', fullTerm: '', premature: '',
-        abortion: '', livingChildren: '', preEclampsia: '', medicationAndTreatment: '',
+        abortion: '', livingChildren: '', preEclampsia: '', medicationAndTreatment: '', managementTreatment: '', assessment: '', plan: '',
 
         followUpDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }), followUpTime: '', followUpModeOfTx: 'Walk-in',
         followUpModeOfTransfer: 'Ambulatory', followUpChiefComplaint: '', followUpDiagnosis: '', followUpHpi: '',
         followUpBp: '', followUpHr: '', followUpRr: '', followUpTemp: '', followUpO2: '', followUpWeight: '',
         followUpHeight: '', followUpMuac: '', followUpNutritionalStatus: '', followUpBmi: '', followUpVaL: '',
-        followUpVaR: '', followUpBloodType: '', followUpGenSurvey: '', managementTreatment: '', followUpLabResults: '',
+        followUpVaR: '', followUpBloodType: '', followUpGenSurvey: '', generalSurvey: '', followUpMedicationTreatment: '', followUpLabResults: '',
         attendingProvider: '', chiefComplaints: '', diagnosis: '', hpi: '',
 
         bp: '', hr: '', rr: '', temp: '', weight: '', height: '', o2Saturation: '', muac: '',
@@ -560,7 +562,7 @@ export function ConsultationPage({
             followUpVaR: data.visual_acuity_right ?? '',
             followUpBloodType: data.blood_type ?? '',
             followUpGenSurvey: data.general_survey ?? '',
-            managementTreatment: data.medication_treatment ?? prev.managementTreatment,
+            followUpMedicationTreatment: data.medication_treatment ?? prev.followUpMedicationTreatment,
         }));
     }, []);
 
@@ -605,7 +607,7 @@ export function ConsultationPage({
                     ...prev, bp: data.bp ?? '', hr: data.heart_rate?.toString() ?? '', rr: data.respiratory_rate?.toString() ?? '',
                     temp: data.temperature?.toString() ?? '', weight: data.weight?.toString() ?? '', height: data.height?.toString() ?? '',
                     o2Saturation: data.o2_saturation?.toString() ?? '', muac: data.muac?.toString() ?? '', nutritionalStatus: data.nutritional_status ?? '',
-                    bmi: data.bmi?.toString() ?? '', visualAcuityLeft: data.visual_acuity_left ?? '', visualAcuityRight: data.visual_acuity_right ?? '',
+                    bmi: data.bmi?.toString() ?? '', visualAcuityLeft: data.visual_acuity_left ?? '', visualAcuityRight: data.visual_acuity_right ?? '', generalSurvey: data.general_survey ?? '',
                 }));
             }
         });
@@ -638,11 +640,15 @@ export function ConsultationPage({
             setFormData(prev => ({
                 ...prev,
                 familyHistory: data.family_history ?? '',
+                pastMedSurgeHistory: data.past_med_surge_history ?? '',
                 chiefComplaints: data.chief_complaints ?? '',
                 diagnosis: data.diagnosis ?? '',
                 hpi: data.hpi ?? '',
                 attendingProvider: data.attending_provider ?? prev.attendingProvider,
                 medicationAndTreatment: data.medication_treatment ?? '',
+                managementTreatment: data.management_treatment ?? '',
+                assessment: data.assessment ?? '',
+                plan: data.plan ?? '',
             }));
         });
     }, [patient?.id, icidFromUrl]);
@@ -723,6 +729,9 @@ export function ConsultationPage({
                         hpi: data.hpi ?? prev.hpi,
                         attendingProvider: data.attending_provider ?? prev.attendingProvider,
                         medicationAndTreatment: data.medication_treatment ?? prev.medicationAndTreatment,
+                        managementTreatment: data.management_treatment ?? prev.managementTreatment,
+                        assessment: data.assessment ?? prev.assessment,
+                        plan: data.plan ?? prev.plan,
                     }));
                     if (data.follow_up_status === 'done') setFollowUpDone(true);
                 }
@@ -754,6 +763,7 @@ export function ConsultationPage({
                         bmi: data.bmi?.toString() ?? prev.bmi,
                         visualAcuityLeft: data.visual_acuity_left ?? prev.visualAcuityLeft,
                         visualAcuityRight: data.visual_acuity_right ?? prev.visualAcuityRight,
+                        generalSurvey: data.general_survey ?? prev.generalSurvey,
                     }));
                 }
             )
@@ -770,7 +780,7 @@ export function ConsultationPage({
     // -------------------------------------------------------------------------
     const buildConsultationPayload = () => ({
         patient_id: patient?.id, ...(icidFromUrl ? { initial_consultation_id: parseInt(icidFromUrl as string) } : {}),
-        family_history: formData.familyHistory || null, immunization_history: formData.immunizationHistory || null,
+        family_history: formData.familyHistory || null, past_med_surge_history: formData.pastMedSurgeHistory || null, immunization_history: formData.immunizationHistory || null,
         smoking_status: formData.smoking || null, smoking_sticks_per_day: formData.smokingSticksPerDay ? parseInt(formData.smokingSticksPerDay) : null,
         smoking_years: formData.smokingYears ? parseInt(formData.smokingYears) : null, drinking_status: formData.drinking || null,
         drinking_frequency: formData.drinkingFrequency || null, drinking_years: formData.drinkingYears ? parseInt(formData.drinkingYears) : null,
@@ -780,7 +790,7 @@ export function ConsultationPage({
         birth_control_method: formData.birthControlMethod || null, gravidity: formData.gravidity ? parseInt(formData.gravidity) : null, parity: formData.parity ? parseInt(formData.parity) : null,
         delivery_type: formData.typeOfDelivery || null, full_term_count: formData.fullTerm ? parseInt(formData.fullTerm) : null, premature_count: formData.premature ? parseInt(formData.premature) : null,
         abortion_count: formData.abortion ? parseInt(formData.abortion) : null, living_children_count: formData.livingChildren ? parseInt(formData.livingChildren) : null, pre_eclampsia: formData.preEclampsia || null,
-        medication_treatment: formData.medicationAndTreatment || null, management_treatment: formData.managementTreatment || null, attending_provider: formData.attendingProvider || null,
+        medication_treatment: formData.medicationAndTreatment || null, management_treatment: formData.managementTreatment || null, assessment: formData.assessment || null, plan: formData.plan || null, attending_provider: formData.attendingProvider || null,
         chief_complaints: formData.chiefComplaints || null, diagnosis: formData.diagnosis || null, hpi: formData.hpi || null,
     });
 
@@ -794,7 +804,7 @@ export function ConsultationPage({
             o2_saturation: toNumberOrNull(formData.followUpO2), weight: toNumberOrNull(formData.followUpWeight), height: toNumberOrNull(formData.followUpHeight), muac: toNumberOrNull(formData.followUpMuac),
             nutritional_status: followUpBmiInfo?.status || formData.followUpNutritionalStatus || null, bmi: followUpBmiInfo ? parseFloat(followUpBmiInfo.value) : toNumberOrNull(formData.followUpBmi),
             visual_acuity_left: formData.followUpVaL || null, visual_acuity_right: formData.followUpVaR || null, blood_type: formData.followUpBloodType || patient?.bloodType || null,
-            general_survey: formData.followUpGenSurvey || null, medication_treatment: formData.managementTreatment || null, lab_results: formData.followUpLabResults || null, signature_url: sigUrl || null,
+            general_survey: formData.followUpGenSurvey || null, medication_treatment: formData.followUpMedicationTreatment || null, lab_results: formData.followUpLabResults || null, signature_url: sigUrl || null,
             follow_up_status: followUpStatus,
         };
     };
@@ -881,7 +891,7 @@ export function ConsultationPage({
                 bmi: followUpBmiInfo ? parseFloat(followUpBmiInfo.value) : toNumberOrNull(formData.followUpBmi),
                 visual_acuity_left: formData.followUpVaL || null, visual_acuity_right: formData.followUpVaR || null,
                 blood_type: formData.followUpBloodType || patient?.bloodType || null,
-                general_survey: formData.followUpGenSurvey || null, medication_treatment: formData.managementTreatment || null,
+                general_survey: formData.followUpGenSurvey || null, medication_treatment: formData.followUpMedicationTreatment || null,
                 lab_results: formData.followUpLabResults || null, signature_url: sigUrl || null,
             };
             await upsertLatestFollowUpByPatient(patient.id, donePayload);
@@ -1000,7 +1010,7 @@ export function ConsultationPage({
                         with the following diagnosis:
                     </div>
                     <div class="section"><span class="section-label">Diagnosis:</span><div class="section-content">${formData.diagnosis || ''}</div></div>
-                    <div class="section"><span class="section-label">Remarks / Recommendation:</span><div class="section-content">${formData.medicationAndTreatment || ''}</div></div>
+                    <div class="section"><span class="section-label">Remarks / Recommendation:</span><div class="section-content">${formData.plan || formData.medicationAndTreatment || ''}</div></div>
                     <div class="footer">
                         <div class="doctor-block">
                             <div class="sig-line"></div>
@@ -1141,44 +1151,33 @@ export function ConsultationPage({
 
     const renderTab1 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">I. Histories</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div><label className={labelCls} htmlFor="consult-familyHistory">Family History</label><textarea id="consult-familyHistory" name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
-                    <div><label className={labelCls} htmlFor="consult-immunizationHistory">Immunization History</label><textarea id="consult-immunizationHistory" name="immunizationHistory" value={formData.immunizationHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
-                </div>
-                <div className="bg-[var(--surface-subtle)]/70 rounded-xl border border-[var(--border)] p-5 space-y-6 shadow-sm">
-                    <div>
-                        <label className={labelCls}>Smoking History</label>
-                        <RadioGroup name="smoking" options={['Yes', 'No']} value={formData.smoking} />
-                        {formData.smoking === 'Yes' && (
-                            <div className="grid grid-cols-2 gap-3 mt-3">
-                                <div><label className={labelCls} htmlFor="consult-smokingSticksPerDay">Sticks / Day</label><input id="consult-smokingSticksPerDay" type="number" name="smokingSticksPerDay" value={formData.smokingSticksPerDay} onChange={handleChange} className={inputCls} /></div>
-                                <div><label className={labelCls} htmlFor="consult-smokingYears">Years</label><input id="consult-smokingYears" type="number" name="smokingYears" value={formData.smokingYears} onChange={handleChange} className={inputCls} /></div>
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <label className={labelCls}>Drinking History</label>
-                        <RadioGroup name="drinking" options={['Yes', 'No']} value={formData.drinking} />
-                        {formData.drinking === 'Yes' && (
-                            <div className="grid grid-cols-2 gap-3 mt-3">
-                                <div><label className={labelCls} htmlFor="consult-drinkingFrequency">Frequency</label><input id="consult-drinkingFrequency" type="text" name="drinkingFrequency" value={formData.drinkingFrequency} onChange={handleChange} className={inputCls} /></div>
-                                <div><label className={labelCls} htmlFor="consult-drinkingYears">Years</label><input id="consult-drinkingYears" type="number" name="drinkingYears" value={formData.drinkingYears} onChange={handleChange} className={inputCls} /></div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">I. Chief Complaint and History of Present Illness</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label className={labelCls} htmlFor="consult-chiefComplaints">Chief Complaint</label><textarea id="consult-chiefComplaints" name="chiefComplaints" value={formData.chiefComplaints} onChange={handleChange} rows={6} className={textareaCls} placeholder="Describe the patient’s main concern..." /></div>
+                <div><label className={labelCls} htmlFor="consult-hpi">History of Present Illness</label><textarea id="consult-hpi" name="hpi" value={formData.hpi} onChange={handleChange} rows={6} className={textareaCls} placeholder="Document onset, course, and relevant symptoms..." /></div>
             </div>
-            <div className="flex justify-end pt-4"><button onClick={() => setActiveTab(isMale ? 3 : 2)} className={`w-full md:w-auto text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors duration-200 ${primaryBtnBg}`}>{isMale ? 'Next: Assessment' : 'Next: OBGyne & Pregnancy'}</button></div>
+            <div className="flex justify-end pt-4"><button onClick={() => setActiveTab(2)} className={`w-full md:w-auto text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors duration-200 ${primaryBtnBg}`}>Next: Relevant Patient Histories</button></div>
         </div>
     );
 
     const renderTab2 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">II. OBGyne &amp; Pregnancy History</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">II. Relevant Patient Histories</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-4">
+                    <div><label className={labelCls} htmlFor="consult-pastMedSurgeHistory">Past Medical / Surgical History</label><textarea id="consult-pastMedSurgeHistory" name="pastMedSurgeHistory" value={formData.pastMedSurgeHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-familyHistory">Family History</label><textarea id="consult-familyHistory" name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
+                    <div><label className={labelCls} htmlFor="consult-immunizationHistory">Immunization History</label><textarea id="consult-immunizationHistory" name="immunizationHistory" value={formData.immunizationHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
+                </div>
+                <div className="bg-[var(--surface-subtle)]/70 rounded-xl border border-[var(--border)] p-5 space-y-6 shadow-sm">
+                    <div><label className={labelCls}>Smoking History</label><RadioGroup name="smoking" options={['Yes', 'No']} value={formData.smoking} />{formData.smoking === 'Yes' && <div className="grid grid-cols-2 gap-3 mt-3"><div><label className={labelCls} htmlFor="consult-smokingSticksPerDay">Sticks / Day</label><input id="consult-smokingSticksPerDay" type="number" name="smokingSticksPerDay" value={formData.smokingSticksPerDay} onChange={handleChange} className={inputCls} /></div><div><label className={labelCls} htmlFor="consult-smokingYears">Years</label><input id="consult-smokingYears" type="number" name="smokingYears" value={formData.smokingYears} onChange={handleChange} className={inputCls} /></div></div>}</div>
+                    <div><label className={labelCls}>Drinking History</label><RadioGroup name="drinking" options={['Yes', 'No']} value={formData.drinking} />{formData.drinking === 'Yes' && <div className="grid grid-cols-2 gap-3 mt-3"><div><label className={labelCls} htmlFor="consult-drinkingFrequency">Frequency</label><input id="consult-drinkingFrequency" type="text" name="drinkingFrequency" value={formData.drinkingFrequency} onChange={handleChange} className={inputCls} /></div><div><label className={labelCls} htmlFor="consult-drinkingYears">Years</label><input id="consult-drinkingYears" type="number" name="drinkingYears" value={formData.drinkingYears} onChange={handleChange} className={inputCls} /></div></div>}</div>
+                </div>
+            </div>
+            {!isMale && <div className="mt-8 border-t border-[var(--border-soft)] pt-6">
+                <h4 className="mb-5 text-base font-bold text-[var(--text)]">OB-Gyne and Pregnancy History</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
                     <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide">OBGyne</p>
                     <div className="grid grid-cols-2 gap-4">
                         <div><label className={labelCls} htmlFor="consult-menarche">Menarche (y/o)</label><input id="consult-menarche" type="number" name="menarche" value={formData.menarche} onChange={handleChange} className={inputCls} /></div>
@@ -1215,23 +1214,37 @@ export function ConsultationPage({
                     </div>
                     <div><label className={labelCls}>Pre-eclampsia</label><RadioGroup name="preEclampsia" options={['Yes', 'No']} value={formData.preEclampsia} /></div>
                 </div>
-            </div>
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(3)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Clinical Assessment</button></div>
+                </div>
+            </div>}
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(3)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Pertinent Physical Examination Findings</button></div>
         </div>
     );
 
     const renderTab3 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
-            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">III. Clinical Assessment</h3>
-            <div><label className={labelCls} htmlFor="consult-medicationAndTreatment">Medication and Treatment</label><textarea id="consult-medicationAndTreatment" name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} rows={7} className={textareaCls} /></div>
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(isMale ? 1 : 2)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(5)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Clinical Notes</button></div>
+            <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">III. Pertinent Physical Examination Findings</h3>
+            <div>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Latest vital signs</p>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+                    {[["BP", formData.bp], ["Heart rate", formData.hr && `${formData.hr} bpm`], ["Respiratory rate", formData.rr && `${formData.rr} cpm`], ["Temperature", formData.temp && `${formData.temp} °C`], ["O₂ saturation", formData.o2Saturation && `${formData.o2Saturation}%`]].map(([label, value]) => <div key={label} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-subtle)] p-3"><p className="text-xs font-semibold text-[var(--text-muted)]">{label}</p><p className="mt-1 text-sm font-semibold text-[var(--text)]">{value || 'Not recorded'}</p></div>)}
+                </div>
+            </div>
+            <div>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Anthropometric measurements</p>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {[["Weight", formData.weight && `${formData.weight} kg`], ["Height", formData.height && `${formData.height} cm`], ["BMI", formData.bmi], ["Nutritional status", formData.nutritionalStatus]].map(([label, value]) => <div key={label} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-subtle)] p-3"><p className="text-xs font-semibold text-[var(--text-muted)]">{label}</p><p className="mt-1 text-sm font-semibold text-[var(--text)]">{value || 'Not recorded'}</p></div>)}
+                </div>
+            </div>
+            <div><label className={labelCls} htmlFor="consult-generalSurvey">General Survey</label><textarea id="consult-generalSurvey" value={formData.generalSurvey} readOnly rows={3} className={`${textareaCls} cursor-default bg-[var(--surface-subtle)]`} placeholder="Not recorded" /></div>
+            <div><label className={labelCls} htmlFor="consult-assessment">Relevant Physical Examination Findings</label><textarea id="consult-assessment" name="assessment" value={formData.assessment} onChange={handleChange} rows={6} className={textareaCls} placeholder="Document pertinent examination findings..." /></div>
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(2)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(5)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Diagnosis</button></div>
         </div>
     );
 
     const renderTab4 = () => (
         <div className="space-y-6  pb-20 md:pb-0">
             <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-3">
-                <h3 className="text-lg font-bold text-[var(--text)]">V. Follow-up Visit</h3>
+                <h3 className="text-lg font-bold text-[var(--text)]">V. Management and Health Education</h3>
             </div>
             {!consultationSaved && (
                 <div className="flex items-start gap-3 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]">
@@ -1239,8 +1252,19 @@ export function ConsultationPage({
                     <span>Follow-up details will be recorded when the consultation is finalized.</span>
                 </div>
             )}
+            <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)]/70 p-5">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Initial consultation management</p>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">Document the plan, instructions, and health education for this consultation.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div><label className={labelCls} htmlFor="consult-managementTreatment">Treatment / Management Plan</label><textarea id="consult-managementTreatment" name="managementTreatment" value={formData.managementTreatment} onChange={handleChange} rows={5} className={textareaCls} placeholder="Treatment plan and management..." /></div>
+                    <div><label className={labelCls} htmlFor="consult-medicationAndTreatment">Medication or Treatment Instructions</label><textarea id="consult-medicationAndTreatment" name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} rows={5} className={textareaCls} placeholder="Medication and treatment instructions..." /></div>
+                    <div className="md:col-span-2"><label className={labelCls} htmlFor="consult-plan">Patient Instructions, Health Education, and Recommendations</label><textarea id="consult-plan" name="plan" value={formData.plan} onChange={handleChange} rows={5} className={textareaCls} placeholder="Patient instructions, health education, recommendations, and follow-up advice..." /></div>
+                </div>
+            </div>
             <div>
-                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Visit Information</p>
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Follow-up Schedule</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div><label className={labelCls} htmlFor="consult-followUpDate">Visit Date</label><input id="consult-followUpDate" type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className={inputCls} /></div>
                     <div><label className={labelCls} htmlFor="consult-followUpTime">Visit Time</label><input id="consult-followUpTime" type="time" name="followUpTime" value={formData.followUpTime} onChange={handleChange} className={inputCls} /></div>
@@ -1265,7 +1289,7 @@ export function ConsultationPage({
                 </div>
             </div>
 
-            {!followUpVisitStarted && (
+            {isFollowUpVisit && !followUpVisitStarted && (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border border-[var(--border)] bg-[var(--surface-subtle)] rounded-xl px-4 py-4">
                     <p className="text-sm text-[var(--text-2)]">
                         Examination fields open once this follow-up visit begins for <span className="font-semibold">{patientFullName}</span>.
@@ -1276,7 +1300,7 @@ export function ConsultationPage({
                 </div>
             )}
 
-            {followUpVisitStarted && (<>
+            {isFollowUpVisit && followUpVisitStarted && (<>
             <div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">General Survey</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -1320,8 +1344,8 @@ export function ConsultationPage({
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Treatment &amp; Results</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className={labelCls} htmlFor="consult-managementTreatment">Medication / Treatment <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span></label>
-                        <textarea rows={5} id="consult-managementTreatment" name="managementTreatment" value={formData.managementTreatment} onChange={handleChange} className={textareaCls} placeholder="Medications prescribed, treatment plan..." />
+                        <label className={labelCls} htmlFor="consult-followUpMedicationTreatment">Medication / Treatment <span className="text-[var(--text-muted)] italic font-normal normal-case">(Doctor Only)</span></label>
+                        <textarea rows={5} id="consult-followUpMedicationTreatment" name="followUpMedicationTreatment" value={formData.followUpMedicationTreatment} onChange={handleChange} className={textareaCls} placeholder="Medications prescribed, treatment plan..." />
                     </div>
                     <div>
                         <label className={labelCls} htmlFor="consult-followUpLabResults">
@@ -1354,8 +1378,8 @@ export function ConsultationPage({
             <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-[var(--border-soft)]">
                 <button onClick={() => setActiveTab(5)} className="order-2 sm:order-1 bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
                 <div className="order-1 sm:order-2 flex flex-col gap-3 w-full sm:w-auto bg-[var(--surface-subtle)] border border-[var(--border)] p-4 rounded-2xl shadow-sm">
-                    <p className="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wide text-center mb-1">Follow-up Actions</p>
-                    {followUpVisitStarted && (!followUpDone ? (
+                    {isFollowUpVisit && <p className="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wide text-center mb-1">Follow-up Actions</p>}
+                    {isFollowUpVisit && followUpVisitStarted && (!followUpDone ? (
                         <button onClick={handleMarkFollowUpDone} disabled={loading || !patient?.id} className="w-full bg-white hover:bg-[var(--green-tint)] text-[var(--green-dark)] py-3 px-6 rounded-xl font-bold transition-colors border border-[var(--green-border)] flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
                             {loading ? 'Processing...' : <><Icon name="check" className="h-4 w-4" /> Mark Follow-up as Done</>}
                         </button>
@@ -1371,19 +1395,13 @@ export function ConsultationPage({
     const renderTab5 = () => (
         <div className={cardCls}>
             <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-soft)] pb-4">
-                <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">IV. Clinical Notes &amp; Certification</h3>
+                <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">IV. Diagnosis</h3>
             </div>
             <div className="space-y-6">
                 <div>
                     <label className={labelCls} htmlFor="consult-diagnosis">Diagnosis: <span className="text-[var(--marker-required)]">*</span></label>
                     <textarea id="consult-diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={`${textareaCls} min-h-[120px] border-l-4 border-l-blue-500`} placeholder="Enter final diagnosis for the Medical Certificate..." />
                 </div>
-                <div>
-                    <label className={labelCls} htmlFor="consult-remarksRecommendation">Remarks / Recommendation:</label>
-                    <textarea id="consult-remarksRecommendation" name="medicationAndTreatment" value={formData.medicationAndTreatment} onChange={handleChange} className={`${textareaCls} min-h-[120px]`} placeholder="Enter instructions, rest period, or follow-up recommendations..." />
-                </div>
-            </div>
-            <div className="pt-6 mt-6 border-t border-[var(--border-soft)] grid grid-cols-1 sm:grid-cols-2 gap-6">
             </div>
             <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-[var(--border-soft)]">
                 <button onClick={() => setActiveTab(3)} className="order-2 sm:order-1 bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
@@ -1392,8 +1410,16 @@ export function ConsultationPage({
                         <button onClick={handlePrintMedCert} className="w-full bg-white hover:bg-[var(--surface-subtle)] text-[var(--text-2)] py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-[var(--border-soft)]"><Icon name="file-text" className="h-4 w-4" /> Print Medical Certificate</button>
                     </div>
                     <div className="flex gap-3 w-full sm:w-auto">
-                        <button onClick={handleSaveConsultation} className="flex-1 bg-white border-2 border-[var(--border-strong)] text-[var(--text-2)] py-3 px-6 rounded-xl font-bold hover:bg-[var(--surface-subtle)] transition-colors flex items-center justify-center gap-2"><Icon name="save" className="h-4 w-4" /> Record Consultation</button>
-                        <button onClick={() => setActiveTab(4)} className={`flex-1 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Follow-up</button>
+                        <button
+                            type="button"
+                            onClick={handleSaveConsultation}
+                            disabled={loading || !patient?.id}
+                            aria-busy={loading}
+                            className="flex-1 min-h-11 bg-white border-2 border-[var(--border-strong)] text-[var(--text-2)] py-3 px-6 rounded-xl font-bold shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-[var(--surface-subtle)] hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-active)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-60 disabled:shadow-none flex items-center justify-center gap-2"
+                        >
+                            {loading ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : <><Icon name="save" className="h-4 w-4" /> Record Consultation</>}
+                        </button>
+                        <button onClick={() => setActiveTab(4)} className={`flex-1 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Management and Health Education</button>
                     </div>
                 </div>
             </div>
@@ -1517,18 +1543,18 @@ export function ConsultationPage({
                     <div className="bg-[var(--surface-subtle)] p-1.5 rounded-xl border border-[var(--border)] shadow-sm w-full sm:w-auto">
                         <button onClick={handlePrintPrescription} className="w-full sm:w-auto bg-white hover:bg-[var(--surface-subtle)] text-[var(--text-2)] py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-[var(--border-soft)]"><Icon name="printer" className="h-4 w-4" /> Print Prescription Copy</button>
                     </div>
-                    <button onClick={handleSavePrescription} className={`w-full sm:w-auto text-white py-3.5 px-8 rounded-xl font-bold shadow-md transition-all  flex items-center justify-center gap-2 ${primaryBtnBg}`}><Icon name="pill" className="h-4 w-4" /> Authorize &amp; Send to Pharmacy</button>
+                    <button onClick={handleSavePrescription} disabled={loading || !patient?.id} className={`w-full sm:w-auto text-white py-3.5 px-8 rounded-xl font-bold shadow-md transition-all  flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 ${primaryBtnBg}`}>{loading ? 'Sending...' : <><Icon name="pill" className="h-4 w-4" /> Authorize &amp; Send to Pharmacy</>}</button>
                 </div>
             </div>
         </div>
     );
 
     const tabs = [
-        { id: 1, label: "1. Histories" },
-        { id: 2, label: "2. OBGyne", disabled: isMale },
-        { id: 3, label: "3. Assessment" },
-        { id: 5, label: "4. Clinical Notes" },
-        { id: 4, label: "5. Follow-up" },
+        { id: 1, label: "1. Chief Complaint & HPI" },
+        { id: 2, label: "2. Relevant Histories" },
+        { id: 3, label: "3. Physical Examination" },
+        { id: 5, label: "4. Diagnosis" },
+        { id: 4, label: "5. Management & Health Education" },
         { id: 7, label: "6. Lab Request" },
         { id: 8, label: "7. E-Prescription" },
     ];
@@ -1549,11 +1575,11 @@ export function ConsultationPage({
                             <span className="text-xs text-[var(--text-secondary)]">Blood Type: <span className="font-semibold text-[var(--text-2)]">{patient?.bloodType || '—'}</span></span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:flex-nowrap lg:justify-end">
                         {/* -- realtime pill in patient header -- */}
-                        <button onClick={() => setShowHistory(true)} className="text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5"><Icon name="clock" className="h-3.5 w-3.5" /> View Patient History</button>
-                        <button onClick={handleReturnToQueue} className="shrink-0 text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5"><Icon name="chevron-right" className="h-3.5 w-3.5 rotate-180" /> Back to Patient Queue</button>
-                        <button onClick={goBack} className="shrink-0 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)] bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all">Return to Work Queue</button>
+                        <button onClick={() => setShowHistory(true)} className="min-h-11 w-full justify-center text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 sm:w-auto"><Icon name="clock" className="h-3.5 w-3.5" /> View Patient History</button>
+                        <button onClick={handleReturnToQueue} className="min-h-11 w-full justify-center text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 sm:w-auto"><Icon name="chevron-right" className="h-3.5 w-3.5 rotate-180" /> Back to Patient Queue</button>
+                        <button onClick={goBack} className="min-h-11 w-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)] bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all sm:w-auto">Return to Work Queue</button>
                     </div>
                 </div>
 
@@ -1561,21 +1587,18 @@ export function ConsultationPage({
                 <div
                     role="tablist"
                     aria-label="Consultation Room steps"
-                    className="mb-8 grid w-full grid-cols-2 gap-2 [&>*:nth-child(7)]:col-span-2 sm:flex sm:flex-nowrap sm:items-center sm:gap-1 sm:overflow-x-auto sm:whitespace-nowrap sm:border-b sm:border-[var(--border)] sm:scrollbar-hide sm:[&>*:nth-child(7)]:col-span-1"
+                    className="mb-8 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7 lg:gap-1 lg:border-b lg:border-[var(--border)]"
                 >
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             role="tab"
                             aria-selected={activeTab === tab.id}
-                            onClick={() => !tab.disabled && setActiveTab(tab.id)}
-                            disabled={tab.disabled}
-                            className={`flex min-h-11 items-center justify-center rounded-lg border px-3 py-2.5 text-center text-sm font-bold leading-snug transition-all sm:min-h-0 sm:flex-shrink-0 sm:rounded-t-xl sm:rounded-b-none sm:border-x-0 sm:border-t-0 sm:border-b-2 sm:px-4 sm:py-3 sm:leading-normal ${
-                                tab.disabled
-                                    ? 'cursor-not-allowed border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)] line-through sm:border-transparent'
-                                    : activeTab === tab.id
-                                        ? 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white shadow-[var(--shadow-sm)] sm:border-[var(--brand-primary)] sm:bg-[var(--surface)] sm:text-[var(--text-2)]'
-                                        : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-2)] hover:bg-[var(--surface)] sm:border-transparent sm:bg-transparent sm:text-[var(--text-muted)] sm:hover:bg-[var(--surface)] sm:hover:text-[var(--text-2)]'
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex min-h-11 min-w-0 items-center justify-center rounded-lg border px-3 py-2.5 text-center text-sm font-bold leading-snug transition-all lg:min-h-0 lg:rounded-t-xl lg:rounded-b-none lg:border-x-0 lg:border-t-0 lg:border-b-2 lg:px-2 lg:py-3 ${
+                                activeTab === tab.id
+                                    ? 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white shadow-[var(--shadow-sm)] lg:border-[var(--brand-primary)] lg:bg-[var(--surface)] lg:text-[var(--text-2)]'
+                                    : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-2)] hover:bg-[var(--surface)] lg:border-transparent lg:bg-transparent lg:text-[var(--text-muted)] lg:hover:bg-[var(--surface)] lg:hover:text-[var(--text-2)]'
                             }`}
                         >
                             {tab.label}

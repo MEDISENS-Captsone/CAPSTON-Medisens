@@ -18,6 +18,8 @@ import { SkeletonList } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { RELIGION_OPTIONS } from '../../types/patient';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from './PatientChart';
+import { LastPatientHandler } from './LastPatientHandler';
+import { PediatricGrowth } from './PediatricGrowth';
 
 export interface Patient {
     id: string;
@@ -416,7 +418,7 @@ export function PatientDetailModal({
                                         <button
                                             type="button"
                                             onClick={() => onRecordConsent(patient)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--amber-surface)] text-[var(--amber-text)] border border-[var(--amber-border)] hover:bg-[var(--brand-accent-surface)] ${focusCls}`}
+                                            className={`min-h-11 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--amber-surface)] text-[var(--amber-text)] border border-[var(--amber-border)] hover:bg-[var(--brand-accent-surface)] ${focusCls}`}
                                         >
                                             <Icon name="clipboard" className="h-3.5 w-3.5" />
                                             Record Consent
@@ -426,7 +428,7 @@ export function PatientDetailModal({
                                         <button
                                             type="button"
                                             onClick={() => onConsult(patient)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--brand-primary-hover)] text-white hover:bg-[var(--brand-active)] ${focusCls}`}
+                                            className={`min-h-11 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--brand-primary-hover)] text-white hover:bg-[var(--brand-active)] ${focusCls}`}
                                         >
                                             <Icon name="clipboard" className="h-3.5 w-3.5" />
                                             Consult
@@ -436,7 +438,7 @@ export function PatientDetailModal({
                                         <button
                                             type="button"
                                             onClick={loadHistory}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-white text-[var(--brand-active)] border border-[var(--border-strong)] hover:bg-[var(--surface-muted)] ${focusCls}`}
+                                            className={`min-h-11 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-white text-[var(--brand-active)] border border-[var(--border-strong)] hover:bg-[var(--surface-muted)] ${focusCls}`}
                                         >
                                             <Icon name="clock" className="h-3.5 w-3.5" />
                                             History
@@ -445,7 +447,7 @@ export function PatientDetailModal({
                                     <button
                                         type="button"
                                         onClick={handleEditToggle}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${focusCls} ${isEditing ? 'bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)]' : 'bg-[var(--surface-muted)] text-[var(--brand-active)] hover:bg-[var(--brand-accent-surface)]'}`}
+                                        className={`min-h-11 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${focusCls} ${isEditing ? 'bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)]' : 'bg-[var(--surface-muted)] text-[var(--brand-active)] hover:bg-[var(--brand-accent-surface)]'}`}
                                     >
                                         {isEditing ? 'Cancel' : 'Edit Profile'}
                                     </button>
@@ -455,7 +457,7 @@ export function PatientDetailModal({
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close patient details"
-                                className={`h-10 w-10 -m-1 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
+                                className={`h-11 w-11 -m-1 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
                             >
                                 X
                             </button>
@@ -490,6 +492,8 @@ export function PatientDetailModal({
                                             <div className="text-xs font-medium text-[var(--text-secondary)]">Address</div>
                                             <div className="font-semibold text-[var(--text)]">{patient.address || '—'}</div>
                                         </div>
+                                        <LastPatientHandler patientId={patient.id} />
+                                        <PediatricGrowth patientId={patient.id} birthday={patient.birthday} age={patient.age} sex={patient.sex} />
                                     </div>
                                 </div>
 

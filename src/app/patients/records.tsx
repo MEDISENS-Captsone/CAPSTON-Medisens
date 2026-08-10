@@ -217,7 +217,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                     </div>
                 )}
 
-                <div className="clinical-table-scroll">
+                <div className="hidden md:block clinical-table-scroll">
                     <table className="clinical-table patient-records-table min-w-[760px]">
                         <thead>
                             <tr>
@@ -293,6 +293,52 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                <div className="space-y-3 p-3 md:hidden">
+                    {loading ? (
+                        <SkeletonTable rows={4} columns={1} />
+                    ) : loadError ? (
+                        <div role="alert">
+                            <EmptyState
+                                icon={<Icon name="alert-triangle" className="h-5 w-5" />}
+                                title="Patient records could not be loaded."
+                                className="clinical-table-state rounded-lg border"
+                            />
+                            <div className="flex justify-center pb-1">
+                                <Button type="button" variant="outline" size="sm" onClick={() => void fetchPatients()}>Retry</Button>
+                            </div>
+                        </div>
+                    ) : patients.length === 0 ? (
+                        <EmptyState
+                            icon={<Icon name="inbox" className="h-5 w-5" />}
+                            title={allPatients.length === 0 ? 'No patients are registered yet.' : 'No patients match the current search or filter.'}
+                            className="clinical-table-state rounded-lg border"
+                        />
+                    ) : (
+                        visiblePatients.map(p => (
+                            <article key={p.id} className="min-w-0 rounded-lg border border-[var(--border-soft)] bg-white p-4 shadow-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => handleRowClick(p)}
+                                    className="w-full min-w-0 text-left"
+                                    aria-label={`Open patient chart for ${p.lastName}, ${p.firstName}`}
+                                >
+                                    <div className="break-words font-semibold text-[var(--text)]">{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</div>
+                                    <div className="mt-1 break-all text-sm text-[var(--text-secondary)]">Patient record no. {p.id}</div>
+                                </button>
+                                <dl className="mt-4 grid grid-cols-1 gap-3 border-y border-[var(--border-soft)] py-3 text-sm sm:grid-cols-2">
+                                    <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Age / Sex</dt><dd className="mt-1 break-words text-[var(--text)]">{p.age ?? '-'} / {p.sex || '-'}</dd></div>
+                                    <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Barangay</dt><dd className="mt-1 break-words text-[var(--text)]">{p.address?.split(',')[0] || '-'}</dd></div>
+                                    <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Classification</dt><dd className="mt-1 break-words text-[var(--text)]">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</dd></div>
+                                    <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Contact</dt><dd className="mt-1 break-all text-[var(--text)]">{p.contactNumber || '-'}</dd></div>
+                                </dl>
+                                <div className="mt-3 flex justify-end">
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRowClick(p)} className="clinical-link-action">View Chart</Button>
+                                </div>
+                            </article>
+                        ))
+                    )}
                 </div>
 
                 {!loading && !loadError && patients.length > 0 && (

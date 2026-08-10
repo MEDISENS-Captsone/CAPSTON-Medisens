@@ -83,6 +83,7 @@ const DoctorDashboard = () => {
 
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [selectedIcid, setSelectedIcid] = useState<string | null>(null);
+    const [selectedVisitType, setSelectedVisitType] = useState<'initial' | 'follow-up' | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const [totalPatients, setTotalPatients] = useState(0);
@@ -492,15 +493,16 @@ const DoctorDashboard = () => {
         ? 'Top morbidities chart: no diagnoses recorded for the selected period.'
         : `Top morbidities chart: ${morbidityData.slice(0, 3).map(m => `${m.label} ${m.percentage}%`).join(', ')}.`;
 
-    const handleConsultNavigate = (patientId: string, icid?: string) => {
+    const handleConsultNavigate = (patientId: string, icid?: string, visitType: 'initial' | 'follow-up' | null = null) => {
         setSelectedPatient(null);
         setSelectedPatientId(patientId);
         setSelectedIcid(icid || null);
+        setSelectedVisitType(visitType);
         setActivePage('consultation');
     };
 
     return (
-        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
+        <div className="doctor-app-shell flex min-h-screen w-full overflow-x-hidden bg-[var(--bg)] md:h-screen md:overflow-hidden">
             <ToastComponent />
             <Sidebar
                 activePage={activePage}
@@ -518,7 +520,7 @@ const DoctorDashboard = () => {
                 isOnline={isOnline}
             />
 
-            <main className="app-shell-main flex-1 overflow-y-auto overflow-x-hidden md:ml-[240px]">
+            <main className="doctor-app-main app-shell-main flex-1 overflow-x-hidden md:ml-[240px] md:overflow-y-auto">
                 <Topbar
                     title={activePage === 'dashboard' ? 'Doctor Dashboard' : activePage === 'analytics' ? 'Doctor Analytics' : activePage === 'records' ? 'Patient Records' : activePage === 'audit-log' ? 'Audit Log' : activePage === 'archive-review' ? 'Archive Review' : 'Consultation Room'}
                     sectionLabel="Clinical Consultation"
@@ -600,7 +602,7 @@ const DoctorDashboard = () => {
                                                     {queue.map((q, index) => (
                                                         <button key={q.initialconsultation_id}
                                                             type="button"
-                                                            onClick={() => handleConsultNavigate(q.patient_id, q.initialconsultation_id.toString())}
+                                                            onClick={() => handleConsultNavigate(q.patient_id, q.initialconsultation_id.toString(), 'initial')}
                                                             aria-label={`Start consultation for ${q.patients?.lastName}, ${q.patients?.firstName}`}
                                                             className="clinical-worklist-row cursor-pointer w-full text-left">
                                                             <div className="flex items-center gap-3">
@@ -672,7 +674,7 @@ const DoctorDashboard = () => {
                                                         return (
                                                             <button key={f.followup_id}
                                                                 type="button"
-                                                                onClick={() => handleConsultNavigate(f.patient_id)}
+                                                                onClick={() => handleConsultNavigate(f.patient_id, undefined, 'follow-up')}
                                                                 aria-label={`Open follow-up consultation for ${f.patients?.lastName}, ${f.patients?.firstName}`}
                                                                 className="clinical-worklist-row cursor-pointer w-full text-left">
                                                                 <div className="flex flex-col gap-0.5 min-w-0">
@@ -723,9 +725,10 @@ const DoctorDashboard = () => {
                                 doctorInitials={userInitials}
                                 patientIdProp={selectedPatientId}
                                 icidProp={selectedIcid}
-                                onSelectPatient={(patientId, icid) => { setSelectedPatientId(patientId); setSelectedIcid(icid); }}
+                                isFollowUpVisit={selectedVisitType === 'follow-up'}
+                                onSelectPatient={(patientId, icid) => { setSelectedPatientId(patientId); setSelectedIcid(icid); setSelectedVisitType('initial'); }}
                                 onBack={() => setActivePage('dashboard')}
-                                onReturnToQueue={() => { setSelectedPatientId(null); setSelectedIcid(null); }}
+                                onReturnToQueue={() => { setSelectedPatientId(null); setSelectedIcid(null); setSelectedVisitType(null); }}
                             />
                         </Suspense>
                     )}
@@ -774,7 +777,7 @@ const DoctorDashboard = () => {
                                         return (
                                             <button key={f.followup_id}
                                                 type="button"
-                                                onClick={() => { setShowFollowUpsModal(false); handleConsultNavigate(f.patient_id); }}
+                                                onClick={() => { setShowFollowUpsModal(false); handleConsultNavigate(f.patient_id, undefined, 'follow-up'); }}
                                                 aria-label={`Open follow-up consultation for ${f.patients?.lastName}, ${f.patients?.firstName}`}
                                                 className="clinical-worklist-row cursor-pointer w-full text-left">
                                                 <div className="flex items-center gap-3 min-w-0">
