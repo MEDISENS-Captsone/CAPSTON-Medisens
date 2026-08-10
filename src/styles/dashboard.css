@@ -634,6 +634,26 @@ main .flex-1 {
 }
 
 @media (max-width: 768px) {
+    /* Doctor pages use the document as their sole vertical scroll owner on
+       mobile. This overrides the generic canvas containment rule below: a
+       contained nested surface can swallow a swipe before it reaches the page. */
+    .doctor-app-shell,
+    .doctor-app-main,
+    .doctor-app-main .app-content-canvas {
+        height: auto;
+        min-height: 100dvh;
+        overflow-y: visible;
+    }
+
+    .doctor-app-shell,
+    .doctor-app-main {
+        display: block;
+    }
+
+    .doctor-app-main .app-content-canvas {
+        overscroll-behavior-y: auto;
+    }
+
     .app-sidebar {
         padding-bottom: env(safe-area-inset-bottom);
     }
@@ -4965,7 +4985,13 @@ button.clinical-worklist-row {
 
     .patient-chart-header {
         align-items: flex-start;
+        flex-direction: column;
         padding-inline: 0.75rem;
+    }
+
+    .patient-chart-header > :last-child {
+        width: 100%;
+        justify-content: flex-start;
     }
 
     .patient-chart-body {

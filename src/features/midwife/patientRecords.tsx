@@ -155,7 +155,7 @@ const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, on
                         filteredPatients.map(patient => (
                             <article
                                 key={patient.id}
-                                className="clinical-worklist-row group flex-col items-stretch gap-3 sm:flex-row sm:items-center"
+                                className="clinical-worklist-row group min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center"
                             >
                                 {/* Clickable left side → details modal */}
                                 <button
@@ -168,7 +168,7 @@ const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, on
                                         {patient.firstName?.[0]}{patient.lastName?.[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-[var(--text)] text-sm truncate capitalize">
+                                        <div className="break-words font-bold text-sm text-[var(--text)] capitalize md:truncate">
                                             {patient.lastName}, {patient.firstName}
                                         </div>
                                         <div className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">
@@ -178,8 +178,8 @@ const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, on
                                 </button>
 
                                 {/* Right side */}
-                                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--border-soft)] pt-3 sm:justify-end sm:border-0 sm:pt-0">
-                                    <div className="flex flex-col items-end gap-1.5">
+                                <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-[var(--border-soft)] pt-3 sm:flex-nowrap sm:justify-end sm:border-0 sm:pt-0">
+                                    <div className="flex min-w-0 flex-col items-start gap-1.5 sm:items-end">
                                         <span className="text-[0.65rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
                                             {patient.created_at
                                                 ? new Date(patient.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
