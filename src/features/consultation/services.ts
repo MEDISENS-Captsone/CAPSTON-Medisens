@@ -7,23 +7,16 @@ export async function saveInitialConsultationWithVitals(
     consultationPayload: WorkflowPayload,
     vitalsPayload: WorkflowPayload,
 ): Promise<number> {
-    const { data: consultation, error: consultationError } = await supabase
-        .from('initial_consultation')
-        .insert([consultationPayload])
-        .select('initialconsultation_id')
-        .single();
+    // The RPC inserts both clinical records in one database transaction. This
+    // avoids an impossible client-side rollback: intake roles deliberately
+    // have no DELETE policy on initial_consultation.
+    const { data: consultationId, error } = await supabase.rpc('record_initial_intake', {
+        p_initial: consultationPayload,
+        p_vitals: vitalsPayload,
+    });
 
-    if (consultationError) throw new Error('initial_consultation: ' + consultationError.message);
-
-    const consultationId = consultation.initialconsultation_id as number;
-    const { error: vitalsError } = await supabase
-        .from('vital_sign')
-        .insert([{ ...vitalsPayload, initial_consultation_id: consultationId }]);
-
-    if (vitalsError) {
-        await supabase.from('initial_consultation').delete().eq('initialconsultation_id', consultationId);
-        throw new Error('vital_sign: ' + vitalsError.message);
-    }
+    if (error) throw new Error('initial_intake: ' + error.message);
+    if (typeof consultationId !== 'number') throw new Error('initial_intake: no consultation ID returned');
 
     void logAuditEvent({
         action: 'create',
