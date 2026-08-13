@@ -1,17 +1,13 @@
 /// <reference types="vite/client" />
 
-import React, { useRef, useState } from 'react';
-
-import SignatureCanvas from 'react-signature-canvas';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useToast } from '../../components/feedback/Toast';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Input } from '../../components/ui';
 import { Icon } from '../../components/shared/Icon';
 import { savePatientConsent } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 
-// SignatureCanvas paints to a <canvas>, which cannot resolve a var() reference,
-// so the token has to be read back as a concrete value. The fallback keeps the
-// pen usable if this ever renders before tokens.css has applied.
+// Canvas drawing APIs need a concrete color rather than a CSS custom property.
 function tokenColor(name: string, fallback: string): string {
     if (typeof window === 'undefined') return fallback;
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -30,10 +26,25 @@ interface ConsentProps {
 
 interface SigPadProps {
     label: string;
-    sigRef: React.RefObject<SignatureCanvas | null>;
     penColor?: string;
-    onClear: () => void;
 }
+
+interface SignaturePadHandle {
+    clear: () => void;
+    isEmpty: () => boolean;
+    toDataURL: () => string;
+}
+
+interface SignaturePoint {
+    x: number;
+    y: number;
+}
+
+type SignatureStroke = SignaturePoint[];
+
+const SIGNATURE_WIDTH = 380;
+const SIGNATURE_HEIGHT = 160;
+const SIGNATURE_LINE_WIDTH = 2.25;
 
 function SectionIcon({ name }: { name: string }) {
     return (
@@ -43,16 +54,112 @@ function SectionIcon({ name }: { name: string }) {
     );
 }
 
-function SigPad({ label, sigRef, penColor = PEN_INK(), onClear }: SigPadProps) {
+const SigPad = forwardRef<SignaturePadHandle, SigPadProps>(function SigPad({ label, penColor = PEN_INK() }, ref) {
     const [active, setActive] = useState(false);
     const [hasContent, setHasContent] = useState(false);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const strokesRef = useRef<SignatureStroke[]>([]);
+    const activeStrokeRef = useRef<SignatureStroke | null>(null);
+    const activePointerIdRef = useRef<number | null>(null);
+
+    const getPoint = (event: React.PointerEvent<HTMLCanvasElement>): SignaturePoint | null => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+        const bounds = canvas.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return null;
+
+        return {
+            x: Math.max(0, Math.min(SIGNATURE_WIDTH, ((event.clientX - bounds.left) / bounds.width) * SIGNATURE_WIDTH)),
+            y: Math.max(0, Math.min(SIGNATURE_HEIGHT, ((event.clientY - bounds.top) / bounds.height) * SIGNATURE_HEIGHT)),
+        };
+    };
+
+    const drawStroke = (context: CanvasRenderingContext2D, stroke: SignatureStroke) => {
+        if (stroke.length === 0) return;
+        context.beginPath();
+        context.moveTo(stroke[0].x, stroke[0].y);
+        if (stroke.length === 1) {
+            context.lineTo(stroke[0].x + 0.01, stroke[0].y + 0.01);
+        } else {
+            stroke.slice(1).forEach(point => context.lineTo(point.x, point.y));
+        }
+        context.stroke();
+    };
+
+    const render = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const bounds = canvas.getBoundingClientRect();
+        const pixelRatio = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.round(bounds.width * pixelRatio));
+        const height = Math.max(1, Math.round(bounds.height * pixelRatio));
+        if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+        }
+        const context = canvas.getContext('2d');
+        if (!context) return;
+        context.setTransform(width / SIGNATURE_WIDTH, 0, 0, height / SIGNATURE_HEIGHT, 0, 0);
+        context.clearRect(0, 0, SIGNATURE_WIDTH, SIGNATURE_HEIGHT);
+        context.strokeStyle = penColor;
+        context.lineWidth = SIGNATURE_LINE_WIDTH;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        strokesRef.current.forEach(stroke => drawStroke(context, stroke));
+    };
+
+    useEffect(() => {
+        render();
+        const canvas = canvasRef.current;
+        if (!canvas) return undefined;
+        const observer = new ResizeObserver(render);
+        observer.observe(canvas);
+        return () => observer.disconnect();
+    }, [penColor]);
+
+    const endStroke = (event: React.PointerEvent<HTMLCanvasElement>, releaseCapture: boolean) => {
+        const canvas = canvasRef.current;
+        if (activePointerIdRef.current !== event.pointerId) return;
+        if (releaseCapture && canvas?.hasPointerCapture(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
+        }
+        activePointerIdRef.current = null;
+        activeStrokeRef.current = null;
+        setActive(false);
+    };
+
+    const clear = () => {
+        strokesRef.current = [];
+        activeStrokeRef.current = null;
+        setHasContent(false);
+        render();
+    };
+
+    useImperativeHandle(ref, () => ({
+        clear,
+        isEmpty: () => strokesRef.current.length === 0,
+        toDataURL: () => {
+            const output = document.createElement('canvas');
+            output.width = SIGNATURE_WIDTH;
+            output.height = SIGNATURE_HEIGHT;
+            const context = output.getContext('2d');
+            if (context) {
+                context.strokeStyle = penColor;
+                context.lineWidth = SIGNATURE_LINE_WIDTH;
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
+                strokesRef.current.forEach(stroke => drawStroke(context, stroke));
+            }
+            return output.toDataURL('image/png');
+        },
+    }), [penColor]);
 
     return (
         <div className="flex min-w-0 flex-col gap-2">
             <div className="text-xs font-bold uppercase tracking-wide text-[var(--text-3)]">{label}</div>
             <div
                 className={`relative overflow-hidden rounded-xl border-2 border-dashed bg-[var(--bg)] transition-colors ${
-                    active ? 'border-[var(--neutral-500)] bg-[var(--neutral-50-70)]' : 'border-[var(--neutral-300)]'
+                    active ? 'border-[var(--brand-primary)] bg-[var(--brand-soft-surface)] shadow-sm' : 'border-[var(--neutral-300)]'
                 }`}
             >
                 {!hasContent && (
@@ -61,38 +168,48 @@ function SigPad({ label, sigRef, penColor = PEN_INK(), onClear }: SigPadProps) {
                         <span>Sign here</span>
                     </div>
                 )}
-                <SignatureCanvas
-                    ref={sigRef}
-                    penColor={penColor}
-                    onBegin={() => {
+                <canvas
+                    ref={canvasRef}
+                    className="block w-full touch-none select-none aspect-[19/8] min-h-40"
+                    aria-label={`${label} signature pad`}
+                    role="img"
+                    onContextMenu={event => event.preventDefault()}
+                    onDragStart={event => event.preventDefault()}
+                    onPointerDown={event => {
+                        if (activePointerIdRef.current !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
+                        const point = getPoint(event);
+                        if (!point) return;
+                        event.preventDefault();
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        const stroke = [point];
+                        strokesRef.current = [...strokesRef.current, stroke];
+                        activeStrokeRef.current = stroke;
+                        activePointerIdRef.current = event.pointerId;
                         setActive(true);
                         setHasContent(true);
+                        render();
                     }}
-                    onEnd={() => setActive(false)}
-                    canvasProps={{
-                        width: 380,
-                        height: 160,
-                        className: 'block h-40 w-full',
-                        'aria-label': `${label} signature pad`,
+                    onPointerMove={event => {
+                        if (activePointerIdRef.current !== event.pointerId || !activeStrokeRef.current) return;
+                        const point = getPoint(event);
+                        if (!point) return;
+                        event.preventDefault();
+                        activeStrokeRef.current.push(point);
+                        render();
                     }}
+                    onPointerUp={event => endStroke(event, true)}
+                    onPointerCancel={event => endStroke(event, false)}
+                    onLostPointerCapture={event => endStroke(event, false)}
                 />
             </div>
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="self-start"
-                leadingIcon={<Icon name="close" className="h-3.5 w-3.5" />}
-                onClick={() => {
-                    onClear();
-                    setHasContent(false);
-                }}
-            >
-                Clear
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" className="self-start" leadingIcon={<Icon name="close" className="h-3.5 w-3.5" />} onClick={clear}>
+                    Clear Signature
+                </Button>
+            </div>
         </div>
     );
-}
+});
 
 export default function PatientConsent({ patientId, patientName, rhuPersonnel: initialPersonnel = '', onConsentSaved }: ConsentProps) {
     const [rhuPersonnel] = useState(initialPersonnel);
@@ -103,8 +220,8 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
     const isSubmittingRef = useRef(false);
     const { showToast, ToastComponent } = useToast();
 
-    const patientSigCanvas = useRef<SignatureCanvas | null>(null);
-    const personnelSigCanvas = useRef<SignatureCanvas | null>(null);
+    const patientSigCanvas = useRef<SignaturePadHandle | null>(null);
+    const personnelSigCanvas = useRef<SignaturePadHandle | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -123,8 +240,8 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
         setIsSubmitting(true);
 
         try {
-            const patientSignatureDataUrl = patientSigCanvas.current?.getCanvas().toDataURL('image/png');
-            const personnelSignatureDataUrl = personnelSigCanvas.current?.getCanvas().toDataURL('image/png');
+            const patientSignatureDataUrl = patientSigCanvas.current?.toDataURL();
+            const personnelSignatureDataUrl = personnelSigCanvas.current?.toDataURL();
 
             const consentDate = new Date().toISOString();
             await savePatientConsent({
@@ -191,15 +308,13 @@ export default function PatientConsent({ patientId, patientName, rhuPersonnel: i
                         <div className="grid gap-6 md:grid-cols-2">
                             <SigPad
                                 label="Patient Signature"
-                                sigRef={patientSigCanvas}
+                                ref={patientSigCanvas}
                                 penColor={PEN_INK()}
-                                onClear={() => patientSigCanvas.current?.clear()}
                             />
                             <SigPad
                                 label="RHU Personnel Signature"
-                                sigRef={personnelSigCanvas}
+                                ref={personnelSigCanvas}
                                 penColor={PEN_INK_STAFF()}
-                                onClear={() => personnelSigCanvas.current?.clear()}
                             />
                         </div>
                     </CardBody>

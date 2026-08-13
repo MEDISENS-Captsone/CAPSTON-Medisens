@@ -9,6 +9,8 @@ interface PatientConsentModalProps {
     onClose: () => void;
     /** Fired after the consent record is actually saved by PatientConsent. */
     onConsentSaved: (consentDate: string) => void;
+    /** BHW tablet/mobile only: apply the touch-first dialog refinements. */
+    bhwTouchLayout?: boolean;
 }
 
 const TITLE_ID = 'patient-consent-dialog-title';
@@ -25,6 +27,7 @@ export function PatientConsentModal({
     rhuPersonnel,
     onClose,
     onConsentSaved,
+    bhwTouchLayout = false,
 }: PatientConsentModalProps) {
     return (
         <>
@@ -35,7 +38,7 @@ export function PatientConsentModal({
                 onClick={onClose}
             />
             <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 sm:p-4">
-                <Modal labelledBy={TITLE_ID} onClose={onClose} className="consent-modal">
+                <Modal labelledBy={TITLE_ID} onClose={onClose} className={`consent-modal ${bhwTouchLayout ? 'bhw-consent-modal' : ''}`}>
                     <div className="consent-modal-header">
                         <div className="min-w-0">
                             <div id={TITLE_ID} className="text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">

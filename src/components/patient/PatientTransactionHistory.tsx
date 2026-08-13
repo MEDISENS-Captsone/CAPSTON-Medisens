@@ -6,6 +6,7 @@ import {
 } from '../../features/patients/history';
 import { EmptyState } from '../shared/EmptyState';
 import { StatusBadge } from '../shared/StatusBadge';
+import { Icon } from '../shared/Icon';
 import { Skeleton, SkeletonList } from '../ui/Skeleton';
 
 interface PatientTransactionHistoryProps {
@@ -15,6 +16,8 @@ interface PatientTransactionHistoryProps {
     warnings?: PatientHistoryWarning[];
     error?: string | null;
     onRetry?: () => void;
+    /** BHW touch view: disclose full encounter fields only when requested. */
+    compact?: boolean;
 }
 
 type HistoryFilter = 'all' | 'consultations' | 'initial';
@@ -146,12 +149,17 @@ function HistoryWarning({ warnings, onRetry }: { warnings: PatientHistoryWarning
     );
 }
 
-export function PatientTransactionHistory({ patientId, transactions, isLoading, warnings = [], error, onRetry }: PatientTransactionHistoryProps) {
+export function PatientTransactionHistory({ patientId, transactions, isLoading, warnings = [], error, onRetry, compact = false }: PatientTransactionHistoryProps) {
     const [loadedTransactions, setLoadedTransactions] = useState<PatientTransaction[]>([]);
     const [loadedWarnings, setLoadedWarnings] = useState<PatientHistoryWarning[]>([]);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
     const [activeFilter, setActiveFilter] = useState<HistoryFilter>('all');
+    const [expandedTransactionIds, setExpandedTransactionIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        setExpandedTransactionIds(new Set());
+    }, [patientId]);
 
     const loadTransactions = useCallback(async () => {
         if (!patientId) return;
@@ -319,10 +327,33 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                             }`} />
                         </div>
 
-                        <div className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm transition-all hover:border-[var(--border)] hover:shadow-md">
-                            <CardHeader {...transaction} />
-                            <ItemsGrid items={transaction.items} />
-                        </div>
+                        {compact ? (() => {
+                            const isExpanded = expandedTransactionIds.has(transaction.id);
+                            return (
+                                <section className="bhw-history-compact-card min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white shadow-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => setExpandedTransactionIds(current => {
+                                            const next = new Set(current);
+                                            if (next.has(transaction.id)) next.delete(transaction.id);
+                                            else next.add(transaction.id);
+                                            return next;
+                                        })}
+                                        aria-expanded={isExpanded}
+                                        className="flex w-full items-start gap-3 p-3 text-left"
+                                    >
+                                        <span className="min-w-0 flex-1"><CardHeader {...transaction} /></span>
+                                        <Icon name="chevron-right" className={`mt-1 h-5 w-5 shrink-0 text-[var(--brand-active)] transition-transform ${isExpanded ? '-rotate-90' : 'rotate-90'}`} />
+                                    </button>
+                                    {isExpanded && <div className="border-t border-[var(--border-soft)] px-3 pb-3"><ItemsGrid items={transaction.items} /></div>}
+                                </section>
+                            );
+                        })() : (
+                            <div className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm transition-all hover:border-[var(--border)] hover:shadow-md">
+                                <CardHeader {...transaction} />
+                                <ItemsGrid items={transaction.items} />
+                            </div>
+                        )}
                     </div>
                     ))}
                 </div>

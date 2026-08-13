@@ -58,6 +58,8 @@ interface Patient {
 type RecordsComponentProps = {
     onPatientClick?: (patient: Patient) => void;
     updatedPatient?: (Partial<Patient> & { id: string }) | null;
+    /** BHW-only tablet/mobile presentation. Data and interactions remain shared. */
+    touchLayout?: boolean;
 };
 
 function getVisiblePageNumbers(currentPage: number, totalPages: number): Array<number | 'ellipsis'> {
@@ -67,7 +69,7 @@ function getVisiblePageNumbers(currentPage: number, totalPages: number): Array<n
     return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
 }
 
-export function RecordsComponent({ onPatientClick, updatedPatient = null }: RecordsComponentProps = {}) {
+export function RecordsComponent({ onPatientClick, updatedPatient = null, touchLayout = false }: RecordsComponentProps = {}) {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [allPatients, setAllPatients] = useState<Patient[]>([]);
     const [search, setSearch] = useState('');
@@ -160,7 +162,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
     };
 
     return (
-        <div className="w-full">
+        <div className={`w-full ${touchLayout ? 'bhw-records-touch' : ''}`}>
             <section ref={registrySectionRef} className="clinical-table-panel">
                 <div className="clinical-table-titlebar">
                     <div>
@@ -170,7 +172,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                     <Badge tone="slate" className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</Badge>
                 </div>
 
-                <div className="clinical-toolbar">
+                <div className={`clinical-toolbar ${touchLayout ? 'bhw-records-toolbar' : ''}`}>
                     <Input
                         type="text"
                         aria-label="Search patient records by name"
@@ -217,7 +219,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                     </div>
                 )}
 
-                <div className="hidden md:block clinical-table-scroll">
+                <div className={touchLayout ? 'bhw-records-table clinical-table-scroll' : 'hidden md:block clinical-table-scroll'}>
                     <table className="clinical-table patient-records-table min-w-[760px]">
                         <thead>
                             <tr>
@@ -295,7 +297,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                     </table>
                 </div>
 
-                <div className="space-y-3 p-3 md:hidden">
+                <div className={touchLayout ? 'bhw-records-cards' : 'space-y-3 p-3 md:hidden'}>
                     {loading ? (
                         <SkeletonTable rows={4} columns={1} />
                     ) : loadError ? (
@@ -316,14 +318,15 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                             className="clinical-table-state rounded-lg border"
                         />
                     ) : (
-                        visiblePatients.map(p => (
+                        visiblePatients.map(p => touchLayout ? (
+                            <button key={p.id} type="button" onClick={() => handleRowClick(p)} className="bhw-records-card" aria-label={`Open patient chart for ${p.lastName}, ${p.firstName}`}>
+                                <span className="min-w-0"><strong>{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</strong><small>{p.age ?? '-'} yrs · {p.sex || '-'} · {p.address?.split(',')[0] || 'No barangay'}</small></span>
+                                <Badge tone="slate" className="clinical-neutral-badge patient-records-classification-badge">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</Badge>
+                                <Icon name="chevron-right" className="h-5 w-5 shrink-0 text-[var(--text-muted)]" />
+                            </button>
+                        ) : (
                             <article key={p.id} className="min-w-0 rounded-lg border border-[var(--border-soft)] bg-white p-4 shadow-sm">
-                                <button
-                                    type="button"
-                                    onClick={() => handleRowClick(p)}
-                                    className="w-full min-w-0 text-left"
-                                    aria-label={`Open patient chart for ${p.lastName}, ${p.firstName}`}
-                                >
+                                <button type="button" onClick={() => handleRowClick(p)} className="w-full min-w-0 text-left" aria-label={`Open patient chart for ${p.lastName}, ${p.firstName}`}>
                                     <div className="break-words font-semibold text-[var(--text)]">{p.lastName}, {p.firstName} {p.middleName || ''} {p.suffix || ''}</div>
                                     <div className="mt-1 break-all text-sm text-[var(--text-secondary)]">Patient record no. {p.id}</div>
                                 </button>
@@ -333,9 +336,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null }: Reco
                                     <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Classification</dt><dd className="mt-1 break-words text-[var(--text)]">{p.category === 'Other/s' ? p.categoryOthers || 'Other' : p.category || 'Unclassified'}</dd></div>
                                     <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Contact</dt><dd className="mt-1 break-all text-[var(--text)]">{p.contactNumber || '-'}</dd></div>
                                 </dl>
-                                <div className="mt-3 flex justify-end">
-                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRowClick(p)} className="clinical-link-action">View Chart</Button>
-                                </div>
+                                <div className="mt-3 flex justify-end"><Button type="button" variant="ghost" size="sm" onClick={() => handleRowClick(p)} className="clinical-link-action">View Chart</Button></div>
                             </article>
                         ))
                     )}

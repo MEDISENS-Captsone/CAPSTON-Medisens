@@ -3773,6 +3773,12 @@ button.clinical-worklist-row {
     gap: 0.875rem;
 }
 
+/* BHW intentionally has three patient-focused summaries; keep the desktop
+   dashboard balanced without changing the shared Nurse summary layout. */
+.bhw-dashboard-workspace .bhw-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .role-summary-card-topline {
     display: flex;
     min-height: 2.75rem;
@@ -4026,7 +4032,8 @@ button.clinical-worklist-row {
     }
 
     .nurse-dashboard-workspace .nurse-consented-table tr {
-        position: relative;
+        position: sticky;
+        top: 0;
         padding: 1rem;
         border-bottom: 1px solid var(--border-soft);
     }
@@ -5080,4 +5087,1610 @@ select:focus,
 textarea:focus {
     border-color: var(--focus-color) !important;
     box-shadow: 0 0 0 4px var(--ring-info-soft) !important;
+}
+/* Phase BHW-UI-1: The BHW is intentionally touch-first through tablet
+   landscape. These rules are role-scoped so shared desktop shells retain their
+   current sidebar and mobile-drawer behavior. */
+.bhw-touch-header,
+.bhw-touch-navigation {
+    display: none;
+}
+
+.bhw-home-touch {
+    display: none;
+}
+
+@media (max-width: 1439px) {
+    .bhw-app-shell {
+        --bhw-touch-header-h: calc(6.75rem + var(--safe-top));
+        --bhw-touch-nav-h: calc(4.75rem + var(--safe-bottom));
+    }
+
+    .bhw-app-shell .app-sidebar,
+    .bhw-app-shell .app-topbar {
+        display: none;
+    }
+
+    .bhw-app-shell .app-shell-main {
+        height: 100dvh;
+        margin-left: 0 !important;
+        padding-top: var(--bhw-touch-header-h);
+    }
+
+    .bhw-app-shell .app-content-canvas {
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior-y: auto;
+    }
+
+    .bhw-app-shell:has(.bhw-touch-navigation) .app-content-canvas {
+        padding-bottom: var(--bhw-touch-nav-h);
+    }
+
+    .bhw-home-desktop {
+        display: none;
+    }
+
+    .bhw-home-touch {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding-top: 1rem;
+    }
+
+    .bhw-home-greeting {
+        padding: 0.25rem 0.125rem;
+    }
+
+    .bhw-home-greeting-eyebrow {
+        color: var(--brand-primary);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--tracking-category);
+        line-height: var(--type-caption-line);
+        text-transform: uppercase;
+    }
+
+    .bhw-home-greeting h2 {
+        margin-top: 0.25rem;
+        color: var(--text);
+        font-size: clamp(1.25rem, 1.1rem + 1vw, 1.5rem);
+        font-weight: var(--font-weight-bold);
+        line-height: var(--type-page-title-line);
+    }
+
+    .bhw-home-greeting p:last-child {
+        margin-top: 0.25rem;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: var(--type-body-line);
+    }
+
+    .bhw-home-quick-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .bhw-home-task {
+        display: grid;
+        min-height: 6.5rem;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.875rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        padding: 1rem;
+        color: var(--text);
+        text-align: left;
+        box-shadow: var(--shadow-surface);
+        transition: background-color var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast);
+    }
+
+    .bhw-home-task:hover,
+    .bhw-home-task:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-home-task:active {
+        transform: translateY(1px);
+        background: var(--brand-accent-surface);
+    }
+
+    .bhw-home-task:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-home-task-primary {
+        border-color: var(--brand-primary-hover);
+        background: var(--brand-primary-hover);
+        color: white;
+    }
+
+    .bhw-home-task-primary:hover,
+    .bhw-home-task-primary:focus-visible {
+        border-color: var(--brand-active);
+        background: var(--brand-active);
+    }
+
+    .bhw-home-task-icon {
+        display: inline-flex;
+        width: 3rem;
+        height: 3rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-control);
+        background: var(--brand-soft-surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-home-task-primary .bhw-home-task-icon {
+        background: rgba(255, 255, 255, 0.16);
+        color: white;
+    }
+
+    .bhw-home-task strong,
+    .bhw-home-task small,
+    .bhw-home-recent-row strong,
+    .bhw-home-recent-row small,
+    .bhw-home-directory-patient strong,
+    .bhw-home-directory-patient small {
+        display: block;
+    }
+
+    .bhw-home-task strong {
+        font-size: 1rem;
+        font-weight: var(--font-weight-bold);
+        line-height: 1.35;
+    }
+
+    .bhw-home-task small {
+        margin-top: 0.25rem;
+        color: var(--text-secondary);
+        font-size: var(--type-supporting-size);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--type-supporting-line);
+    }
+
+    .bhw-home-task-primary small,
+    .bhw-home-task-primary .bhw-home-task-chevron {
+        color: rgba(255, 255, 255, 0.84);
+    }
+
+    .bhw-home-task-chevron {
+        color: var(--text-muted);
+    }
+
+    .bhw-home-section {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        box-shadow: var(--shadow-surface);
+    }
+
+    .bhw-home-section-heading {
+        display: flex;
+        min-height: 4.5rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .bhw-home-section-heading h2 {
+        color: var(--text);
+        font-size: var(--type-section-title-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-section-title-line);
+    }
+
+    .bhw-home-section-heading p {
+        margin-top: 0.125rem;
+        color: var(--text-secondary);
+        font-size: var(--type-supporting-size);
+        line-height: var(--type-supporting-line);
+    }
+
+    .bhw-home-section-recent .bhw-home-section-heading {
+        min-height: 3.75rem;
+        padding-block: 0.625rem;
+    }
+
+    .bhw-home-text-action {
+        min-height: 2.75rem;
+        flex: 0 0 auto;
+        color: var(--brand-active);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-home-text-action:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-home-recent-list,
+    .bhw-home-directory-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bhw-home-recent-row,
+    .bhw-home-directory-patient {
+        display: grid;
+        width: 100%;
+        min-height: 4.75rem;
+        align-items: center;
+        gap: 0.75rem;
+        border-bottom: 1px solid var(--border-soft);
+        padding: 0.875rem 1rem;
+        color: var(--text);
+        text-align: left;
+        transition: background-color var(--motion-fast);
+    }
+
+    .bhw-home-recent-row {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        min-height: 3.75rem;
+        padding-block: 0.625rem;
+    }
+
+    .bhw-home-directory-patient {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+    }
+
+    .bhw-home-recent-row:hover,
+    .bhw-home-directory-patient:hover,
+    .bhw-home-recent-row:focus-visible,
+    .bhw-home-directory-patient:focus-visible {
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-home-recent-row:focus-visible,
+    .bhw-home-directory-patient:focus-visible,
+    .bhw-home-directory-tabs button:focus-visible,
+    .bhw-home-consent-action:focus-visible {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        outline: 2px solid var(--focus-color);
+        outline-offset: -2px;
+    }
+
+    .bhw-home-recent-row strong,
+    .bhw-home-directory-patient strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--type-body-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-home-recent-row small,
+    .bhw-home-directory-patient small {
+        margin-top: 0.125rem;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--type-caption-line);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bhw-home-date {
+        color: var(--text-muted);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-semibold);
+        white-space: nowrap;
+    }
+
+    .bhw-home-directory-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .bhw-home-directory-tabs button {
+        min-height: 2.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        color: var(--text-secondary);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+        text-transform: capitalize;
+        transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+    }
+
+    .bhw-home-directory-tabs button:hover {
+        background: var(--brand-soft-surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-home-directory-tabs button.is-active {
+        border-color: var(--brand-primary-hover);
+        background: var(--brand-primary-hover);
+        color: white;
+    }
+
+    .bhw-home-directory-tab-count {
+        font-variant-numeric: tabular-nums;
+        font-weight: var(--font-weight-bold);
+    }
+
+    .bhw-home-directory-row:last-child .bhw-home-directory-patient,
+    .bhw-home-recent-row:last-child {
+        border-bottom: 0;
+    }
+
+    .bhw-home-consent-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        border: 1px solid;
+        border-radius: var(--radius-badge);
+        padding: 0.25rem 0.5rem;
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-semibold);
+        white-space: nowrap;
+    }
+
+    .bhw-home-consent-status.is-signed {
+        border-color: var(--green-border-soft);
+        background: var(--green-surface);
+        color: var(--green-text);
+    }
+
+    .bhw-home-consent-status.is-pending {
+        border-color: var(--amber-border);
+        background: var(--amber-surface);
+        color: var(--amber-text);
+    }
+
+    .bhw-home-consent-action {
+        display: flex;
+        width: calc(100% - 2rem);
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: -0.125rem 1rem 0.875rem;
+        border: 1px solid var(--control-border);
+        border-radius: var(--radius-control);
+        color: var(--brand-active);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+        transition: background-color var(--motion-fast), border-color var(--motion-fast);
+    }
+
+    .bhw-home-consent-action:hover {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-touch-header {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 40;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.5rem 0.75rem;
+        min-height: var(--bhw-touch-header-h);
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-translucent-96);
+        padding: calc(0.625rem + var(--safe-top)) max(0.75rem, var(--safe-right)) 0.625rem max(0.75rem, var(--safe-left));
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(12px);
+    }
+
+    .bhw-touch-header-brand {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 0.625rem;
+    }
+
+    .bhw-touch-logo {
+        display: inline-flex;
+        width: 2.5rem;
+        height: 2.5rem;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-control);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .bhw-touch-header-profile {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+
+    .bhw-touch-account-trigger {
+        display: flex;
+        width: 100%;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+        text-align: left;
+        transition: background-color var(--motion-fast), border-color var(--motion-fast);
+    }
+
+    .bhw-touch-account-trigger:hover,
+    .bhw-touch-account-trigger:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-touch-account-trigger:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-touch-account-trigger > span:first-child {
+        display: grid;
+        min-width: 0;
+        gap: 0.125rem;
+    }
+
+    .bhw-touch-account-trigger strong,
+    .bhw-touch-account-trigger small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bhw-touch-account-trigger strong {
+        color: var(--text);
+        font-size: var(--type-label-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-touch-account-trigger small {
+        color: var(--brand-active);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .bhw-touch-account-avatar {
+        display: inline-flex;
+        width: 2.25rem;
+        height: 2.25rem;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-control);
+        color: var(--white);
+        font-size: var(--type-label-size);
+        font-weight: var(--font-weight-semibold);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .bhw-account-popover-dismiss,
+    .bhw-account-confirmation-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 70;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: calc(var(--bhw-touch-header-h) + 0.5rem) max(0.75rem, var(--safe-right)) 0.75rem max(0.75rem, var(--safe-left));
+    }
+
+    .bhw-account-popover-dismiss {
+        background: transparent;
+    }
+
+    .bhw-account-confirmation-backdrop {
+        background: var(--overlay);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bhw-account-menu,
+    .bhw-logout-confirmation {
+        width: min(100%, 22rem);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        padding: 1rem;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .bhw-account-menu > div {
+        padding-bottom: 0.875rem;
+    }
+
+    .bhw-account-menu p {
+        overflow-wrap: anywhere;
+        color: var(--text);
+        font-size: var(--type-card-title-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-account-menu span {
+        display: block;
+        margin-top: 0.1875rem;
+        color: var(--text-secondary);
+        font-size: var(--type-supporting-size);
+    }
+
+    .bhw-account-logout-action,
+    .bhw-account-confirm-logout {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: var(--radius-control);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-account-logout-action {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+    }
+
+    .bhw-account-logout-action:hover,
+    .bhw-account-logout-action:focus-visible {
+        border-color: var(--coral);
+        background: var(--coral-light);
+        color: var(--coral);
+    }
+
+    .bhw-logout-confirmation {
+        text-align: center;
+    }
+
+    .bhw-logout-confirmation-icon {
+        display: inline-flex;
+        width: 2.5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-control);
+        background: var(--coral-light);
+        color: var(--coral);
+    }
+
+    .bhw-logout-confirmation h2 {
+        margin-top: 0.75rem;
+        color: var(--text);
+        font-size: var(--type-section-title-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-logout-confirmation p {
+        margin-top: 0.375rem;
+        color: var(--text-secondary);
+        font-size: var(--type-body-size);
+    }
+
+    .bhw-logout-confirmation > div {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .bhw-logout-confirmation .bhw-wizard-back {
+        min-height: 2.75rem;
+    }
+
+    .bhw-account-confirm-logout {
+        border: 1px solid var(--coral);
+        background: var(--coral);
+        color: var(--white);
+    }
+
+    .bhw-account-confirm-logout:hover,
+    .bhw-account-confirm-logout:focus-visible {
+        background: var(--coral-hover);
+    }
+
+    .bhw-account-logout-action:focus-visible,
+    .bhw-account-confirm-logout:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-touch-navigation {
+        position: fixed;
+        inset: auto 0 0;
+        z-index: 40;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        min-height: var(--bhw-touch-nav-h);
+        border-top: 1px solid var(--border);
+        background: var(--surface-translucent-96);
+        padding: 0.5rem max(0.75rem, var(--safe-right)) calc(0.5rem + var(--safe-bottom)) max(0.75rem, var(--safe-left));
+        box-shadow: 0 -1px 3px rgba(11, 34, 48, 0.05);
+        backdrop-filter: blur(12px);
+    }
+
+    .bhw-touch-navigation-item {
+        display: inline-flex;
+        min-height: 2.75rem;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border: 1px solid transparent;
+        border-radius: var(--radius-control);
+        color: var(--text-secondary);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-button-line);
+        transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+    }
+
+    .bhw-touch-navigation-item:hover {
+        background: var(--brand-soft-surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-touch-navigation-item:active {
+        background: var(--brand-accent-surface);
+    }
+
+    .bhw-touch-navigation-item.is-active {
+        border-color: var(--brand-accent-surface);
+        background: var(--brand-soft-surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-touch-navigation-item:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-records-touch .clinical-table-titlebar {
+        min-height: 4.75rem;
+        padding: 1rem;
+    }
+
+    .bhw-records-touch .bhw-records-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .bhw-records-touch .bhw-records-toolbar .clinical-filter-group {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.75rem;
+    }
+
+    .bhw-records-touch .bhw-records-toolbar .clinical-select select,
+    .bhw-records-touch .bhw-records-toolbar .clinical-secondary-action {
+        min-height: 2.75rem;
+    }
+
+    .bhw-records-touch .bhw-records-table {
+        display: none;
+    }
+
+    .bhw-records-touch .bhw-records-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .bhw-records-card {
+        display: grid;
+        min-height: 5.5rem;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        padding: 1rem;
+        color: var(--text);
+        text-align: left;
+        box-shadow: var(--shadow-surface);
+        transition: background-color var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast);
+    }
+
+    .bhw-records-card:hover,
+    .bhw-records-card:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-records-card:active {
+        transform: translateY(1px);
+        background: var(--brand-accent-surface);
+    }
+
+    .bhw-records-card:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-records-card strong,
+    .bhw-records-card small {
+        display: block;
+    }
+
+    .bhw-records-card strong {
+        overflow: hidden;
+        font-size: 1rem;
+        font-weight: var(--font-weight-bold);
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Phase BHW-UI-6: preserve the shared controls, while making the BHW
+       touch workspace reliably large and forgiving through tablet landscape. */
+    .bhw-app-shell,
+    .bhw-app-shell .app-content-canvas {
+        overscroll-behavior-x: none;
+    }
+
+    .bhw-app-shell .app-content-canvas > * {
+        max-width: 100%;
+    }
+
+    .bhw-registration-touch :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea),
+    .bhw-registration-touch button,
+    .bhw-consent-modal :is(button, input:not([type="radio"]):not([type="checkbox"]), select, textarea) {
+        min-height: 2.75rem;
+        font-size: max(1rem, var(--type-body-size));
+    }
+
+    .bhw-registration-touch .clinical-choice-label {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        font-size: max(1rem, var(--type-body-size));
+    }
+
+    .bhw-registration-touch label,
+    .bhw-consent-modal .clinical-field-label {
+        font-size: max(var(--type-supporting-size), 0.9375rem);
+    }
+
+    .bhw-registration-touch button:active,
+    .bhw-registration-touch .clinical-choice-label:active,
+    .bhw-consent-modal button:active {
+        transform: translateY(1px);
+    }
+
+    .bhw-consent-modal .consent-modal-body {
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .bhw-consent-modal [aria-label$="signature pad"] {
+        min-height: 11rem;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .bhw-records-card small {
+        margin-top: 0.25rem;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: var(--type-supporting-size);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--type-supporting-line);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Phase BHW-UI-5: BHW alone gets a progressive-disclosure patient sheet.
+       Shared clinician patient charts retain their established desktop density. */
+    .bhw-patient-detail-modal {
+        width: min(100%, 46rem);
+        max-width: 46rem;
+        max-height: calc(100dvh - 1rem);
+    }
+
+    .bhw-patient-detail-modal:has(.bhw-patient-overview) .patient-chart-header > div:last-child > button:not([aria-label]) {
+        display: none;
+    }
+
+    .bhw-patient-detail-modal .patient-chart-header {
+        min-height: 4rem;
+        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .bhw-patient-detail-modal:has(.bhw-patient-overview) .patient-chart-body {
+        padding: 0.875rem;
+    }
+
+    .bhw-patient-overview {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 0.875rem;
+    }
+
+    .bhw-patient-identity-summary {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        padding: 1rem;
+        box-shadow: var(--shadow-surface);
+    }
+
+    .bhw-patient-identity-heading {
+        display: none;
+        min-width: 0;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .bhw-patient-identity-heading .patient-chart-avatar {
+        width: 3rem;
+        height: 3rem;
+        border-radius: var(--radius-control);
+        color: white;
+        font-size: 1rem;
+        font-weight: var(--font-weight-bold);
+    }
+
+    .bhw-patient-identity-heading p,
+    .bhw-patient-identity-heading h2,
+    .bhw-patient-identity-heading span {
+        margin: 0;
+    }
+
+    .bhw-patient-identity-heading p,
+    .bhw-patient-detail-value > div {
+        color: var(--text-muted);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-caption-line);
+    }
+
+    .bhw-patient-identity-heading h2 {
+        overflow-wrap: anywhere;
+        color: var(--text);
+        font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+        font-weight: var(--font-weight-bold);
+        line-height: 1.25;
+    }
+
+    .bhw-patient-identity-heading span {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--text-secondary);
+        font-size: var(--type-supporting-size);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .bhw-patient-identity-facts,
+    .bhw-patient-detail-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.875rem 1rem;
+    }
+
+    .bhw-patient-identity-facts {
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    .bhw-patient-detail-value {
+        min-width: 0;
+    }
+
+    .bhw-patient-detail-value p {
+        margin: 0.2rem 0 0;
+        overflow-wrap: anywhere;
+        color: var(--text);
+        font-size: 1.0625rem;
+        font-weight: var(--font-weight-semibold);
+        line-height: 1.4;
+    }
+
+    .bhw-patient-detail-value p.is-empty {
+        color: var(--text-muted);
+        font-style: italic;
+        font-weight: var(--font-weight-medium);
+    }
+
+    .bhw-patient-consent-status {
+        display: inline-flex;
+        border: 1px solid;
+        border-radius: var(--radius-badge);
+        padding: 0.2rem 0.5rem;
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-patient-consent-status.is-signed {
+        border-color: var(--green-border-soft);
+        background: var(--green-surface);
+        color: var(--green-text);
+    }
+
+    .bhw-patient-consent-status.is-pending {
+        border-color: var(--amber-border);
+        background: var(--amber-surface);
+        color: var(--amber-text);
+    }
+
+    .bhw-patient-last-handler {
+        margin-top: 1rem;
+    }
+
+    .bhw-patient-last-handler > div {
+        grid-column: auto;
+    }
+
+    .bhw-patient-primary-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+
+    .bhw-patient-edit-action,
+    .bhw-patient-secondary-action,
+    .bhw-patient-clinical-link {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: var(--radius-control);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-patient-edit-action {
+        border: 1px solid var(--brand-primary-hover);
+        background: var(--brand-primary-hover);
+        color: white;
+    }
+
+    .bhw-patient-edit-action:hover,
+    .bhw-patient-edit-action:focus-visible {
+        background: var(--brand-active);
+    }
+
+    .bhw-patient-secondary-action,
+    .bhw-patient-clinical-link {
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-patient-secondary-action:hover,
+    .bhw-patient-secondary-action:focus-visible,
+    .bhw-patient-clinical-link:hover,
+    .bhw-patient-clinical-link:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-patient-edit-action:focus-visible,
+    .bhw-patient-secondary-action:focus-visible,
+    .bhw-patient-clinical-link:focus-visible,
+    .bhw-patient-disclosure summary:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-patient-disclosure {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .bhw-patient-disclosure summary {
+        display: flex;
+        min-height: 3.5rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        cursor: pointer;
+        list-style: none;
+        padding: 0.875rem 1rem;
+        color: var(--text);
+        font-size: var(--type-body-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-patient-disclosure summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .bhw-patient-disclosure-chevron {
+        color: var(--brand-active);
+        flex: 0 0 auto;
+        transform: rotate(90deg);
+        transition: transform var(--motion-fast);
+    }
+
+    .bhw-patient-disclosure[open] summary {
+        border-bottom: 1px solid var(--border-soft);
+        background: var(--surface-subtle);
+    }
+
+    .bhw-patient-disclosure[open] .bhw-patient-disclosure-chevron {
+        transform: rotate(-90deg);
+    }
+
+    .bhw-patient-disclosure-body {
+        padding: 1rem;
+    }
+
+    .bhw-patient-clinical-link {
+        width: 100%;
+        margin-top: 0.125rem;
+        padding-inline: 1rem;
+    }
+
+    .bhw-patient-back-action {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.875rem;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        padding: 0.625rem 0.875rem;
+        color: var(--brand-active);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-button-line);
+        transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+    }
+
+    .bhw-patient-back-action:hover,
+    .bhw-patient-back-action:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-patient-back-action:active {
+        background: var(--brand-accent-surface);
+    }
+
+    .bhw-patient-back-action:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-patient-detail-modal .patient-chart-summary-section > .patient-chart-section-header,
+    .bhw-patient-detail-modal .patient-chart-summary-section > .patient-chart-section-body > :not(:last-child) {
+        display: none;
+    }
+
+    .bhw-patient-detail-modal .patient-chart-summary-section > .patient-chart-section-body {
+        padding: 0;
+    }
+
+    .bhw-patient-history-panel .patient-chart-section-body {
+        padding: 0.875rem;
+    }
+
+    .bhw-history-compact-card > button {
+        min-height: 2.75rem;
+    }
+
+    .bhw-history-compact-card > button:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: -2px;
+    }
+
+    .bhw-patient-detail-modal .patient-chart-body button {
+        min-height: 2.75rem;
+    }
+
+    .bhw-history-compact-card .text-xs,
+    .bhw-history-compact-card .text-sm {
+        font-size: var(--type-supporting-size);
+    }
+
+    /* Phase BHW-UI-4: the BHW registration route keeps the shared payload and
+       validation contract, but presents it as a comfortable touch-first flow. */
+    .bhw-registration-touch .bhw-registration-wizard {
+        min-width: 0;
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.375rem;
+        margin: 0 0 1rem;
+        padding: 0;
+        list-style: none;
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-step {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        font-weight: var(--font-weight-semibold);
+        line-height: 1.3;
+        text-align: center;
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-marker {
+        display: inline-flex;
+        width: 2rem;
+        min-width: 2rem;
+        height: 2rem;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-strong);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+        position: relative;
+        z-index: 1;
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-label {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-step:not(:last-child)::after {
+        position: absolute;
+        z-index: 0;
+        top: calc(1rem - 1px);
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background: var(--border-strong);
+        content: '';
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-step.is-current,
+    .bhw-registration-touch .bhw-wizard-progress-step.is-complete {
+        color: var(--brand-active);
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-step.is-current .bhw-wizard-progress-marker {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary);
+        color: var(--on-brand);
+        box-shadow: 0 0 0 3px var(--brand-soft-surface);
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-step.is-complete .bhw-wizard-progress-marker {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-registration-touch .bhw-wizard-progress-step.is-complete::after {
+        background: var(--brand-primary);
+    }
+
+    .bhw-wizard-form {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .bhw-registration-subheader {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        min-height: 3.75rem;
+        align-items: center;
+        gap: 0.75rem;
+        margin: -0.875rem -0.875rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-translucent-96);
+        padding: 0.5rem 0.875rem;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(12px);
+    }
+
+    .bhw-registration-subheader-context {
+        display: grid;
+        min-width: 0;
+        gap: 0.0625rem;
+    }
+
+    .bhw-registration-subheader-context strong {
+        overflow: hidden;
+        color: var(--text);
+        font-size: var(--type-card-title-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-card-title-line);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bhw-registration-subheader-context span {
+        color: var(--text-secondary);
+        font-size: var(--type-caption-size);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--type-caption-line);
+    }
+
+    .bhw-registration-subheader .bhw-wizard-leave-confirmation {
+        flex: 1 0 100%;
+    }
+
+    .bhw-registration-touch .bhw-wizard-home-action {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 0 0 auto;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        padding: 0.625rem 0.875rem;
+        color: var(--brand-active);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-button-line);
+    }
+
+    .bhw-registration-touch .bhw-wizard-home-action:hover,
+    .bhw-registration-touch .bhw-wizard-home-action:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-registration-touch .bhw-wizard-home-action:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-wizard-leave-confirmation {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        border: 1px solid var(--amber-border);
+        border-radius: var(--radius-control);
+        background: var(--amber-surface);
+        padding: 0.875rem;
+        color: var(--amber-text);
+        font-size: var(--type-supporting-size);
+        line-height: var(--type-supporting-line);
+    }
+
+    .bhw-wizard-leave-confirmation strong {
+        color: var(--text);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-wizard-leave-confirmation > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.625rem;
+    }
+
+    .bhw-wizard-step-groups {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .bhw-wizard-field-group {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        padding: 1rem;
+    }
+
+    .bhw-wizard-field-group-heading {
+        margin-bottom: 0.875rem;
+    }
+
+    .bhw-wizard-field-group-heading h3,
+    .bhw-wizard-disclosure strong {
+        color: var(--text);
+        font-size: 1rem;
+        font-weight: var(--font-weight-semibold);
+        line-height: 1.35;
+    }
+
+    .bhw-registration-touch .bhw-wizard-disclosure {
+        display: flex;
+        width: 100%;
+        min-height: 3rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        text-align: left;
+    }
+
+    .bhw-wizard-disclosure > span {
+        display: grid;
+        gap: 0.1875rem;
+    }
+
+    .bhw-wizard-disclosure small {
+        color: var(--text-secondary);
+        font-size: var(--type-supporting-size);
+        line-height: var(--type-supporting-line);
+    }
+
+    .bhw-wizard-disclosure > svg {
+        flex: 0 0 auto;
+        color: var(--brand-active);
+        transition: transform var(--motion-fast);
+    }
+
+    .bhw-wizard-disclosure:hover,
+    .bhw-wizard-disclosure:focus-visible {
+        color: var(--brand-active);
+    }
+
+    .bhw-wizard-disclosure:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-registration-touch .bhw-wizard-choice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .bhw-registration-touch .bhw-wizard-choice-grid .clinical-choice-label {
+        width: 100%;
+        min-height: 3rem;
+        justify-content: center;
+        padding-inline: 0.875rem;
+        text-align: center;
+    }
+
+    .bhw-wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+    }
+
+    .bhw-registration-touch .bhw-wizard-back,
+    .bhw-registration-touch .bhw-wizard-next {
+        display: inline-flex;
+        min-height: 3rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: var(--radius-control);
+        padding: 0.625rem 1.125rem;
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--type-button-line);
+    }
+
+    .bhw-registration-touch .bhw-wizard-back {
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-registration-touch .bhw-wizard-next {
+        margin-left: auto;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
+        color: var(--brand-active);
+    }
+
+    .bhw-registration-touch .bhw-wizard-back:hover,
+    .bhw-registration-touch .bhw-wizard-back:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-registration-touch .bhw-wizard-next:hover,
+    .bhw-registration-touch .bhw-wizard-next:focus-visible {
+        border-color: var(--brand-primary);
+        background: var(--brand-soft-surface);
+    }
+
+    .bhw-registration-touch .bhw-wizard-back:focus-visible,
+    .bhw-registration-touch .bhw-wizard-next:focus-visible,
+    .bhw-registration-touch .bhw-wizard-edit:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 2px;
+    }
+
+    .bhw-registration-touch .bhw-wizard-next:disabled {
+        cursor: not-allowed;
+        border-color: var(--neutral-400);
+        background: var(--neutral-400);
+        color: var(--white);
+    }
+
+    .bhw-registration-touch .bhw-wizard-submit {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary);
+        color: var(--on-brand);
+    }
+
+    .bhw-registration-touch .bhw-wizard-submit:hover,
+    .bhw-registration-touch .bhw-wizard-submit:focus-visible {
+        border-color: var(--brand-active);
+        background: var(--brand-active);
+    }
+
+    .bhw-wizard-review-section {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        box-shadow: var(--shadow-surface);
+    }
+
+    .bhw-wizard-review-heading {
+        display: flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-subtle);
+        padding: 0.625rem 0.875rem;
+    }
+
+    .bhw-wizard-review-heading h3 {
+        color: var(--text);
+        font-size: 1rem;
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-wizard-edit {
+        min-height: 2.75rem;
+        padding: 0.5rem 0.625rem;
+        color: var(--brand-active);
+        font-size: var(--type-button-size);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-wizard-review-section dl {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.875rem 1rem;
+        padding: 0.875rem;
+    }
+
+    .bhw-wizard-review-section dt {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .bhw-wizard-review-section dd {
+        margin-top: 0.1875rem;
+        overflow-wrap: anywhere;
+        color: var(--text);
+        font-size: 0.9375rem;
+        font-weight: var(--font-weight-medium);
+        line-height: 1.4;
+    }
+
+    @media (max-width: 639px) {
+        .bhw-account-popover-dismiss {
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0.75rem max(0.75rem, var(--safe-right)) calc(0.75rem + var(--safe-bottom)) max(0.75rem, var(--safe-left));
+        }
+
+        .bhw-account-menu {
+            width: 100%;
+            max-width: 30rem;
+            border-radius: var(--radius-card);
+        }
+
+        .bhw-registration-touch .bhw-wizard-progress {
+            gap: 0.25rem;
+        }
+
+        .bhw-registration-touch .bhw-wizard-progress-step {
+            align-items: center;
+            row-gap: 0.25rem;
+            font-size: 0.8125rem;
+        }
+
+        .bhw-registration-touch .bhw-wizard-progress-marker {
+            width: 1.875rem;
+            min-width: 1.875rem;
+            height: 1.875rem;
+        }
+
+        .bhw-registration-touch .bhw-wizard-progress-step:not(:last-child)::after {
+            top: calc(0.9375rem - 1px);
+            left: 50%;
+            width: 100%;
+        }
+
+        .bhw-wizard-review-section dl {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+}
+
+@media (min-width: 640px) and (max-width: 1439px) {
+    .bhw-app-shell {
+        --bhw-touch-header-h: calc(4.5rem + var(--safe-top));
+    }
+
+    .bhw-touch-header {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+    }
+
+    .bhw-touch-header-profile {
+        grid-column: auto;
+    }
+
+    .bhw-home-touch {
+        gap: 1.25rem;
+        padding-top: 1.25rem;
+    }
+
+    .bhw-home-quick-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bhw-home-task {
+        min-height: 7rem;
+    }
+
+    .bhw-patient-identity-facts,
+    .bhw-patient-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 639px) {
+    .bhw-patient-detail-modal {
+        width: 100%;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+
+    .bhw-patient-detail-modal:has(.bhw-patient-overview) .patient-chart-header {
+        padding-inline: 0.875rem;
+    }
+
+    .bhw-patient-detail-modal:has(.bhw-patient-overview) .patient-chart-body {
+        padding: 0.75rem;
+    }
 }

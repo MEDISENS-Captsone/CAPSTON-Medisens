@@ -17,7 +17,7 @@ import { Modal } from '../ui/Modal';
 import { SkeletonList } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { RELIGION_OPTIONS } from '../../types/patient';
-import { PatientChartIdentityHeader, PatientHistoryPanel } from './PatientChart';
+import { formatPatientChartName, PatientChartIdentityHeader, PatientHistoryPanel } from './PatientChart';
 import { LastPatientHandler } from './LastPatientHandler';
 import { PediatricGrowth } from './PediatricGrowth';
 
@@ -82,6 +82,8 @@ interface PatientDetailModalProps {
     consentSigned?: boolean;
     /** BHW-only: opens the consent-signing flow for this patient. */
     onRecordConsent?: (patient: Patient) => void;
+    /** BHW tablet/mobile only: use the touch-first patient overview in view mode. */
+    bhwTouchLayout?: boolean;
 }
 
 interface DetailItemProps {
@@ -214,6 +216,138 @@ function DetailItem({
     );
 }
 
+function BhwReadOnlyValue({ label, value }: { label: string; value?: string | number | null }) {
+    const isEmpty = value === null || value === undefined || value === '';
+    return (
+        <div className="bhw-patient-detail-value">
+            <div>{label}</div>
+            <p className={isEmpty ? 'is-empty' : undefined}>{isEmpty ? 'Not provided' : value}</p>
+        </div>
+    );
+}
+
+function BhwPatientDisclosure({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <details className="bhw-patient-disclosure">
+            <summary>
+                <span>{title}</span>
+                <Icon name="chevron-right" className="bhw-patient-disclosure-chevron h-5 w-5" />
+            </summary>
+            <div className="bhw-patient-disclosure-body">{children}</div>
+        </details>
+    );
+}
+
+function BhwTouchBackButton({ label, onClick }: { label: string; onClick: () => void }) {
+    return (
+        <button type="button" onClick={onClick} className="bhw-patient-back-action">
+            <Icon name="chevron-right" className="h-5 w-5 -rotate-180" />
+            {label}
+        </button>
+    );
+}
+
+function formatBhwPatientDate(value?: string) {
+    if (!value) return undefined;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format(date);
+}
+
+function BhwPatientOverview({
+    patient,
+    consentSigned,
+    category,
+    onEdit,
+    onHistory,
+    onReviewClinical,
+}: {
+    patient: Patient;
+    consentSigned?: boolean;
+    category: string;
+    onEdit: () => void;
+    onHistory: () => void;
+    onReviewClinical: () => void;
+}) {
+    return (
+        <div className="bhw-patient-overview">
+            <section className="bhw-patient-identity-summary" aria-label="Patient identity summary">
+                <div className="bhw-patient-identity-heading">
+                    <div className="patient-chart-avatar bg-[var(--brand-primary)]" aria-hidden="true">
+                        {(patient.firstName?.[0] || '') + (patient.lastName?.[0] || '')}
+                    </div>
+                    <div className="min-w-0">
+                        <p>Patient details</p>
+                        <h2>{formatPatientChartName(patient)}</h2>
+                        <span>{patient.age ?? 'Not provided'} yrs · {patient.sex || 'Not provided'}</span>
+                    </div>
+                </div>
+                <div className="bhw-patient-identity-facts">
+                    <BhwReadOnlyValue label="Address / Barangay" value={patient.address} />
+                    <BhwReadOnlyValue label="Blood Type" value={patient.bloodType} />
+                    <BhwReadOnlyValue label="Contact Number" value={patient.contactNumber} />
+                    <BhwReadOnlyValue label="PhilHealth" value={patient.philhealthStatus} />
+                    <BhwReadOnlyValue label="Classification" value={category} />
+                    <div className="bhw-patient-detail-value">
+                        <div>Consent status</div>
+                        <p><span className={`bhw-patient-consent-status ${consentSigned ? 'is-signed' : 'is-pending'}`}>{consentSigned ? 'Signed' : 'Pending'}</span></p>
+                    </div>
+                </div>
+                <div className="bhw-patient-last-handler"><LastPatientHandler patientId={patient.id} /></div>
+            </section>
+
+            <div className="bhw-patient-primary-actions">
+                <button type="button" onClick={onEdit} className="bhw-patient-edit-action">
+                    <Icon name="edit" className="h-4 w-4" /> Edit Profile
+                </button>
+                <button type="button" onClick={onHistory} className="bhw-patient-secondary-action">
+                    <Icon name="clock" className="h-4 w-4" /> View history
+                </button>
+            </div>
+
+            <BhwPatientDisclosure title="Personal Information">
+                <div className="bhw-patient-detail-grid">
+                    <BhwReadOnlyValue label="Birthday" value={patient.birthday} />
+                    <BhwReadOnlyValue label="Civil Status" value={patient.civilStatus} />
+                    <BhwReadOnlyValue label="Nationality" value={patient.nationality} />
+                    <BhwReadOnlyValue label="Religion" value={patient.religion} />
+                    <BhwReadOnlyValue label="Educational Attainment" value={patient.educationalAttain} />
+                    <BhwReadOnlyValue label="Employment Status" value={patient.employmentStatus} />
+                </div>
+            </BhwPatientDisclosure>
+
+            <BhwPatientDisclosure title="Address & Contact">
+                <div className="bhw-patient-detail-grid">
+                    <BhwReadOnlyValue label="Address / Barangay" value={patient.address} />
+                    <BhwReadOnlyValue label="Contact Number" value={patient.contactNumber} />
+                    <BhwReadOnlyValue label="Relative's Name" value={patient.relativeName} />
+                    <BhwReadOnlyValue label="Relationship" value={patient.relativeRelation} />
+                    <BhwReadOnlyValue label="Relative's Address" value={patient.relativeAddress} />
+                </div>
+            </BhwPatientDisclosure>
+
+            <BhwPatientDisclosure title="PhilHealth & Classification">
+                <div className="bhw-patient-detail-grid">
+                    <BhwReadOnlyValue label="PhilHealth No." value={patient.philhealthNo} />
+                    <BhwReadOnlyValue label="PhilHealth Status" value={patient.philhealthStatus} />
+                    <BhwReadOnlyValue label="Classification" value={category} />
+                </div>
+            </BhwPatientDisclosure>
+
+            <BhwPatientDisclosure title="Other Information">
+                <div className="bhw-patient-detail-grid">
+                    <BhwReadOnlyValue label="Patient ID" value={patient.id} />
+                    <BhwReadOnlyValue label="Registered" value={formatBhwPatientDate(patient.createdAt || patient.created_at)} />
+                </div>
+            </BhwPatientDisclosure>
+
+            <button type="button" onClick={onReviewClinical} className="bhw-patient-clinical-link">
+                View Vaccination & Clinical History <Icon name="chevron-right" className="h-4 w-4" />
+            </button>
+        </div>
+    );
+}
+
 export function PatientDetailModal({
     patient: initialPatient,
     onClose,
@@ -221,9 +355,11 @@ export function PatientDetailModal({
     onConsult,
     consentSigned,
     onRecordConsent,
+    bhwTouchLayout = false,
 }: PatientDetailModalProps) {
     const [patient, setPatient] = useState<Patient>(initialPatient);
     const [showHistory, setShowHistory] = useState(false);
+    const [showBhwClinicalDetails, setShowBhwClinicalDetails] = useState(false);
 
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -245,6 +381,7 @@ export function PatientDetailModal({
         setPatient(initialPatient);
         setEditForm({ ...initialPatient });
         setOtherReligion((initialPatient.religion || '').replace(/^Other:\s*/, ''));
+        setShowBhwClinicalDetails(false);
     }, [initialPatient]);
 
     const loadHistory = () => setShowHistory(true);
@@ -367,6 +504,7 @@ export function PatientDetailModal({
 
             setPatient(payload);
             setIsEditing(false);
+            setShowBhwClinicalDetails(false);
             if (onPatientUpdate) {
                 onPatientUpdate(payload);
             }
@@ -406,7 +544,7 @@ export function PatientDetailModal({
 
             {/* Modal Panel */}
             <div className="fixed inset-0 z-[201] flex items-center justify-center p-4">
-                <Modal labelledBy="patient-detail-dialog-title" onClose={onClose} className="patient-chart-modal">
+                <Modal labelledBy="patient-detail-dialog-title" onClose={onClose} className={`patient-chart-modal ${bhwTouchLayout ? 'bhw-patient-detail-modal' : ''}`}>
 
                     {/* Modal Header */}
                     <div className="patient-chart-header">
@@ -469,7 +607,21 @@ export function PatientDetailModal({
 
                         {!showHistory ? (
                             <>
-                                <div className={sectionCls}>
+                                {bhwTouchLayout && !isEditing && !showBhwClinicalDetails ? (
+                                    <BhwPatientOverview
+                                        patient={patient}
+                                        consentSigned={consentSigned}
+                                        category={displayCategory()}
+                                        onEdit={handleEditToggle}
+                                        onHistory={loadHistory}
+                                        onReviewClinical={() => setShowBhwClinicalDetails(true)}
+                                    />
+                                ) : (
+                                    <>
+                                {bhwTouchLayout && !isEditing && (
+                                    <BhwTouchBackButton label="Back to Patient Overview" onClick={() => setShowBhwClinicalDetails(false)} />
+                                )}
+                                <div className={`${sectionCls} patient-chart-summary-section`}>
                                     <div className={headerCls}>Patient Summary</div>
                                     <div className="patient-chart-section-body patient-chart-summary">
                                         <div>
@@ -770,21 +922,26 @@ export function PatientDetailModal({
                                         View Encounters & Transaction Timeline
                                     </button>
                                 )}
+                                    </>
+                                )}
                             </>
                         ) : (
                             <>
-                                {/* Back to Details */}
-                                <button
-                                    type="button"
-                                    onClick={() => setShowHistory(false)}
-                                    className={`mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-2)] hover:text-[var(--text)] transition-colors ${focusCls}`}
-                                >
-                                    Back to Details
-                                </button>
+                                {bhwTouchLayout ? (
+                                    <BhwTouchBackButton label="Back to Patient Details" onClick={() => setShowHistory(false)} />
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowHistory(false)}
+                                        className={`mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-2)] hover:text-[var(--text)] transition-colors ${focusCls}`}
+                                    >
+                                        Back to Details
+                                    </button>
+                                )}
 
-                                <PatientChartIdentityHeader patient={patient} compact className="mb-4" />
-                                <PatientHistoryPanel>
-                                    <PatientTransactionHistory patientId={patient.id} />
+                                {!bhwTouchLayout && <PatientChartIdentityHeader patient={patient} compact className="mb-4" />}
+                                <PatientHistoryPanel className={bhwTouchLayout ? 'bhw-patient-history-panel' : undefined}>
+                                    <PatientTransactionHistory patientId={patient.id} compact={bhwTouchLayout} />
                                 </PatientHistoryPanel>
                             </>
                         )}

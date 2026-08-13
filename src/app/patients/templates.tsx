@@ -20,6 +20,13 @@ const legendClasses = "flex w-full items-center gap-2 border-b border-[var(--bor
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PatientForm = PatientRegistrationForm;
 
+interface TemplatesComponentProps {
+    /** BHW tablet/mobile uses the shared registration contract in a guided layout. */
+    touchWizard?: boolean;
+    /** BHW-only SPA return action; omitted for shared clinician registration routes. */
+    onBackToHome?: () => void;
+}
+
 const EMPTY_FORM: PatientForm = {
     firstName: '', middleName: '', lastName: '', suffix: '',
     age: '', sex: '', civilStatus: '', birthday: '',
@@ -108,7 +115,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 // ─── Exported Pure Component ──────────────────────────────────────────────────
-export function TemplatesComponent() {
+export function TemplatesComponent({ touchWizard = false, onBackToHome }: TemplatesComponentProps) {
     const [form, setForm] = useState<PatientForm>(EMPTY_FORM);
     const [otherReligion, setOtherReligion] = useState('');
     const [saving, setSaving] = useState(false);
@@ -118,12 +125,28 @@ export function TemplatesComponent() {
     const savingRef = useRef(false);
     const { showToast, ToastComponent } = useToast();
     const [errors, setErrors] = useState<FieldErrors>({});
+    const [wizardStep, setWizardStep] = useState(1);
+    const [isEmergencyContactExpanded, setIsEmergencyContactExpanded] = useState(false);
+    const [isLeaveConfirmationVisible, setIsLeaveConfirmationVisible] = useState(false);
+    const finalRegistrationIntentRef = useRef(false);
+    const [isTouchViewport, setIsTouchViewport] = useState(() =>
+        typeof window !== 'undefined' && window.matchMedia('(max-width: 1439px)').matches
+    );
 
     const { isOnline } = useNetworkSync();
 
     useEffect(() => {
         initIndexedDB('MediSensDB', 'offline_patients');
     }, []);
+
+    useEffect(() => {
+        if (!touchWizard) return;
+        const media = window.matchMedia('(max-width: 1439px)');
+        const updateViewport = () => setIsTouchViewport(media.matches);
+        updateViewport();
+        media.addEventListener('change', updateViewport);
+        return () => media.removeEventListener('change', updateViewport);
+    }, [touchWizard]);
 
 
 
@@ -188,6 +211,42 @@ export function TemplatesComponent() {
         return Object.keys(newErrors).length === 0;
     };
 
+    const validateWizardStep = (step: number): boolean => {
+        const fieldsByStep: Record<number, Array<keyof PatientForm>> = {
+            1: ['lastName', 'firstName', 'birthday', 'age', 'sex', 'bloodType'],
+            2: ['address', 'contactNumber', 'civilStatus', 'nationality', 'birthPlace', 'educationalAttain', 'employmentStatus', 'relativeName', 'relativeRelation', 'relativeAddress', 'relativeContact'],
+            3: ['philhealthNo', 'philhealthStatus', 'category', 'categoryOthers'],
+            4: [],
+        };
+        const requiredByStep: Record<number, Array<keyof PatientForm>> = {
+            1: ['lastName', 'firstName', 'birthday', 'sex', 'bloodType'],
+            2: ['address', 'civilStatus', 'nationality', 'educationalAttain', 'employmentStatus'],
+            3: [],
+            4: [],
+        };
+        const fields = fieldsByStep[step] ?? [];
+        const validationErrors = validatePatientRegistration(form);
+        const stepErrors: FieldErrors = {};
+
+        fields.forEach(field => {
+            if (validationErrors[field]) stepErrors[field] = validationErrors[field];
+        });
+        requiredByStep[step]?.forEach(field => {
+            if (!form[field]?.trim()) stepErrors[field] = 'This field is required.';
+        });
+
+        setErrors(previous => {
+            const next = { ...previous };
+            fields.forEach(field => delete next[field]);
+            return { ...next, ...stepErrors };
+        });
+        if (Object.keys(stepErrors).length > 0) {
+            showToast('Please complete the highlighted fields before continuing.', true);
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (savingRef.current) return;
@@ -208,6 +267,9 @@ export function TemplatesComponent() {
             }
             setForm(EMPTY_FORM);
             setErrors({});
+            setWizardStep(1);
+            setIsEmergencyContactExpanded(false);
+            setIsLeaveConfirmationVisible(false);
         } catch (error) {
             logError('Failed to save patient registration', error);
             showToast(healthcareErrorMessage("save the patient record"), true);
@@ -216,6 +278,129 @@ export function TemplatesComponent() {
             setSaving(false);
         }
     };
+
+    const isTouchWizard = touchWizard && isTouchViewport;
+    const requiredMark = <span aria-hidden="true" className="text-[var(--coral-accent)]"> *</span>;
+    const reviewValue = (value: string) => value || 'Not provided';
+
+    if (isTouchWizard) {
+        const progressSteps = ['Basic Information', 'Personal Information', 'PhilHealth & Classification', 'Review & Confirm'];
+        const goToNextStep = () => {
+            finalRegistrationIntentRef.current = false;
+            if (validateWizardStep(wizardStep)) setWizardStep(current => Math.min(4, current + 1));
+        };
+        const updateAddress = (value: string) => {
+            setForm(current => ({ ...current, address: value }));
+            if (errors.address) setErrors(previous => { const next = { ...previous }; delete next.address; return next; });
+        };
+        const reviewSection = (title: string, step: number, rows: Array<[string, string]>) => {
+            if (title === 'Emergency Contact' && !hasEmergencyContact) return null;
+            const sectionId = `review-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+            const withBloodType = title === 'Basic Information' ? [...rows, ['Blood type', form.bloodType] as [string, string]] : rows;
+            const personalRows = title === 'Personal Information' ? withBloodType.filter(([label]) => label !== 'Blood type') : withBloodType;
+            const addressRows = title === 'Personal Information' ? personalRows.slice(0, 2) : null;
+            const backgroundRows = title === 'Personal Information' ? personalRows.slice(2) : null;
+            const renderCard = (cardTitle: string, cardRows: Array<[string, string]>, suffix = '') => (
+                <section className="bhw-wizard-review-section" aria-labelledby={`${sectionId}${suffix}`}>
+                    <div className="bhw-wizard-review-heading">
+                        <h3 id={`${sectionId}${suffix}`}>{cardTitle}</h3>
+                    <button type="button" className="bhw-wizard-edit" onClick={() => { finalRegistrationIntentRef.current = false; setWizardStep(step); }} aria-label={`Edit ${title}`}>Edit</button>
+                    </div>
+                    <dl>{cardRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{reviewValue(value)}</dd></div>)}</dl>
+                </section>
+            );
+            return addressRows && backgroundRows ? <>{renderCard('Address & Contact', addressRows, '-address')}{renderCard('Personal Background', backgroundRows, '-background')}</> : renderCard(title, withBloodType);
+        };
+        const hasEmergencyContact = Boolean(form.relativeName || form.relativeRelation || form.relativeContact || form.relativeAddress);
+        const hasRegistrationData = Object.values(form).some(value => value.trim() !== '') || Boolean(otherReligion);
+        const requestBackToHome = () => {
+            if (!onBackToHome) return;
+            if (hasRegistrationData) {
+                setIsLeaveConfirmationVisible(true);
+                return;
+            }
+            onBackToHome();
+        };
+        const handleWizardSubmit = (event: React.FormEvent) => {
+            event.preventDefault();
+            if (wizardStep !== 4 || !finalRegistrationIntentRef.current) {
+                finalRegistrationIntentRef.current = false;
+                return;
+            }
+            finalRegistrationIntentRef.current = false;
+            void handleSubmit(event);
+        };
+
+        return (
+            <div className="bhw-registration-wizard relative mx-auto w-full max-w-[58rem] px-0 pb-6">
+                <ToastComponent />
+                <div className="bhw-registration-subheader">
+                    {onBackToHome && <button type="button" className="bhw-wizard-home-action" onClick={requestBackToHome}><Icon name="home" className="h-4 w-4" />Back to Home</button>}
+                    <div className="bhw-registration-subheader-context"><strong>Register Patient</strong><span>Step {wizardStep} of 4</span></div>
+                    {isLeaveConfirmationVisible && <div className="bhw-wizard-leave-confirmation" role="alert" aria-live="assertive"><p><strong>Leave registration?</strong> Your entered information has not been saved.</p><div><button type="button" className="bhw-wizard-back" onClick={() => setIsLeaveConfirmationVisible(false)}>Keep registering</button><button type="button" className="bhw-wizard-next" onClick={onBackToHome}>Leave and discard</button></div></div>}
+                </div>
+
+                <div className="mb-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:mb-5 sm:p-5">
+                    <p className="text-[length:var(--type-supporting-size)] leading-[var(--type-supporting-line)] text-[var(--text-secondary)]">Complete one section at a time. Your entries stay in place as you move between steps.</p>
+                </div>
+
+                <ol className="bhw-wizard-progress" aria-label={`Registration progress: step ${wizardStep} of 4`}>
+                    {progressSteps.map((label, index) => {
+                        const step = index + 1;
+                        const state = step === wizardStep ? 'is-current' : step < wizardStep ? 'is-complete' : '';
+                        return <li key={label} className={`bhw-wizard-progress-step ${state}`} aria-current={step === wizardStep ? 'step' : undefined}><span className="bhw-wizard-progress-marker">{step < wizardStep ? <Icon name="check" className="h-4 w-4" /> : step}</span><span className="bhw-wizard-progress-label">{label}</span></li>;
+                    })}
+                </ol>
+
+                <form onSubmit={handleWizardSubmit} className="bhw-wizard-form">
+                    {wizardStep === 1 && (
+                        <fieldset className={fieldsetClasses}>
+                            <div className={legendClasses}><span>1</span> Basic Information</div>
+                            <div className="grid grid-cols-1 gap-5 p-4 sm:grid-cols-2 sm:p-5">
+                                <div><label className={labelClasses}>Last Name{requiredMark}</label><input id="lastName" value={form.lastName} onChange={handleTextOnly} className={errors.lastName ? inputErrorClasses : inputClasses} placeholder="Dela Cruz" required /><FieldError message={errors.lastName} /></div>
+                                <div><label className={labelClasses}>First Name{requiredMark}</label><input id="firstName" value={form.firstName} onChange={handleTextOnly} className={errors.firstName ? inputErrorClasses : inputClasses} placeholder="Juan" required /><FieldError message={errors.firstName} /></div>
+                                <div><label className={labelClasses}>Middle Name</label><input id="middleName" value={form.middleName} onChange={handleTextOnly} className={inputClasses} placeholder="Santos" /></div>
+                                <div><label className={labelClasses}>Suffix</label><input id="suffix" value={form.suffix} onChange={handleTextOnly} className={inputClasses} placeholder="Jr." /></div>
+                                <div><label className={labelClasses}>Birthday{requiredMark}</label><input type="date" id="birthday" value={form.birthday} onChange={handleBirthday} className={errors.birthday ? inputErrorClasses : inputClasses} max={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })} required /><FieldError message={errors.birthday} /></div>
+                                <div><label className={labelClasses}>Age <span className="font-normal text-[var(--text-3)]">(auto)</span></label><input id="age" value={form.age} readOnly className={readOnlyInputClasses} placeholder="Birthday" tabIndex={-1} /><FieldError message={errors.age} /></div>
+                                <div><label className={labelClasses}>Blood Type{requiredMark}</label><select id="bloodType" value={form.bloodType} onChange={handleChange} className={inputClasses} required><option value="" disabled>Select blood type</option>{BLOOD_TYPES.map(value => <option key={value} value={value}>{value}</option>)}</select><FieldError message={errors.bloodType} /></div>
+                                <div className="sm:col-span-2"><label className={labelClasses}>Sex{requiredMark}</label><div className="bhw-wizard-choice-grid" role="radiogroup" aria-label="Sex">{['Male', 'Female'].map(value => <RadioOption key={value} name="sex" value={value} label={value} checked={form.sex === value} onChange={handleRadio} />)}</div><FieldError message={errors.sex} /></div>
+                            </div>
+                        </fieldset>
+                    )}
+
+                    {wizardStep === 2 && (
+                        <fieldset className={fieldsetClasses}>
+                            <div className={legendClasses}><span>2</span> Personal Information</div>
+                            <div className="bhw-wizard-step-groups">
+                                <section className="bhw-wizard-field-group" aria-labelledby="bhw-address-contact-heading"><div className="bhw-wizard-field-group-heading"><h3 id="bhw-address-contact-heading">Address &amp; Contact</h3></div><div className="grid grid-cols-1 gap-5 sm:grid-cols-2"><div className="sm:col-span-2"><label className={labelClasses}>Address / Barangay{requiredMark}</label><AddressField value={form.address} onChange={updateAddress} /><FieldError message={errors.address} /></div><div><label className={labelClasses}>Contact Number <span className="font-normal text-[var(--text-3)]">(11 digits)</span></label><input id="contactNumber" value={form.contactNumber} onChange={handlePhone} inputMode="numeric" className={errors.contactNumber ? inputErrorClasses : inputClasses} placeholder="09XXXXXXXXX" maxLength={11} /><FieldError message={errors.contactNumber} /></div></div></section>
+                                <section className="bhw-wizard-field-group" aria-labelledby="bhw-personal-background-heading"><div className="bhw-wizard-field-group-heading"><h3 id="bhw-personal-background-heading">Personal Background</h3></div><div className="grid grid-cols-1 gap-5 sm:grid-cols-2"><div><label className={labelClasses}>Civil Status{requiredMark}</label><select id="civilStatus" value={form.civilStatus} onChange={handleChange} className={inputClasses} required><option value="" disabled>Select</option>{CIVIL_STATUSES.map(value => <option key={value} value={value}>{value}</option>)}</select></div><div><label className={labelClasses}>Nationality{requiredMark}</label><input id="nationality" value={form.nationality} onChange={handleTextOnly} onFocus={handleNationalityFocus} className={inputClasses} placeholder="Filipino" required /><FieldError message={errors.nationality} /></div><div><label className={labelClasses}>Religion</label><select id="religion" value={form.religion.startsWith('Other:') ? 'Other' : form.religion} onChange={handleChange} className={inputClasses}><option value="">Select religion</option>{RELIGION_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}</select>{(form.religion === 'Other' || form.religion.startsWith('Other:')) && <input value={otherReligion || form.religion.replace(/^Other:\s*/, '')} onChange={handleOtherReligion} className={`${inputClasses} mt-2`} placeholder="Enter religion" />}</div><div><label className={labelClasses}>Birth Place</label><input id="birthPlace" value={form.birthPlace} onChange={handleTextOnly} className={inputClasses} placeholder="Malvar, Batangas" /></div><div><label className={labelClasses}>Educational Attainment{requiredMark}</label><select id="educationalAttain" value={form.educationalAttain} onChange={handleChange} className={inputClasses} required><option value="" disabled>Select</option>{EDUCATION_LEVELS.map(value => <option key={value} value={value}>{value}</option>)}</select></div><div><label className={labelClasses}>Employment Status{requiredMark}</label><select id="employmentStatus" value={form.employmentStatus} onChange={handleChange} className={inputClasses} required><option value="" disabled>Select</option>{EMPLOYMENT_STATUSES.map(value => <option key={value} value={value}>{value}</option>)}</select></div></div></section>
+                                <section className="bhw-wizard-field-group bhw-wizard-emergency-group" aria-labelledby="bhw-emergency-contact-heading"><button type="button" className="bhw-wizard-disclosure" onClick={() => setIsEmergencyContactExpanded(current => !current)} aria-expanded={isEmergencyContactExpanded}><span><strong id="bhw-emergency-contact-heading">Emergency Contact</strong><small>Optional — add a contact person if one is available.</small></span><Icon name="chevron-right" className={`h-5 w-5 ${isEmergencyContactExpanded ? 'rotate-90' : ''}`} /></button>{isEmergencyContactExpanded && <div className="grid grid-cols-1 gap-5 border-t border-[var(--border)] p-4 sm:grid-cols-2 sm:p-5"><div><label className={labelClasses}>Relative's Name</label><input id="relativeName" value={form.relativeName} onChange={handleTextOnly} className={inputClasses} placeholder="Full name" /></div><div><label className={labelClasses}>Relationship</label><input id="relativeRelation" value={form.relativeRelation} onChange={handleTextOnly} className={inputClasses} placeholder="e.g. Spouse" /></div><div><label className={labelClasses}>Contact Number</label><input id="relativeContact" value={form.relativeContact} onChange={handlePhone} inputMode="numeric" className={errors.relativeContact ? inputErrorClasses : inputClasses} placeholder="09XXXXXXXXX" maxLength={11} /><FieldError message={errors.relativeContact} /></div><div><label className={labelClasses}>Relative's Address</label><input id="relativeAddress" value={form.relativeAddress} onChange={handleChange} className={inputClasses} placeholder="Address" /></div></div>}</section>
+                            </div>
+                        </fieldset>
+                    )}
+
+                    {wizardStep === 3 && (
+                        <fieldset className={fieldsetClasses}>
+                            <div className={legendClasses}><span>3</span> PhilHealth &amp; Classification</div>
+                            <div className="grid grid-cols-1 gap-6 p-4 sm:p-5">
+                                <div><label className={labelClasses}>PhilHealth Number <span className="font-normal text-[var(--text-3)]">(XX-XXXXXXXXX-X)</span></label><input id="philhealthNo" value={form.philhealthNo} onChange={handlePhilhealth} inputMode="numeric" className={errors.philhealthNo ? inputErrorClasses : inputClasses} placeholder="XX-XXXXXXXXX-X" maxLength={14} /><FieldError message={errors.philhealthNo} /><p className="mt-1 text-xs font-semibold text-[var(--text-3)]">{philhealthDigits(form.philhealthNo).length}/12 digits</p></div>
+                                <div><label className={labelClasses}>Category</label><div className="bhw-wizard-choice-grid" role="radiogroup" aria-label="PhilHealth category">{['Member', 'Dependent', '4Ps', 'None'].map(value => <RadioOption key={value} name="philhealthStatus" value={value} label={value} checked={form.philhealthStatus === value} onChange={handleRadio} />)}</div></div>
+                                <div><label className={labelClasses}>Classification</label><div className="bhw-wizard-choice-grid" role="radiogroup" aria-label="Patient classification">{['4Ps', 'Other/s'].map(value => <RadioOption key={value} name="category" value={value} label={value} checked={form.category === value} onChange={handleRadio} />)}</div>{form.category === 'Other/s' && <div className="mt-3"><label className={labelClasses}>Please specify{requiredMark}</label><input id="categoryOthers" value={form.categoryOthers} onChange={handleChange} className={errors.categoryOthers ? inputErrorClasses : inputClasses} placeholder="Please specify" required /><FieldError message={errors.categoryOthers} /></div>}</div>
+                            </div>
+                        </fieldset>
+                    )}
+
+                    {wizardStep === 4 && <div className="flex flex-col gap-4">{reviewSection('Basic Information', 1, [['Name', [form.firstName, form.middleName, form.lastName, form.suffix].filter(Boolean).join(' ')], ['Birthday / Age', `${reviewValue(form.birthday)}${form.age ? ` · ${form.age} years old` : ''}`], ['Sex', form.sex]])}{reviewSection('Personal Information', 2, [['Address', form.address], ['Contact number', form.contactNumber], ['Civil status', form.civilStatus], ['Nationality', form.nationality], ['Religion', form.religion], ['Birth place', form.birthPlace], ['Educational attainment', form.educationalAttain], ['Employment status', form.employmentStatus], ['Blood type', form.bloodType]])}{reviewSection('Emergency Contact', 2, [["Relative's name", form.relativeName], ['Relationship', form.relativeRelation], ['Contact number', form.relativeContact], ["Relative's address", form.relativeAddress]])}{reviewSection('PhilHealth & Classification', 3, [['PhilHealth number', form.philhealthNo], ['Category', form.philhealthStatus], ['Classification', form.category === 'Other/s' ? `Other/s — ${form.categoryOthers}` : form.category]])}<div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-medium leading-6 text-[var(--text)]"><div className="flex gap-3"><Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-2)]" /><p>Personal and health data are collected and processed only for authorized RHU healthcare purposes in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p></div></div></div>}
+
+                    <div className="bhw-wizard-actions">
+                        {wizardStep > 1 && <button type="button" className="bhw-wizard-back" onClick={() => { finalRegistrationIntentRef.current = false; setWizardStep(current => Math.max(1, current - 1)); }}><Icon name="chevron-right" className="h-4 w-4 rotate-180" />Back</button>}
+                        {wizardStep < 4 ? <button type="button" className="bhw-wizard-next" onClick={goToNextStep}>Continue<Icon name="chevron-right" className="h-4 w-4" /></button> : <button type="submit" disabled={saving} className="bhw-wizard-next bhw-wizard-submit" onClick={() => { finalRegistrationIntentRef.current = true; }}>{saving ? 'Registering Patient...' : <><Icon name="save" className="h-4 w-4" />Register Patient</>}</button>}
+                    </div>
+                </form>
+            </div>
+        );
+    }
 
     return (
         <div className="relative mx-auto w-full max-w-[72rem] px-3 pb-12 sm:px-5 lg:px-6">
