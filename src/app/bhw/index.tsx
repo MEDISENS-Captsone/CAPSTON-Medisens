@@ -1,16 +1,21 @@
-import { Suspense, lazy, useMemo, useState, useEffect } from 'react';
+import { Suspense, lazy, useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { supabase } from '../../lib/supabase/client';
 import { Sidebar } from '../../components/layout/Sidebar';
-import { requireRole } from '../../lib/auth/roles';
+import { logout, requireRole } from '../../lib/auth/roles';
 import { getInitials } from '../../lib/utils/names';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
+import { NetworkBadge } from '../../components/shared/NetworkBadge';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { SkeletonKpiGrid, SkeletonList } from '../../components/ui/Skeleton';
 import { safeTrim } from '../../lib/utils/strings';
 import { useToast } from '../../components/feedback/Toast';
 import { useHashPage } from '../../hooks/useHashPage';
+import medisensLogo from '../../assets/MEDISENS Logo.png';
+// The BHW touch registration surface depends on these role styles directly.
+// Do not rely on Sidebar's incidental stylesheet import for this route.
+import '../../styles/dashboard.css';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -19,7 +24,6 @@ import type { Patient } from '../../components/patient/PatientDetailModal';
 const RecordsComponent = lazy(() => import('../patients/records').then(module => ({ default: module.RecordsComponent })));
 const TemplatesComponent = lazy(() => import('../patients/templates').then(module => ({ default: module.TemplatesComponent })));
 const BHW_PATIENT_LIMIT = 1000;
-const BHW_FHSIS_LIMIT = 1000;
 const BHW_PATIENT_COLUMNS = 'id, firstName, middleName, lastName, suffix, age, sex, bloodType, address, contactNumber, birthday, civilStatus, nationality, religion, educationalAttain, employmentStatus, philhealthNo, philhealthStatus, category, categoryOthers, relativeName, relativeRelation, relativeAddress, created_at, patient_consent(consent_id, consent_date, created_at)';
 const PatientDetailModal = lazy(() => import('../../components/patient/PatientDetailModal').then(module => ({ default: module.PatientDetailModal })));
 const PatientConsentModal = lazy(() => import('../../components/patient/PatientConsentModal').then(module => ({ default: module.PatientConsentModal })));
@@ -27,13 +31,109 @@ const PatientConsentModal = lazy(() => import('../../components/patient/PatientC
 type ConsentRelation = { consent_id: string; consent_date?: string | null; created_at?: string | null } | { consent_id: string; consent_date?: string | null; created_at?: string | null }[] | null;
 type BhwPatient = Patient & { patient_consent?: ConsentRelation };
 type ConsentFilter = 'all' | 'pending' | 'signed';
-const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
 
 const LazyPanelFallback = () => (
     <div className="rounded-xl border border-[var(--border)] bg-white">
         <SkeletonList rows={4} />
     </div>
 );
+interface BhwTouchHeaderProps {
+    userName: string;
+    userInitials: string;
+    isOnline: boolean;
+}
+
+function BhwTouchHeader({ userName, userInitials, isOnline }: BhwTouchHeaderProps) {
+    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+    const [isLogoutConfirmationOpen, setIsLogoutConfirmationOpen] = useState(false);
+    const accountButtonRef = useRef<HTMLButtonElement>(null);
+    const cancelLogoutRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (!isAccountMenuOpen && !isLogoutConfirmationOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            if (isLogoutConfirmationOpen) setIsLogoutConfirmationOpen(false);
+            else setIsAccountMenuOpen(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isAccountMenuOpen, isLogoutConfirmationOpen]);
+
+    useEffect(() => {
+        if (!isLogoutConfirmationOpen) return;
+        cancelLogoutRef.current?.focus();
+    }, [isLogoutConfirmationOpen]);
+
+    const closeAccountMenu = () => {
+        setIsAccountMenuOpen(false);
+        accountButtonRef.current?.focus({ preventScroll: true });
+    };
+
+    return (
+        <>
+        <header className="bhw-touch-header" aria-label="MediSens BHW header">
+            <div className="bhw-touch-header-brand">
+                <span className={`bhw-touch-logo ${isOnline ? 'bg-[var(--brand-primary)]' : 'bg-[var(--amber-accent)]'}`} aria-hidden="true">
+                    <img src={medisensLogo} alt="" className="h-5 w-5 object-contain brightness-0 invert" />
+                </span>
+                <span className="min-w-0">
+                    <span className="block text-[length:var(--type-card-title-size)] font-semibold leading-[var(--type-card-title-line)] text-[var(--text)]">MEDISENS</span>
+                    <span className="block truncate text-[length:var(--type-category-size)] font-semibold uppercase leading-[var(--type-category-line)] tracking-[var(--tracking-nav-category)] text-[var(--text-muted)]">Barangay Health Worker</span>
+                </span>
+            </div>
+            <NetworkBadge isOnline={isOnline} compact />
+            <div className="bhw-touch-header-profile">
+                <button ref={accountButtonRef} type="button" className="bhw-touch-account-trigger" onClick={() => setIsAccountMenuOpen(true)} aria-haspopup="dialog" aria-expanded={isAccountMenuOpen} aria-label={`Open account menu for ${userName}, Barangay Health Worker`}>
+                    <span className="min-w-0"><strong>{userName}</strong><small>Barangay Health Worker</small></span>
+                    <span className={`bhw-touch-account-avatar ${isOnline ? 'bg-[var(--brand-primary-hover)]' : 'bg-[var(--amber-accent)]'}`}>{userInitials}</span>
+                </button>
+            </div>
+        </header>
+        {isAccountMenuOpen && <div className="bhw-account-popover-dismiss" onClick={closeAccountMenu} role="presentation"><section className="bhw-account-menu" role="dialog" aria-modal="true" aria-labelledby="bhw-account-menu-title" onClick={event => event.stopPropagation()}><div><p id="bhw-account-menu-title">{userName}</p><span>Barangay Health Worker</span></div><button type="button" className="bhw-account-logout-action" onClick={() => { setIsAccountMenuOpen(false); setIsLogoutConfirmationOpen(true); }}><Icon name="logout" className="h-5 w-5" />Log out</button></section></div>}
+        {isLogoutConfirmationOpen && <div className="bhw-account-confirmation-backdrop" onClick={() => setIsLogoutConfirmationOpen(false)} role="presentation"><section className="bhw-logout-confirmation" role="dialog" aria-modal="true" aria-labelledby="bhw-logout-confirmation-title" onClick={event => event.stopPropagation()}><span className="bhw-logout-confirmation-icon"><Icon name="logout" className="h-5 w-5" /></span><h2 id="bhw-logout-confirmation-title">Log out of MediSens?</h2><p>You will need to sign in again to continue.</p><div><button ref={cancelLogoutRef} type="button" className="bhw-wizard-back" onClick={() => setIsLogoutConfirmationOpen(false)}>Cancel</button><button type="button" className="bhw-account-confirm-logout" onClick={() => void logout()}>Log out</button></div></section></div>}
+        </>
+    );
+}
+
+interface BhwTouchNavigationProps {
+    activePage: string;
+    onNavigate: (page: 'dashboard' | 'records') => void;
+}
+
+function BhwTouchNavigation({ activePage, onNavigate }: BhwTouchNavigationProps) {
+    const destinations = [
+        { id: 'dashboard' as const, label: 'Home', icon: 'home' },
+        { id: 'records' as const, label: 'Patient Records', icon: 'users' },
+    ];
+
+    return (
+        <nav className="bhw-touch-navigation" aria-label="BHW touch navigation">
+            {destinations.map(destination => {
+                const isActive = activePage === destination.id;
+                return (
+                    <button
+                        key={destination.id}
+                        type="button"
+                        onClick={() => onNavigate(destination.id)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`bhw-touch-navigation-item ${isActive ? 'is-active' : ''}`}
+                    >
+                        <Icon name={destination.icon} className="h-5 w-5" />
+                        <span>{destination.label}</span>
+                    </button>
+                );
+            })}
+        </nav>
+    );
+}
+
+function getGreeting(name: string) {
+    const hour = new Date().getHours();
+    const salutation = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const firstName = name === 'Loading...' ? 'BHW' : name.split(' ')[0] || 'BHW';
+    return `${salutation}, ${firstName}!`;
+}
 
 const BhwDashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -41,7 +141,6 @@ const BhwDashboard = () => {
     const [userName, setUserName] = useState('Loading...');
     const [userInitials, setUserInitials] = useState('?');
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [records, setRecords] = useState<any[]>([]); // State for FHSIS Census Logs
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [lastUpdatedPatient, setLastUpdatedPatient] = useState<Patient | null>(null);
     const [isDashboardLoading, setIsDashboardLoading] = useState(true);
@@ -54,13 +153,14 @@ const BhwDashboard = () => {
     const { showToast, ToastComponent } = useToast();
 
     // ─── SPA Navigation State ───
-    const [activePage, setActivePage] = useHashPage('dashboard');
+    const [activePage, setActivePage] = useHashPage('dashboard', page =>
+        ['dashboard', 'records', 'new-record'].includes(page) ? page : 'dashboard'
+    );
 
     const navItems = [
         { id: 'dashboard', label: 'Home', icon: 'home', group: 'Overview' },
         { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
-        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
-        { id: 'reports', label: 'FHSIS Reports', icon: 'chart', group: 'Records & Governance' }
+        { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' }
     ];
 
     useEffect(() => {
@@ -88,38 +188,6 @@ const BhwDashboard = () => {
                 if (statsError) throw statsError;
                 if (allPatients) setPatients(allPatients as Patient[]);
 
-                // 3. Fetch FHSIS logs for the OCR Reports
-                const { data: fhsisData, error: fhsisError } = await supabase
-                    .from('fhsis_logs')
-                    .select(`
-                    id,
-                    patient_id,
-                    category,
-                    data_fields,
-                    report_month,
-                    created_at,
-                    patients (
-                        firstName,
-                        lastName,
-                        address
-                    )
-                `)
-                    .order('created_at', { ascending: false })
-                    .limit(BHW_FHSIS_LIMIT);
-
-                if (fhsisError) throw fhsisError;
-                if (fhsisData) {
-                    // Flatten the relationship for the ReportGenerator
-                    const formattedRecords = fhsisData.map(record => {
-                        const patientData: any = Array.isArray(record.patients) ? record.patients[0] : record.patients;
-                        return {
-                            ...record,
-                            patientName: patientData ? safeTrim(`${patientData.firstName || ''} ${patientData.lastName || ''}`) : 'Unknown Patient',
-                            address: patientData?.address || 'N/A'
-                        };
-                    });
-                    setRecords(formattedRecords);
-                }
             } catch (error) {
                 console.error('Unable to load the BHW dashboard.', error);
                 setDashboardError('Unable to load the community health queue. Check your connection and try again.');
@@ -130,18 +198,9 @@ const BhwDashboard = () => {
 
         fetchData();
 
-        // Realtime subscription to auto-update reports when Midwife adds new Census Entry
-        const channel = supabase
-            .channel('bhw-fhsis-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'fhsis_logs' }, () => {
-                fetchData();
-            })
-            .subscribe();
-
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
-            supabase.removeChannel(channel);
         };
     }, [reloadToken]);
 
@@ -161,6 +220,16 @@ const BhwDashboard = () => {
         const relation = (p as BhwPatient).patient_consent;
         return Array.isArray(relation) ? relation.length > 0 : !!relation;
     };
+
+    const consentCounts = useMemo(() => patients.reduce(
+        (counts, patient) => {
+            counts.all += 1;
+            if (isConsentSigned(patient)) counts.signed += 1;
+            else counts.pending += 1;
+            return counts;
+        },
+        { all: 0, pending: 0, signed: 0 },
+    ), [patients, signedConsentIds, signedConsentDates]);
 
     const getLatestConsentTime = (p: Patient) => {
         const locallySignedAt = signedConsentDates.get(p.id);
@@ -208,9 +277,16 @@ const BhwDashboard = () => {
         setLastUpdatedPatient(updatedPatient);
     };
 
+    const retryDashboardLoad = () => {
+        setIsDashboardLoading(true);
+        setReloadToken(current => current + 1);
+    };
+
     return (
-        <div className="flex h-screen bg-[var(--bg)] overflow-hidden w-full">
+        <div className="bhw-app-shell flex h-screen w-full overflow-hidden bg-[var(--bg)]">
             <ToastComponent />
+
+            <BhwTouchHeader userName={userName} userInitials={userInitials} isOnline={isOnline} />
 
             <Sidebar
                 activePage={activePage}
@@ -227,7 +303,7 @@ const BhwDashboard = () => {
             <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 
                 <Topbar
-                    title={activePage === 'dashboard' ? 'Dashboard' : activePage === 'records' ? 'Patient Records' : activePage === 'reports' ? 'FHSIS Reports' : activePage.replace(/-/g, ' ')}
+                    title={activePage === 'dashboard' ? 'Dashboard' : activePage === 'records' ? 'Patient Records' : activePage.replace(/-/g, ' ')}
                     sectionLabel="Barangay Health Worker"
                     userName={userName}
                     userInitials={userInitials}
@@ -243,12 +319,111 @@ const BhwDashboard = () => {
                         {/* ─── DASHBOARD VIEW ─── */}
                         {activePage === 'dashboard' && (
                             <>
-                                <PageHeader
-                                    title="Barangay Health Work Queue"
-                                    subtitle="Register residents, review recent intakes, and continue FHSIS reporting."
-                                />
+                                <div className="bhw-home-desktop">
+                                    <PageHeader
+                                        title="Barangay Health Work Queue"
+                                        subtitle="Register residents, review recent intakes, and manage patient records."
+                                    />
+                                </div>
 
-                                <div className="pwa-page-pad flex flex-col pwa-panel-gap bhw-dashboard-workspace">
+                                <div className="bhw-home-touch pwa-page-pad">
+                                    {dashboardError && (
+                                        <div className="role-dashboard-alert" role="alert">
+                                            <div>
+                                                <strong>Community health queue unavailable</strong>
+                                                <span>{dashboardError}</span>
+                                            </div>
+                                            <button type="button" onClick={retryDashboardLoad} className="clinical-secondary-action min-h-11">Try again</button>
+                                        </div>
+                                    )}
+                                    <div className="bhw-home-greeting">
+                                        <p className="bhw-home-greeting-eyebrow">Community health workspace</p>
+                                        <h2>{getGreeting(userName)}</h2>
+                                        <p>How can we help you today?</p>
+                                    </div>
+
+                                    <section className="bhw-home-quick-actions" aria-label="Common BHW tasks">
+                                        <button type="button" onClick={() => setActivePage('new-record')} className="bhw-home-task bhw-home-task-primary">
+                                            <span className="bhw-home-task-icon"><Icon name="user-plus" className="h-7 w-7" /></span>
+                                            <span>
+                                                <strong>Register Patient</strong>
+                                                <small>Add a resident to the patient registry.</small>
+                                            </span>
+                                            <Icon name="chevron-right" className="bhw-home-task-chevron h-5 w-5" />
+                                        </button>
+                                        <button type="button" onClick={() => setActivePage('records')} className="bhw-home-task">
+                                            <span className="bhw-home-task-icon"><Icon name="search" className="h-7 w-7" /></span>
+                                            <span>
+                                                <strong>Find Patient</strong>
+                                                <small>Search and open an existing record.</small>
+                                            </span>
+                                            <Icon name="chevron-right" className="bhw-home-task-chevron h-5 w-5" />
+                                        </button>
+                                    </section>
+
+                                    <section className="bhw-home-section bhw-home-section-recent" aria-labelledby="bhw-recent-registrations-heading">
+                                        <div className="bhw-home-section-heading">
+                                            <div>
+                                                <h2 id="bhw-recent-registrations-heading">Recent Registrations</h2>
+                                                <p>Recently added residents</p>
+                                            </div>
+                                            <button type="button" onClick={() => setActivePage('records')} className="bhw-home-text-action">View all</button>
+                                        </div>
+                                        <div className="bhw-home-recent-list">
+                                            {isDashboardLoading ? (
+                                                <div className="p-4" aria-label="Loading recent registrations"><SkeletonList rows={3} /></div>
+                                            ) : recentPatients.length === 0 ? (
+                                                <div className="role-queue-empty"><span className="role-queue-empty-icon"><Icon name="users" className="h-5 w-5" /></span><strong>No recent registrations</strong><span>Newly registered residents will appear here.</span></div>
+                                            ) : recentPatients.slice(0, 3).map(patient => (
+                                                <button key={patient.id} type="button" onClick={() => setSelectedPatient(patient)} className="bhw-home-recent-row" aria-label={`Open chart for ${patient.lastName}, ${patient.firstName}`}>
+                                                    <span className="min-w-0">
+                                                        <strong>{patient.lastName}, {patient.firstName}</strong>
+                                                        <small>{patient.age ?? '-'} yrs · {patient.sex || '-'} · {patient.address?.split(',')[0] || 'No barangay'}</small>
+                                                    </span>
+                                                    <span className="bhw-home-date">{patient.created_at ? new Date(patient.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</span>
+                                                    <Icon name="chevron-right" className="h-5 w-5" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section className="bhw-home-section bhw-home-directory" aria-labelledby="bhw-touch-patient-directory-heading">
+                                        <div className="bhw-home-section-heading">
+                                            <div>
+                                                <h2 id="bhw-touch-patient-directory-heading">Patient Directory</h2>
+                                                <p>{directoryPatients.length} {consentFilter === 'all' ? 'registered patients' : `${consentFilter} patients`}</p>
+                                            </div>
+                                        </div>
+                                        <div className="bhw-home-directory-tabs" role="group" aria-label="Filter patients by consent status">
+                                            {(['all', 'pending', 'signed'] as const).map(filter => {
+                                                const isActive = consentFilter === filter;
+                                                const label = filter === 'all' ? 'All' : filter === 'pending' ? 'Pending' : 'Signed';
+                                                return <button key={filter} type="button" onClick={() => setConsentFilter(filter)} aria-pressed={isActive} className={isActive ? 'is-active' : ''}>{label} <span className="bhw-home-directory-tab-count">{consentCounts[filter]}</span></button>;
+                                            })}
+                                        </div>
+                                        <div className="bhw-home-directory-list">
+                                            {isDashboardLoading ? (
+                                                <div className="p-4" aria-label="Loading patient directory"><SkeletonList rows={4} /></div>
+                                            ) : directoryPatients.length === 0 ? (
+                                                <div className="role-queue-empty"><span className="role-queue-empty-icon"><Icon name="users" className="h-5 w-5" /></span><strong>{patients.length === 0 ? 'No patients registered yet' : consentFilter === 'pending' ? 'No Pending consent patients' : consentFilter === 'signed' ? 'No Signed consent patients' : 'No patients found'}</strong><span>{patients.length === 0 ? 'Residents you register will appear here.' : consentFilter === 'pending' ? 'All listed patients currently have signed consent.' : consentFilter === 'signed' ? 'No signed consent records are available yet.' : 'No patients currently match this directory view.'}</span></div>
+                                            ) : directoryPatients.map(patient => {
+                                                const signed = isConsentSigned(patient);
+                                                return (
+                                                    <article key={patient.id} className="bhw-home-directory-row">
+                                                        <button type="button" onClick={() => setSelectedPatient(patient)} className="bhw-home-directory-patient" aria-label={`Open patient details for ${patient.lastName}, ${patient.firstName}`}>
+                                                            <span className="min-w-0"><strong>{patient.lastName}, {patient.firstName}</strong><small>{patient.age ?? '-'} yrs · {patient.sex || '-'} · {patient.address?.split(',')[0] || 'No barangay'}</small></span>
+                                                            <span className={`bhw-home-consent-status ${signed ? 'is-signed' : 'is-pending'}`}><Icon name={signed ? 'check' : 'alert-triangle'} className="h-3.5 w-3.5" />{signed ? 'Signed' : 'Pending'}</span>
+                                                            <Icon name="chevron-right" className="h-5 w-5 shrink-0" />
+                                                        </button>
+                                                        {!signed && <button type="button" onClick={() => openConsentFlow(patient)} className="bhw-home-consent-action"><Icon name="clipboard" className="h-4 w-4" />Record Consent</button>}
+                                                    </article>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
+                                </div>
+
+                                <div className="bhw-home-desktop pwa-page-pad flex flex-col pwa-panel-gap bhw-dashboard-workspace">
                                     {dashboardError && (
                                         <div className="role-dashboard-alert" role="alert">
                                             <div>
@@ -270,7 +445,6 @@ const BhwDashboard = () => {
                                         {[
                                             ['Recent Registrations', recentPatients.length, 'Latest residents added', 'clock'],
                                             ['Total Patients', stats.total, 'Master registry', 'users'],
-                                            ['FHSIS Records', records.length, 'Existing report entries', 'file-text'],
                                             ['With Address', stats.withAddress, 'Barangay-ready records', 'map-pin'],
                                         ].map(([label, value, note, icon]) => (
                                             <div key={label} className="ops-summary-card role-summary-card">
@@ -338,9 +512,6 @@ const BhwDashboard = () => {
                                         <div className="grid grid-cols-1 gap-2 p-4 border-t border-[var(--border)] bg-[var(--surface-subtle)]">
                                             <button type="button" onClick={() => setActivePage('new-record')} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)]">
                                                 <Icon name="user-plus" className="h-4 w-4" /> Register Patient
-                                            </button>
-                                            <button type="button" onClick={() => setActivePage('reports')} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--surface-subtle)]">
-                                                <Icon name="chart" className="h-4 w-4" /> FHSIS Reports
                                             </button>
                                         </div>
                                     </div>
@@ -431,31 +602,28 @@ const BhwDashboard = () => {
                                     <RecordsComponent
                                         onPatientClick={(p) => setSelectedPatient(p as any)}
                                         updatedPatient={lastUpdatedPatient}
+                                        touchLayout
                                     />
                                 </Suspense>
                             </div>
                         )}
                         
                         {activePage === 'new-record' && (
-                            <div className="w-full pwa-dense-panel min-h-[500px] m-3 md:m-4 xl:m-5">
+                            <div className="bhw-registration-touch w-full min-h-[500px] pwa-dense-panel m-3 md:m-4 xl:m-5">
                                 <Suspense fallback={<LazyPanelFallback />}>
-                                    <TemplatesComponent />
+                                    <TemplatesComponent touchWizard onBackToHome={() => setActivePage('dashboard')} />
                                 </Suspense>
                             </div>
                         )}
 
-                        {activePage === 'reports' && (
-                            <div className="w-full bg-[var(--bg)] min-h-[500px] m-3 md:m-4 xl:m-5">
-                                {/* Pass the newly fetched FHSIS logs down to the generator */}
-                                <Suspense fallback={<LazyPanelFallback />}>
-                                    <ReportGenerator records={records} />
-                                </Suspense>
-                            </div>
-                        )}
 
                     </div>
                 </div>
             </main>
+
+            {(activePage === 'dashboard' || activePage === 'records') && (
+                <BhwTouchNavigation activePage={activePage} onNavigate={setActivePage} />
+            )}
 
             {selectedPatient && (
                 <Suspense fallback={null}>
@@ -465,6 +633,7 @@ const BhwDashboard = () => {
                         onPatientUpdate={handlePatientUpdated}
                         consentSigned={isConsentSigned(selectedPatient)}
                         onRecordConsent={activePage === 'records' ? undefined : openConsentFlow}
+                        bhwTouchLayout
                     />
                 </Suspense>
             )}
@@ -477,6 +646,7 @@ const BhwDashboard = () => {
                         rhuPersonnel={userName}
                         onClose={() => setConsentPatient(null)}
                         onConsentSaved={(consentDate) => handleConsentSaved(consentPatient, consentDate)}
+                        bhwTouchLayout
                     />
                 </Suspense>
             )}
