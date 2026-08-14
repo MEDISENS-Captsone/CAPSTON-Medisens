@@ -92,13 +92,13 @@ function PharmacyDashboard() {
         };
     }, []);
 
-    // Background Refresh Interval (1.5s)
+    // Gentle background fallback sync (30s) alongside the instant Realtime WebSocket channel
     useEffect(() => {
         const interval = setInterval(() => {
             if (activePage === 'queue' && isOnline) {
                 loadPrescriptions();
             }
-        }, 1500);
+        }, 30000);
         return () => clearInterval(interval);
     }, [activePage, isOnline]);
 
