@@ -105,10 +105,6 @@ interface InitialConsultationRecord {
 }
 
 const toNumberOrNull = (val: unknown): number | null => parseNumberOrNull(val);
-// Blood-based tests in the routine panel. The fasting panel below is blood chemistry,
-// so it is only offered when blood work is actually being requested.
-const ROUTINE_BLOOD_TESTS = ['cbc', 'cbcPlatelet', 'hgbHct', 'bloodTyping'] as const;
-const FASTING_BLOOD_TESTS = ['rbs', 'fbs', 'uricAcid', 'cholesterol', 'lipidProfile', 'hba1c', 'creatinine', 'sgpt'] as const;
 const FOLLOW_UP_LOAD_COLUMNS = 'followup_id, consultation_id, patient_id, visit_date, visit_time, mode_of_transaction, mode_of_transfer, chief_complaint, diagnosis, history_of_present_illness, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, blood_type, general_survey, medication_treatment, follow_up_status';
 const LATEST_VITAL_COLUMNS = 'vitals_id, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, general_survey, initial_consultation_id';
 const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, past_med_surge_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status';
@@ -454,9 +450,8 @@ export function ConsultationPage({
         nutritionalStatus: '', bmi: '', visualAcuityLeft: '', visualAcuityRight: '',
 
         labTests: {
-            cbc: false, cbcPlatelet: false, hgbHct: false, chestXray: false, ultrasound: false, urinalysis: false,
-            fecalysis: false, sputum: false, rbs: false, fbs: false, uricAcid: false, cholesterol: false,
-            hba1c: false, bloodTyping: false, creatinine: false, sgpt: false, lipidProfile: false, ecg: false, others: false,
+            clinicalMicroscopy: false, bloodChemistry: false, pregnancyTest: false,
+            hbsagScreening: false, hivScreening: false, parasitology: false, dengueRdt: false, others: false,
         },
         labTestsOther: '', labChiefComplaint: '', labRequestedBy: '', rxLicNo: '', rxPtrNo: '',
     });
@@ -486,19 +481,6 @@ export function ConsultationPage({
     const sigCanvas = useRef<SignatureCanvas | null>(null);
     const followUpSigCanvas = useRef<SignatureCanvas | null>(null);
 
-    const bloodTestSelected = ROUTINE_BLOOD_TESTS.some(test => formData.labTests[test]);
-
-    // Drop any fasting blood-chemistry selection once the request no longer contains
-    // blood work, so a stale checkbox can never be submitted while hidden.
-    useEffect(() => {
-        if (bloodTestSelected) return;
-        setFormData(prev => {
-            if (!FASTING_BLOOD_TESTS.some(test => prev.labTests[test])) return prev;
-            const labTests = { ...prev.labTests };
-            FASTING_BLOOD_TESTS.forEach(test => { labTests[test] = false; });
-            return { ...prev, labTests };
-        });
-    }, [bloodTestSelected]);
 
     const [activeTab, setActiveTab] = useState(1);
     const [patient, setPatient] = useState<PatientData | null>(null);
@@ -1058,9 +1040,11 @@ export function ConsultationPage({
                 if (!resolvedConsultationId) throw new Error('Could not create consultation record.');
                 const labPayload = {
                     patient_id: patient.id, consultation_id: resolvedConsultationId, request_date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }), chief_complaint: formData.labChiefComplaint || null,
-                    is_cbc: formData.labTests.cbc, is_cbc_platelet: formData.labTests.cbcPlatelet, is_hgb_hct: formData.labTests.hgbHct, is_xray: formData.labTests.chestXray, is_ultrasound: formData.labTests.ultrasound,
-                    is_urinalysis: formData.labTests.urinalysis, is_fecalysis: formData.labTests.fecalysis, is_sputum: formData.labTests.sputum, is_rbs: formData.labTests.rbs, is_fbs: formData.labTests.fbs,
-                    is_uric_acid: formData.labTests.uricAcid, is_cholesterol: formData.labTests.cholesterol, others: formData.labTestsOther || null, requested_by: formData.labRequestedBy || null, status: 'Pending',
+                    is_clinical_microscopy: formData.labTests.clinicalMicroscopy, is_blood_chemistry: formData.labTests.bloodChemistry,
+                    is_pregnancy_test: formData.labTests.pregnancyTest, is_hbsag_screening: formData.labTests.hbsagScreening,
+                    is_hiv_screening: formData.labTests.hivScreening, is_parasitology: formData.labTests.parasitology,
+                    is_dengue_rdt: formData.labTests.dengueRdt,
+                    others: formData.labTestsOther || null, requested_by: formData.labRequestedBy || null, status: 'Pending',
                 };
                 await createLabRequest(labPayload);
                 showToast('Lab request sent to laboratory successfully!', false);
@@ -1458,41 +1442,16 @@ export function ConsultationPage({
             <div className="space-y-2">
                 <div className="bg-[var(--surface-subtle)]/50 rounded-2xl border border-[var(--border-soft)] p-6 space-y-6">
                     <div>
-                        <div className="inline-block px-3 py-1 bg-white border border-[var(--border)] shadow-sm text-[var(--text-2)] text-xs font-semibold uppercase tracking-wide rounded-md mb-4">Routine Tests</div>
+                        <div className="inline-block px-3 py-1 bg-white border border-[var(--border)] shadow-sm text-[var(--text-2)] text-xs font-semibold uppercase tracking-wide rounded-md mb-4">Laboratory Tests</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
-                            {renderCheckbox('cbc', 'Complete Blood Count (CBC)')}
-                            {renderCheckbox('urinalysis', 'Urinalysis')}
-                            {renderCheckbox('cbcPlatelet', 'CBC with Platelet Count')}
-                            {renderCheckbox('fecalysis', 'Fecalysis')}
-                            {renderCheckbox('hgbHct', 'Hemoglobin and Hematocrit')}
-                            {renderCheckbox('sputum', 'Sputum')}
-                            {renderCheckbox('chestXray', 'Chest X-Ray (PA View)')}
-                            {renderCheckbox('ultrasound', 'Ultrasound')}
-                            {renderCheckbox('bloodTyping', 'Blood Typing')}
-                            {renderCheckbox('ecg', 'ECG')}
+                            {renderCheckbox('clinicalMicroscopy', 'Clinical Microscopy')}
+                            {renderCheckbox('bloodChemistry', 'Blood Chemistry')}
+                            {renderCheckbox('pregnancyTest', 'Pregnancy Test')}
+                            {renderCheckbox('hbsagScreening', 'HBsAg Screening')}
+                            {renderCheckbox('hivScreening', 'HIV Screening')}
+                            {renderCheckbox('parasitology', 'Parasitology')}
+                            {renderCheckbox('dengueRdt', 'Dengue RDT')}
                         </div>
-                    </div>
-                    <div className="pt-6 border-t border-[var(--border)]">
-                        {bloodTestSelected ? (
-                            <>
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="inline-block px-3 py-1 bg-white border border-[var(--border)] shadow-sm text-[var(--text-2)] text-xs font-semibold uppercase tracking-wide rounded-md">Fasting Tests</div>
-                                    <span className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wide bg-[var(--surface-subtle)] px-2 py-1 rounded-md">8-10 hrs required</span>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
-                                    {renderCheckbox('rbs', 'Random Blood Sugar (RBS)')}
-                                    {renderCheckbox('fbs', 'Fasting Blood Sugar (FBS)')}
-                                    {renderCheckbox('uricAcid', 'Uric Acid')}
-                                    {renderCheckbox('cholesterol', 'Cholesterol')}
-                                    {renderCheckbox('lipidProfile', 'Lipid Profile')}
-                                    {renderCheckbox('hba1c', 'HbA1c')}
-                                    {renderCheckbox('creatinine', 'Creatinine')}
-                                    {renderCheckbox('sgpt', 'SGPT')}
-                                </div>
-                            </>
-                        ) : (
-                            <p className="text-sm text-[var(--text-secondary)]">Fasting blood chemistry tests appear once a blood test is selected above.</p>
-                        )}
                     </div>
                     <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center gap-3">
                         <div className="shrink-0">{renderCheckbox('others', 'Others:')}</div>

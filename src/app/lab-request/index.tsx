@@ -8,21 +8,18 @@ import { Skeleton } from '../../components/ui/Skeleton';
 
 interface LabRequestData {
   date: string; labNo: string; name: string; age: string; sex: string; address: string; cc: string;
-  tests: Record<string, boolean>; fastingTests: Record<string, boolean>;
+  tests: Record<string, boolean>;
   others: string; requestedBy: string; status: 'Pending' | 'Completed'; labNotes: string;
 }
-
-// Blood-based tests in the routine panel. The fasting panel is blood chemistry, so it
-// is only offered when blood work is actually being requested.
-const ROUTINE_BLOOD_TESTS = ['cbc', 'cbcPlatelet', 'hgbHct'] as const;
-const FASTING_BLOOD_TESTS = ['rbs', 'fbs', 'uricAcid', 'cholesterol'] as const;
 
 function LabRequest() {
   const [role, setRole] = useState<string | null>(null);
   const [formData, setFormData] = useState<LabRequestData>({
     date: '', labNo: '', name: '', age: '', sex: '', address: '', cc: '',
-    tests: { cbc: false, cbcPlatelet: false, hgbHct: false, chestXray: false, ultrasound: false, urinalysis: false, fecalysis: false, sputum: false },
-    fastingTests: { rbs: false, uricAcid: false, fbs: false, cholesterol: false },
+    tests: {
+      clinicalMicroscopy: false, bloodChemistry: false, pregnancyTest: false,
+      hbsagScreening: false, hivScreening: false, parasitology: false, dengueRdt: false,
+    },
     others: '', requestedBy: '', status: 'Pending', labNotes: ''
   });
   const { showToast, ToastComponent } = useToast();
@@ -33,23 +30,9 @@ function LabRequest() {
     requireRole('doctor').then(profile => setRole(profile.role)).catch(() => undefined);
   }, []);
 
-  const handleTestCheck = (category: 'tests' | 'fastingTests', key: string) => {
-    setFormData(prev => ({ ...prev, [category]: { ...prev[category], [key]: !prev[category][key] } }));
+  const handleTestCheck = (key: string) => {
+    setFormData(prev => ({ ...prev, tests: { ...prev.tests, [key]: !prev.tests[key] } }));
   };
-
-  const bloodTestSelected = ROUTINE_BLOOD_TESTS.some(test => formData.tests[test]);
-
-  // Drop any fasting blood-chemistry selection once the request no longer contains
-  // blood work, so a stale checkbox can never be submitted while hidden.
-  useEffect(() => {
-    if (bloodTestSelected) return;
-    setFormData(prev => {
-      if (!FASTING_BLOOD_TESTS.some(test => prev.fastingTests[test])) return prev;
-      const fastingTests = { ...prev.fastingTests };
-      FASTING_BLOOD_TESTS.forEach(test => { fastingTests[test] = false; });
-      return { ...prev, fastingTests };
-    });
-  }, [bloodTestSelected]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,18 +49,13 @@ function LabRequest() {
         chief_complaint: formData.cc || null,
         
         // Map boolean checkboxes directly to your columns
-        is_cbc: formData.tests.cbc,
-        is_cbc_platelet: formData.tests.cbcPlatelet,
-        is_hgb_hct: formData.tests.hgbHct,
-        is_xray: formData.tests.chestXray,
-        is_ultrasound: formData.tests.ultrasound,
-        is_urinalysis: formData.tests.urinalysis,
-        is_fecalysis: formData.tests.fecalysis,
-        is_sputum: formData.tests.sputum,
-        is_rbs: formData.fastingTests.rbs,
-        is_fbs: formData.fastingTests.fbs,
-        is_uric_acid: formData.fastingTests.uricAcid,
-        is_cholesterol: formData.fastingTests.cholesterol,
+        is_clinical_microscopy: formData.tests.clinicalMicroscopy,
+        is_blood_chemistry: formData.tests.bloodChemistry,
+        is_pregnancy_test: formData.tests.pregnancyTest,
+        is_hbsag_screening: formData.tests.hbsagScreening,
+        is_hiv_screening: formData.tests.hivScreening,
+        is_parasitology: formData.tests.parasitology,
+        is_dengue_rdt: formData.tests.dengueRdt,
         
         others: formData.others || null,
         requested_by: formData.requestedBy || null,
@@ -99,7 +77,7 @@ function LabRequest() {
         {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-9 w-full" />)}
       </div>
       <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-        {Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-8 w-full" />)}
+        {Array.from({ length: 7 }).map((_, index) => <Skeleton key={index} className="h-8 w-full" />)}
       </div>
     </div>
   );
@@ -133,28 +111,13 @@ function LabRequest() {
         <div className="flex"><label className="w-12 font-bold text-sm">CC:</label><input type="text" value={formData.cc} onChange={e => setFormData({...formData, cc: e.target.value})} className={inputStyle} disabled={isLab}/></div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-3 mt-6 p-4 border border-[var(--border)] rounded">
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.cbc} onChange={() => handleTestCheck('tests', 'cbc')} disabled={isLab}/> Complete Blood Count (CBC)</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.urinalysis} onChange={() => handleTestCheck('tests', 'urinalysis')} disabled={isLab}/> Urinalysis</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.cbcPlatelet} onChange={() => handleTestCheck('tests', 'cbcPlatelet')} disabled={isLab}/> CBC with Platelet Count</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.fecalysis} onChange={() => handleTestCheck('tests', 'fecalysis')} disabled={isLab}/> Fecalysis</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.hgbHct} onChange={() => handleTestCheck('tests', 'hgbHct')} disabled={isLab}/> Hemoglobin and Hematocrit</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.sputum} onChange={() => handleTestCheck('tests', 'sputum')} disabled={isLab}/> Sputum</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.chestXray} onChange={() => handleTestCheck('tests', 'chestXray')} disabled={isLab}/> Chest X-Ray (PA View)</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.ultrasound} onChange={() => handleTestCheck('tests', 'ultrasound')} disabled={isLab}/> Ultrasound</label>
-        </div>
-
-        <div className="p-4 border border-[var(--border)] rounded bg-[var(--surface-subtle)]">
-          <h4 className="font-bold text-sm mb-3">For fasting 8-10 hours</h4>
-          {!bloodTestSelected ? (
-            <p className="text-sm text-[var(--text-secondary)]">Fasting blood chemistry tests appear once a blood test is selected above.</p>
-          ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.rbs} onChange={() => handleTestCheck('fastingTests', 'rbs')} disabled={isLab}/> RBS</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.fbs} onChange={() => handleTestCheck('fastingTests', 'fbs')} disabled={isLab}/> FBS</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.uricAcid} onChange={() => handleTestCheck('fastingTests', 'uricAcid')} disabled={isLab}/> Uric Acid</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={formData.fastingTests.cholesterol} onChange={() => handleTestCheck('fastingTests', 'cholesterol')} disabled={isLab}/> Cholesterol</label>
-          </div>
-          )}
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.clinicalMicroscopy} onChange={() => handleTestCheck('clinicalMicroscopy')} disabled={isLab}/> Clinical Microscopy</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.bloodChemistry} onChange={() => handleTestCheck('bloodChemistry')} disabled={isLab}/> Blood Chemistry</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.pregnancyTest} onChange={() => handleTestCheck('pregnancyTest')} disabled={isLab}/> Pregnancy Test</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.hbsagScreening} onChange={() => handleTestCheck('hbsagScreening')} disabled={isLab}/> HBsAg Screening</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.hivScreening} onChange={() => handleTestCheck('hivScreening')} disabled={isLab}/> HIV Screening</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.parasitology} onChange={() => handleTestCheck('parasitology')} disabled={isLab}/> Parasitology</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.tests.dengueRdt} onChange={() => handleTestCheck('dengueRdt')} disabled={isLab}/> Dengue RDT</label>
         </div>
 
         <div className="flex items-center gap-2"><label className="font-bold text-sm">Others:</label><input type="text" value={formData.others} onChange={e => setFormData({...formData, others: e.target.value})} className={inputStyle} disabled={isLab}/></div>
