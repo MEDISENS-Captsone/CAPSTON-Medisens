@@ -35,6 +35,8 @@ export interface PatientTransaction {
     status?: string | null;
     summary?: string;
     items: PatientTransactionItemGroup[];
+    /** Raw data passed through for click-handler use (e.g. lab result viewer). */
+    metadata?: Record<string, unknown>;
 }
 
 export interface PatientHistoryWarning {
@@ -427,10 +429,15 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
                 status: record.status || 'Completed',
                 summary: asText(record.performed_by),
                 items: groups([
-                    itemGroup('Findings', itemizeText(record.findings)),
                     itemGroup('Performed by', compact([record.performed_by])),
                     itemGroup('Date performed', compact([record.date_performed])),
                 ]),
+                metadata: {
+                    labresult_id: record.labresult_id,
+                    findings: record.findings,
+                    performed_by: record.performed_by,
+                    date_performed: record.date_performed,
+                },
             });
         });
     });

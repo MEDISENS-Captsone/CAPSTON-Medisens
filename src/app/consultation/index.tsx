@@ -15,6 +15,7 @@ import { Skeleton, SkeletonList } from '../../components/ui/Skeleton';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
 import { PediatricGrowth } from '../../components/patient/PediatricGrowth';
+import { LabResultDetailModal, type LabResultData } from '../../components/shared/LabResultDetailModal';
 
 // --- Interfaces ---------------------------------------------------------------
 export interface ConsultationPageProps {
@@ -114,9 +115,11 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
     const { id: patientId, age, birthday, sex } = patient;
     const [consultations, setConsultations] = useState<ConsultationRecord[]>([]);
     const [initialConsults, setInitialConsults] = useState<InitialConsultationRecord[]>([]);
+    const [labResults, setLabResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeSection, setActiveSection] = useState<'all' | 'consultation' | 'initial'>('all');
+    const [activeSection, setActiveSection] = useState<'all' | 'consultation' | 'initial' | 'lab'>('all');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [selectedLabResult, setSelectedLabResult] = useState<LabResultData | null>(null);
 
     useEffect(() => {
         async function fetchHistory() {
@@ -124,7 +127,7 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
             const parsedId = parseInt(patientId);
             const numericId = isNaN(parsedId) ? patientId : parsedId;
 
-            const [cRes, iRes, vRes] = await Promise.all([
+            const [cRes, iRes, vRes, lrRes] = await Promise.all([
                 supabase
                     .from('consultation')
                     .select(`consultation_id, chief_complaints, diagnosis, hpi, assessment, plan, family_history, immunization_history, smoking_status, smoking_sticks_per_day, smoking_years, drinking_status, drinking_frequency, drinking_years, menarche_age, sexual_onset_age, is_menopause, menopause_age, lmp, interval_cycle, period_duration, pads_per_day, birth_control_method, gravidity, parity, delivery_type, full_term_count, premature_count, abortion_count, living_children_count, pre_eclampsia, medication_treatment, management_treatment, past_med_surge_history, attending_provider, initial_consultation_id`)
@@ -142,9 +145,36 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                     .select(`vitals_id, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, general_survey, initial_consultation_id`)
                     .eq('patient_id', numericId)
                     .order('vitals_id', { ascending: false }),
+
+                supabase
+                    .from('lab_result')
+                    .select(`labresult_id, date_performed, performed_by, status, findings, labrequest_id, lab_request(lab_no, is_clinical_microscopy, is_blood_chemistry, is_pregnancy_test, is_hbsag_screening, is_hiv_screening, is_parasitology, is_dengue_rdt, others, request_date)`)
+                    .eq('patient_id', numericId)
+                    .order('labresult_id', { ascending: false }),
             ]);
 
             if (cRes.data) setConsultations(cRes.data as ConsultationRecord[]);
+
+            if (lrRes.data) {
+                const items = lrRes.data.map((row: any) => {
+                    const req = row.lab_request ?? {};
+                    const tests: string[] = [];
+                    if (req.is_clinical_microscopy) tests.push('Clinical Microscopy');
+                    if (req.is_blood_chemistry) tests.push('Blood Chemistry');
+                    if (req.is_pregnancy_test) tests.push('Pregnancy Test');
+                    if (req.is_hbsag_screening) tests.push('HBsAg');
+                    if (req.is_hiv_screening) tests.push('HIV Screening');
+                    if (req.is_parasitology) tests.push('Parasitology');
+                    if (req.is_dengue_rdt) tests.push('Dengue RDT');
+                    if (req.others) tests.push('Others');
+                    return {
+                        ...row,
+                        testSummary: tests.length ? tests.join(', ') : 'General / Other',
+                        labNo: req.lab_no,
+                    };
+                });
+                setLabResults(items);
+            }
 
             if (iRes.data) {
                 const vitalsMap = new Map<number, VitalSignRecord>();
@@ -234,14 +264,27 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
         lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
     };
 
+    const formatLabDate = (str?: string | null) => {
+        if (!str) return '—';
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? str : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
     return (
         <ClinicalDrawer
             title="Patient History"
             labelledBy="consultation-patient-history-title"
             onClose={onClose}
-            subtitle={<>{patientName} ? {totalCount} record{totalCount !== 1 ? 's' : ''}</>}
+            subtitle={<>{patientName} · {totalCount} record{totalCount !== 1 ? 's' : ''}</>}
             className="consultation-history-drawer"
         >
+                    {/* Lab Result Detail Modal */}
+                    {selectedLabResult && (
+                        <LabResultDetailModal
+                            result={selectedLabResult}
+                            onClose={() => setSelectedLabResult(null)}
+                        />
+                    )}
                     <PatientChartIdentityHeader
                         patient={historyPatient}
                         compact
@@ -261,14 +304,28 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                     <PediatricGrowth patientId={patientId} birthday={birthday} age={age} sex={sex} className="mb-3" />
                     <PatientHistoryPanel title="Consultation History">
                     <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] bg-white pb-3">
-                        {sectionBtn('All', 'all', totalCount)}
+                        {sectionBtn('All', 'all', totalCount + labResults.length)}
                         {sectionBtn('Consultations', 'consultation', consultations.length)}
                         {sectionBtn('Initial', 'initial', initialConsults.length)}
+                        <button
+                            onClick={() => setActiveSection('lab')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                activeSection === 'lab'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-[var(--green-surface)] text-[var(--green-ink-strong)] hover:bg-emerald-100 border border-[var(--green-border-soft)]'
+                            }`}
+                        >
+                            <Icon name="flask" className="h-3 w-3" />
+                            Lab Results
+                            <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                activeSection === 'lab' ? 'bg-white/20 text-white' : 'bg-[var(--green-border-soft)] text-[var(--green-ink-strong)]'
+                            }`}>{labResults.length}</span>
+                        </button>
                     </div>
                     <div className="space-y-2.5 bg-[var(--bg)] pt-3">
                         {loading ? (
                             <SkeletonList rows={3} />
-                        ) : totalCount === 0 ? (
+                        ) : (totalCount === 0 && labResults.length === 0) ? (
                             <div className="flex flex-col items-center justify-center h-40 gap-2">
                                 <Icon name="inbox" className="h-8 w-8 text-[var(--text-muted)]" />
                                 <span className="text-sm text-[var(--text-muted)]">No history records found.</span>
@@ -307,7 +364,7 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                                                     <Field label="BP" value={rec.vitals.bp} />
                                                     <Field label="Heart Rate" value={rec.vitals.heart_rate != null ? `${rec.vitals.heart_rate} bpm` : null} />
                                                     <Field label="Resp. Rate" value={rec.vitals.respiratory_rate != null ? `${rec.vitals.respiratory_rate} cpm` : null} />
-                                                    <Field label="Temperature" value={rec.vitals.temperature != null ? `${rec.vitals.temperature} ?C` : null} />
+                                                    <Field label="Temperature" value={rec.vitals.temperature != null ? `${rec.vitals.temperature} °C` : null} />
                                                     <Field label="O2 Saturation" value={rec.vitals.o2_saturation != null ? `${rec.vitals.o2_saturation}%` : null} />
                                                 </div>
                                                 <SectionHeader label="Anthropometrics" />
@@ -353,7 +410,7 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                                         </div>
                                         {(rec.medication_treatment || rec.management_treatment || rec.past_med_surge_history) && (
                                             <>
-                                                <SectionHeader label="Treatment & History" />
+                                                <SectionHeader label="Treatment &amp; History" />
                                                 <div className="space-y-3">
                                                     {(() => {
                                                         const items: { label: string; values: string[] }[] = [];
@@ -376,7 +433,7 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                                         )}
                                         {(rec.family_history || rec.immunization_history || rec.smoking_status || rec.drinking_status) && (
                                             <>
-                                                <SectionHeader label="Social & Family History" />
+                                                <SectionHeader label="Social &amp; Family History" />
                                                 <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                                                     <Field label="Family History" value={rec.family_history} />
                                                     <Field label="Immunization History" value={rec.immunization_history} />
@@ -387,7 +444,7 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                                         )}
                                         {(rec.menarche_age != null || rec.gravidity != null || rec.parity != null || rec.lmp || rec.birth_control_method) && (
                                             <>
-                                                <SectionHeader label="OBGyne & Pregnancy" />
+                                                <SectionHeader label="OBGyne &amp; Pregnancy" />
                                                 <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                                                     <Field label="Menarche (y/o)" value={rec.menarche_age} />
                                                     <Field label="Sexual Onset (y/o)" value={rec.sexual_onset_age} />
@@ -409,6 +466,67 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                                         )}
                                     </RecordCard>
                                 ))}
+
+                                {/* ── LAB RESULTS SECTION ── */}
+                                {(activeSection === 'all' || activeSection === 'lab') && labResults.map((lr) => (
+                                    <article
+                                        key={`lab-result-${lr.labresult_id}`}
+                                        className="overflow-hidden rounded-lg border border-[var(--green-border-soft)] bg-white shadow-[var(--shadow-sm)] cursor-pointer group hover:border-emerald-300 hover:shadow-md transition-all"
+                                        onClick={() => setSelectedLabResult({
+                                            labresult_id: lr.labresult_id,
+                                            findings: lr.findings,
+                                            performed_by: lr.performed_by,
+                                            date_performed: lr.date_performed,
+                                            status: lr.status,
+                                            patientName,
+                                            labNo: lr.labNo,
+                                        })}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedLabResult({ labresult_id: lr.labresult_id, findings: lr.findings, performed_by: lr.performed_by, date_performed: lr.date_performed, status: lr.status, patientName, labNo: lr.labNo }); } }}
+                                        aria-label={`View lab result #${lr.labresult_id}`}
+                                    >
+                                        <div className="w-full px-3.5 py-3 hover:bg-[var(--green-surface)] transition-colors">
+                                            <div className="flex min-w-0 items-start justify-between gap-3">
+                                                <div className="flex min-w-0 items-start gap-2.5">
+                                                    <span className="mt-0.5 shrink-0 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide bg-[var(--green-surface)] text-[var(--green-ink-strong)] ring-1 ring-[var(--green-border-soft)]">
+                                                        RES
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <div className="truncate text-sm font-semibold text-[var(--text)]">
+                                                            Lab Result #{lr.labresult_id}
+                                                            {lr.labNo && <span className="ml-1.5 text-xs font-normal text-[var(--text-2)]">· {lr.labNo}</span>}
+                                                        </div>
+                                                        <div className="mt-0.5 text-xs text-[var(--text-secondary)] truncate">{lr.testSummary}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex shrink-0 items-center gap-2 text-xs text-[var(--text-muted)]">
+                                                    <span>{formatLabDate(lr.date_performed)}</span>
+                                                    <span className="flex items-center gap-1 text-[var(--green-ink-strong)] font-bold group-hover:text-emerald-700">
+                                                        <Icon name="flask" className="h-3.5 w-3.5" />
+                                                        View
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {lr.performed_by && (
+                                                <div className="mt-1 pl-[2.875rem] text-xs text-[var(--text-muted)]">
+                                                    By: {lr.performed_by}
+                                                    {lr.status && <span className={`ml-2 font-bold ${
+                                                        lr.status === 'Completed' ? 'text-emerald-600' : 'text-amber-600'
+                                                    }`}>· {lr.status}</span>}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
+
+                                {/* Empty lab results state */}
+                                {activeSection === 'lab' && labResults.length === 0 && !loading && (
+                                    <div className="flex flex-col items-center justify-center h-32 gap-2">
+                                        <Icon name="flask" className="h-7 w-7 text-[var(--text-muted)]" />
+                                        <span className="text-sm text-[var(--text-muted)]">No lab results on record.</span>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
