@@ -941,7 +941,11 @@ export function PatientDetailModal({
 
                                 {!bhwTouchLayout && <PatientChartIdentityHeader patient={patient} compact className="mb-4" />}
                                 <PatientHistoryPanel className={bhwTouchLayout ? 'bhw-patient-history-panel' : undefined}>
-                                    <PatientTransactionHistory patientId={patient.id} compact={bhwTouchLayout} />
+                                    <PatientTransactionHistory
+                                        patientId={patient.id}
+                                        compact={bhwTouchLayout}
+                                        patientName={`${patient.firstName} ${patient.lastName}`}
+                                    />
                                 </PatientHistoryPanel>
                             </>
                         )}

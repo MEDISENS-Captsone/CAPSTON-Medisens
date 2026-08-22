@@ -8,6 +8,7 @@ import { EmptyState } from '../shared/EmptyState';
 import { StatusBadge } from '../shared/StatusBadge';
 import { Icon } from '../shared/Icon';
 import { Skeleton, SkeletonList } from '../ui/Skeleton';
+import { LabResultDetailModal, type LabResultData } from '../shared/LabResultDetailModal';
 
 interface PatientTransactionHistoryProps {
     patientId?: string;
@@ -18,6 +19,8 @@ interface PatientTransactionHistoryProps {
     onRetry?: () => void;
     /** BHW touch view: disclose full encounter fields only when requested. */
     compact?: boolean;
+    /** Patient display name to pass into the lab result modal. */
+    patientName?: string;
 }
 
 type HistoryFilter = 'all' | 'consultations' | 'initial';
@@ -149,13 +152,14 @@ function HistoryWarning({ warnings, onRetry }: { warnings: PatientHistoryWarning
     );
 }
 
-export function PatientTransactionHistory({ patientId, transactions, isLoading, warnings = [], error, onRetry, compact = false }: PatientTransactionHistoryProps) {
+export function PatientTransactionHistory({ patientId, transactions, isLoading, warnings = [], error, onRetry, compact = false, patientName }: PatientTransactionHistoryProps) {
     const [loadedTransactions, setLoadedTransactions] = useState<PatientTransaction[]>([]);
     const [loadedWarnings, setLoadedWarnings] = useState<PatientHistoryWarning[]>([]);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
     const [activeFilter, setActiveFilter] = useState<HistoryFilter>('all');
     const [expandedTransactionIds, setExpandedTransactionIds] = useState<Set<string>>(new Set());
+    const [selectedLabResult, setSelectedLabResult] = useState<LabResultData | null>(null);
 
     useEffect(() => {
         setExpandedTransactionIds(new Set());
@@ -291,6 +295,14 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
 
     return (
         <div className="relative">
+            {/* Lab Result Detail Modal */}
+            {selectedLabResult && (
+                <LabResultDetailModal
+                    result={selectedLabResult}
+                    onClose={() => setSelectedLabResult(null)}
+                />
+            )}
+
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 {filterControls}
                 <div className={`doctor-analytics-updating ${isRefreshingHistory ? 'is-visible' : ''}`} role="status" aria-live="polite">
@@ -309,7 +321,23 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                 />
             ) : (
                 <div className="space-y-3">
-                    {filteredTransactions.map(transaction => (
+                    {filteredTransactions.map(transaction => {
+                    const isLabResult = transaction.type === 'lab_result';
+                    const handleLabResultClick = isLabResult
+                        ? () => {
+                            const meta = transaction.metadata ?? {};
+                            setSelectedLabResult({
+                                labresult_id: meta.labresult_id as string | number | undefined,
+                                findings: (meta.findings as string) ?? null,
+                                performed_by: (meta.performed_by as string) ?? null,
+                                date_performed: (meta.date_performed as string) ?? null,
+                                status: transaction.status ?? 'Completed',
+                                patientName: patientName,
+                            });
+                        }
+                        : undefined;
+
+                    return (
                     <div key={transaction.id} className="relative flex gap-4">
                         <div className="hidden shrink-0 pt-4 sm:flex">
                             <div className={`h-2.5 w-2.5 rounded-full shadow-sm ring-2 ring-white ${
@@ -349,13 +377,35 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                                 </section>
                             );
                         })() : (
-                            <div className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm transition-all hover:border-[var(--border)] hover:shadow-md">
-                                <CardHeader {...transaction} />
+                            <div
+                                className={`min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm transition-all ${
+                                    isLabResult
+                                        ? 'hover:border-[var(--green-border-soft)] hover:shadow-md hover:bg-[var(--green-surface)] cursor-pointer group'
+                                        : 'hover:border-[var(--border)] hover:shadow-md'
+                                }`}
+                                onClick={handleLabResultClick}
+                                role={isLabResult ? 'button' : undefined}
+                                tabIndex={isLabResult ? 0 : undefined}
+                                onKeyDown={isLabResult ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLabResultClick?.(); } } : undefined}
+                                aria-label={isLabResult ? 'View full lab result' : undefined}
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <CardHeader {...transaction} />
+                                    </div>
+                                    {isLabResult && (
+                                        <span className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-[var(--green-ink-strong)] group-hover:text-[var(--green-dark)] transition-colors mt-1">
+                                            <Icon name="flask" className="h-3.5 w-3.5" />
+                                            View Full Result
+                                        </span>
+                                    )}
+                                </div>
                                 <ItemsGrid items={transaction.items} />
                             </div>
                         )}
                     </div>
-                    ))}
+                    );
+                    })}
                 </div>
             )}
         </div>
