@@ -8,8 +8,9 @@ import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
-import { Badge, Button, Card, EmptyState, Input, SkeletonKpiGrid, SkeletonList } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Input, LoadingState, SkeletonKpiGrid, SkeletonList } from '../../components/ui';
 import { useHashPage } from '../../hooks/useHashPage';
+import { FhsisNurseWorkspace } from '../../features/fhsis/nurse/FhsisNurseWorkspace';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -26,6 +27,8 @@ const pageTitles: Record<string, string> = {
     'new-record': 'New Record',
     consultation: 'Initial Consultation',
     'archive-review': 'Archive Review',
+    'fhsis-encode': 'Encode FHSIS Report',
+    'fhsis-history': 'FHSIS Report History',
 };
 
 const LazyPanelFallback = () => (
@@ -47,6 +50,11 @@ const NurseDashboard = () => {
     const [dashboardError, setDashboardError] = useState('');
     const [reloadToken, setReloadToken] = useState(0);
     const [activePage, setActivePage] = useHashPage('dashboard');
+    // FHSIS routes carry role-restricted report data. Gate them behind role
+    // resolution so a mistaken/direct navigation never flashes report content
+    // before requireRole('nurse') below has confirmed access (RLS is the real
+    // security boundary — this only prevents a UI flash).
+    const [roleReady, setRoleReady] = useState(false);
 
     // Modal state — still used by Records component
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -56,6 +64,8 @@ const NurseDashboard = () => {
         { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
         { id: 'new-record', label: 'New Record', icon: 'user-plus', group: 'Patient Care' },
         { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
+        { id: 'fhsis-encode', label: 'Encode Report', icon: 'file-text', group: 'FHSIS Reports' },
+        { id: 'fhsis-history', label: 'Report History', icon: 'clock', group: 'FHSIS Reports' },
         { id: 'archive-review', label: 'Archive Review', icon: 'clipboard', group: 'Records & Governance' },
     ];
 
@@ -109,6 +119,7 @@ const NurseDashboard = () => {
             const name = profile.fullName || 'Nurse User';
             setUserName(name);
             setUserInitials(getInitials(name, 'N'));
+            setRoleReady(true);
 
             try {
                 await loadPatients(true);
@@ -339,6 +350,11 @@ const NurseDashboard = () => {
                                 <ArchiveReviewPage isOnline={isOnline} />
                             </>
                         )}
+                        {(activePage === 'fhsis-encode' || activePage === 'fhsis-history') && !roleReady && (
+                            <div className="pwa-page-pad"><LoadingState label="Verifying access" /></div>
+                        )}
+                        {activePage === 'fhsis-encode' && roleReady && <FhsisNurseWorkspace mode="encode" />}
+                        {activePage === 'fhsis-history' && roleReady && <FhsisNurseWorkspace mode="history" />}
                     </div>
                 </div>
             </main>

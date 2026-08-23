@@ -1167,6 +1167,15 @@ Update system test cases to cover the core flow without excessive micro-cases:
 
 Ensure Chapter 4 / UAT wording matches the final implementation after runtime testing.
 
+## Phase 9 completion record
+
+The implementation-aligned Nurse/Midwife workflow, canonical M1 BRGY contract,
+Phase 8 migration correction, runtime/RBAC evidence, and focused UAT cases are
+recorded in `docs/FHSIS/PHASE-9-WORKFLOW-AND-UAT.md`. The record distinguishes
+verified database behavior from the outstanding authenticated browser hash/URL
+check and does not represent UI-only validation as server-side content
+validation.
+
 ---
 
 # Implementation Order

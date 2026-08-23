@@ -59,7 +59,8 @@ const PATIENT_DETAILS_NAV_ITEMS: Record<(typeof PATIENT_DETAILS_ROLES)[number], 
     midwives: [
         { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
         { id: 'records', label: 'Patient Records', icon: 'users', group: 'Patient Care' },
-        { id: 'reports', label: 'FHSIS Reports', icon: 'chart', group: 'Records & Governance' },
+        { id: 'fhsis-queue', label: 'Verification Queue', icon: 'inbox', group: 'FHSIS Reports' },
+        { id: 'fhsis-history', label: 'Report History', icon: 'clock', group: 'FHSIS Reports' },
     ],
     BHW: [
         { id: 'dashboard', label: 'Dashboard', icon: 'home', group: 'Overview' },
@@ -251,7 +252,7 @@ function DetailsPage() {
         else if (id === 'records') window.location.href = '/pages/records.html';
         else if (id === 'new-record') window.location.href = '/pages/templates.html';
         else if (id === 'consultation') window.location.href = role === 'doctor' ? '/pages/consultation.html' : '/pages/initial_consultation.html';
-        else if (id === 'reports') window.location.href = '/pages/midwife.html';
+        else if (id === 'fhsis-queue' || id === 'fhsis-history') window.location.href = `/pages/midwife.html#${id}`;
     };
 
     const sectionCls = "bg-white border border-[var(--border)] rounded-lg p-4 md:p-5 shadow-sm mb-4";

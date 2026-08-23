@@ -605,7 +605,24 @@ Verify that the UAT revision did not break existing MediSens workflows.
 - Initial Consultation
 - Complete/Refer
 - Patient Records
-- census/FHSIS
+- FHSIS M1 BRGY verification workflow (see `docs/FHSIS/PHASE-9-WORKFLOW-AND-UAT.md`):
+  - review Nurse-submitted reports read-only;
+  - return with a required correction reason;
+  - verify a valid submitted report once;
+  - confirm stale/invalid-state verification is rejected;
+  - confirm no manual monthly-report encoding path remains.
+
+### FHSIS Nurse / BHW role checks
+
+- Nurse creates, saves, resumes, validates, submits, corrects returned, and
+  views verified M1 BRGY reports using the canonical template.
+- Confirm blank and explicit zero remain distinct, negative values are
+  rejected, and declared totals are read-only.
+- BHW has no new FHSIS navigation; direct create/submit access to the monthly
+  tables is denied by RLS/RPC authorization. Record the authenticated visual
+  hash/URL check when browser QA is available.
+- Run the preserved `fhsis_logs` vaccination/history regression separately;
+  legacy records are not the new monthly-report workflow.
 
 ### Doctor
 

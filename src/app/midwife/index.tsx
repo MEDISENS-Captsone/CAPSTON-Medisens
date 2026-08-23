@@ -7,18 +7,18 @@ import { getInitials } from '../../lib/utils/names';
 import { Icon } from '../../components/shared/Icon';
 import { Topbar } from '../../components/layout/Topbar';
 import { SkeletonList } from '../../components/ui/Skeleton';
+import { LoadingState } from '../../components/ui';
 import { safeTrim } from '../../lib/utils/strings';
 import { PatientTransactionHistory } from '../../components/patient/PatientTransactionHistory';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 
 import Dashboard from '../../features/midwife/dashboard';
 import PatientRecords from '../../features/midwife/patientRecords';
-import CensusEntry from '../../features/midwife/censusEntry';
 import { useMidwifeData } from '../../features/midwife/useMidwifeData';
 import { DoctorAnalyticsPage } from '../../features/doctor/DoctorAnalyticsPage';
 import { useHashPage } from '../../hooks/useHashPage';
 
-const ReportGenerator = lazy(() => import('../../features/midwife/reportGenerator'));
+import { FhsisMidwifeWorkspace } from '../../features/fhsis/midwife/FhsisMidwifeWorkspace';
 const ConsultationComponent = lazy(() => import('../initial-consultation').then(module => ({ default: module.ConsultationComponent })));
 
 const LazyPanelFallback = () => (
@@ -212,6 +212,11 @@ const MidwifeApp = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [userData, setUserData] = useState({ name: 'Loading...', initials: 'U' });
+    // FHSIS routes carry role-restricted report data. Gate them behind role
+    // resolution so a mistaken/direct navigation never flashes report content
+    // before requireRole('midwives') below has confirmed access (RLS remains
+    // the real security boundary — this only prevents a UI flash).
+    const [roleReady, setRoleReady] = useState(false);
 
     // ── Shared modal state — lives here so Dashboard + PatientRecords both use it
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
@@ -232,6 +237,7 @@ const MidwifeApp = () => {
             const profile = await requireRole('midwives');
             const name = profile.fullName || 'Midwife';
             setUserData({ name, initials: getInitials(name, 'M') });
+            setRoleReady(true);
         };
         fetchProfile();
 
@@ -261,8 +267,8 @@ const MidwifeApp = () => {
         { id: 'analytics', label: 'Analytics',      icon: 'chart', group: 'Insights' },
         { id: 'records',   label: 'Patient Records', icon: 'users', group: 'Patient Care' },
         { id: 'consultation', label: 'Initial Consultation', icon: 'clipboard', group: 'Clinical Workflow' },
-        { id: 'census',    label: 'Census Entry',    icon: 'clipboard', group: 'Maternal & Community Care' },
-        { id: 'reports',   label: 'FHSIS Reports',   icon: 'chart', group: 'Records & Governance' },
+        { id: 'fhsis-queue', label: 'Verification Queue', icon: 'inbox', group: 'FHSIS Reports' },
+        { id: 'fhsis-history', label: 'Report History', icon: 'clock', group: 'FHSIS Reports' },
     ];
 
     return (
@@ -285,8 +291,8 @@ const MidwifeApp = () => {
                         : activeTab === 'analytics' ? 'Analytics'
                         : activeTab === 'records' ? 'Patient Records'
                         : activeTab === 'consultation' ? 'Initial Consultation'
-                        : activeTab === 'census' ? 'Census Entry'
-                        : activeTab === 'reports' ? 'FHSIS Reports'
+                        : activeTab === 'fhsis-queue' ? 'FHSIS Verification Queue'
+                        : activeTab === 'fhsis-history' ? 'FHSIS Report History'
                         : safeTrim(activeTab.replace(/([A-Z])/g, ' $1'))}
                     sectionLabel="Maternal & Community Care"
                     userName={userData.name}
@@ -330,18 +336,11 @@ const MidwifeApp = () => {
                                     <ConsultationComponent />
                                 </Suspense>
                             )}
-                            {activeTab === 'census' && (
-                                <CensusEntry
-                                    patients={patients}
-                                    records={records}
-                                    onSaveSuccess={async () => { await refreshData(); }}
-                                />
+                            {(activeTab === 'fhsis-queue' || activeTab === 'fhsis-history') && !roleReady && (
+                                <div className="pwa-page-pad"><LoadingState label="Verifying access" /></div>
                             )}
-                            {activeTab === 'reports' && (
-                                <Suspense fallback={<LazyPanelFallback />}>
-                                    <ReportGenerator records={records} isLoading={isLoading} hasLoadError={hasLoadError} />
-                                </Suspense>
-                            )}
+                            {activeTab === 'fhsis-queue' && roleReady && <FhsisMidwifeWorkspace mode="queue" />}
+                            {activeTab === 'fhsis-history' && roleReady && <FhsisMidwifeWorkspace mode="history" />}
                         </div>
                     </div>
                 </div>

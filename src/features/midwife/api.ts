@@ -1,12 +1,5 @@
 import { supabase } from '../../lib/supabase/client';
 import { safeTrim } from '../../lib/utils/strings';
-import { logAuditEvent } from '../audit/services';
-
-// Helper to get the current logged-in user
-const getCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-};
 
 export const midwifeAPI = {
     /**
@@ -89,42 +82,4 @@ export const midwifeAPI = {
 
         return summary;
     },
-
-    /**
-     * Inserts a new FHSIS entry and links it via patient_id.
-     */
-    saveFHSISLog: async (payload: { patientId: number; category: string; data: any }) => {
-        const user = await getCurrentUser();
-        
-        const { data, error } = await supabase
-            .from('fhsis_logs')
-            .insert([{
-                patient_id: payload.patientId,
-                category: payload.category,
-                data_fields: payload.data, // Stored securely in JSONB column
-                report_month: new Date().toISOString().substring(0, 7),
-                encoded_by: user?.id || null
-            }])
-            .select();
-
-        if (error) {
-            console.error('Error saving FHSIS log:', error);
-            throw error;
-        }
-        const saved = Array.isArray(data) ? data[0] : null;
-        void logAuditEvent({
-            action: 'create',
-            module: 'Census Entry',
-            recordId: saved?.id,
-            recordType: 'fhsis_log',
-            description: 'Created FHSIS census entry.',
-            metadata: {
-                count: saved?.id ? 1 : 0,
-                patient_id: payload.patientId,
-                category: payload.category,
-            },
-        });
-        
-        return data;
-    }
 };

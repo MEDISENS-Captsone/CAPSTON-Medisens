@@ -1,0 +1,84 @@
+@import '../nurse/fhsis-nurse.css';
+.fhsis-midwife-workspace { display: flex; flex-direction: column; gap: 1rem; }
+.fhsis-queue-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }.fhsis-queue-stats > div { padding: 1rem 1.25rem; }.fhsis-queue-stats span, .fhsis-queue-stats strong { display: block; }.fhsis-queue-stats span { color: var(--text-secondary); font-size: var(--type-caption-size); }.fhsis-queue-stats strong { margin-top: .35rem; color: var(--text); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.fhsis-queue-card, .fhsis-decision-card { padding: 1.25rem; }.fhsis-queue-toolbar { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }.fhsis-queue-toolbar h2 { margin: 0; font-size: var(--type-card-title-size); }.fhsis-queue-toolbar p { margin: .3rem 0 0; color: var(--text-secondary); font-size: var(--type-caption-size); }.fhsis-queue-toolbar label { display: grid; gap: .35rem; color: var(--text-secondary); font-size: var(--type-caption-size); font-weight: 600; }.fhsis-queue-toolbar select { min-height: var(--control-height-md); border: 1px solid var(--control-border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); padding: 0 .65rem; }
+.fhsis-decision-card { margin-top: 1rem; }.fhsis-review-label { display: block; margin-top: 1rem; color: var(--text-secondary); font-size: var(--type-label-size); font-weight: 600; }.fhsis-review-label span { color: var(--coral); }.fhsis-review-textarea { box-sizing: border-box; width: 100%; margin-top: .4rem; border: 1px solid var(--control-border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); padding: .7rem; font: inherit; resize: vertical; }.fhsis-review-textarea:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; border-color: var(--brand-primary); }
+
+/* Compact, information-dense verification outcome summary — badge + name/role + date on one line, notes and historical findings below. */
+.fhsis-outcome-compact { padding: .85rem 1rem; }
+.fhsis-outcome-head { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; }
+.fhsis-outcome-summary { display: flex; align-items: baseline; gap: .4rem; }
+.fhsis-outcome-summary span { color: var(--text-secondary); font-size: var(--type-caption-size); }
+.fhsis-outcome-summary strong { color: var(--text); font-size: var(--type-caption-size); font-weight: 600; }
+.fhsis-outcome-notes { display: flex; align-items: flex-start; gap: .5rem; margin: .65rem 0 0; padding: .6rem .75rem; border-radius: var(--radius-control); background: var(--surface-subtle); color: var(--text-secondary); font-size: var(--type-caption-size); }
+.fhsis-historical-popover { position: relative; z-index: 40; width: 100%; margin: 0; }
+.fhsis-historical-trigger { display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: min(100%, 24rem); min-height: var(--control-height-md); box-sizing: border-box; padding: 0 .75rem; border: 1px solid var(--control-border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); font: inherit; font-size: var(--type-caption-size); font-weight: 600; text-align: left; cursor: pointer; transition: border-color var(--motion-fast), background-color var(--motion-fast), color var(--motion-fast); }
+.fhsis-historical-trigger:hover, .fhsis-historical-trigger[aria-expanded='true'] { border-color: var(--brand-primary); background: var(--brand-soft-surface); color: var(--brand-active); }
+.fhsis-historical-trigger:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }
+.fhsis-historical-trigger svg { flex: 0 0 auto; color: currentColor; transform: rotate(90deg); transition: transform var(--motion-fast); }
+.fhsis-historical-trigger[aria-expanded='true'] svg { transform: rotate(270deg); }
+.fhsis-historical-menu { position: absolute; z-index: 100; top: calc(var(--control-height-md) + .5rem); left: 0; width: min(36rem, calc(100vw - 3rem)); max-height: min(70vh, 32rem); box-sizing: border-box; overflow-y: auto; padding: .5rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-lg); }
+.fhsis-historical-options { display: grid; gap: .25rem; }
+.fhsis-historical-option { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 2.75rem; padding: .55rem .65rem; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; font-size: var(--type-caption-size); text-align: left; cursor: pointer; }
+.fhsis-historical-option:hover { background: var(--surface-subtle); }
+.fhsis-historical-option:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 1px; }
+.fhsis-historical-option.is-selected { border-color: var(--brand-accent-surface); background: var(--brand-soft-surface); color: var(--brand-active); }
+.fhsis-historical-option span { min-width: 0; }
+.fhsis-historical-option strong { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fhsis-historical-results { margin-top: var(--space-4); }
+.fhsis-historical-results .fhsis-issue-groups { margin-top: 0; }
+.fhsis-historical-results .fhsis-issue-group ul { gap: var(--space-3); padding: var(--space-4); }
+.fhsis-historical-results .fhsis-pagination { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin: 0; padding: var(--space-4); border-top: 1px solid var(--border); }
+.fhsis-historical-results .fhsis-pagination > span { flex: 1 1 10rem; min-width: 0; }
+.fhsis-historical-results .fhsis-pagination-controls { flex: 0 0 auto; gap: var(--space-2); margin-left: auto; }
+
+/* Compact report toolbar: status, exports, and secondary navigation share one
+   aligned action group while report context stays on its own quiet row. */
+.fhsis-detail-page-top { display: block; }
+.fhsis-detail-heading { width: 100%; min-width: 0; }
+.fhsis-detail-title-row, .fhsis-detail-meta-row, .fhsis-detail-toolbar { display: flex; align-items: center; gap: .5rem; }
+.fhsis-detail-title-row { flex-wrap: wrap; margin-top: .2rem; }
+.fhsis-detail-title-row h1 { margin-right: auto; }
+.fhsis-detail-toolbar { flex: 0 0 auto; flex-wrap: nowrap; }
+.fhsis-detail-toolbar .fhsis-export-actions { width: auto; flex-wrap: nowrap; }
+.fhsis-detail-toolbar .fhsis-export-actions > * { flex: 0 1 auto; min-width: 0; }
+.fhsis-detail-meta-row { justify-content: space-between; flex-wrap: wrap; margin-top: .35rem; }
+.fhsis-detail-meta-row > p { min-width: 0; margin: 0; }
+.fhsis-detail-meta-row .fhsis-back-link { flex: 0 0 auto; }
+.fhsis-detail-page-top.is-verified .fhsis-kicker { margin: 0; line-height: var(--type-caption-line); }
+.fhsis-detail-page-top.is-verified .fhsis-detail-title-row { gap: var(--space-3) var(--space-4); margin-top: var(--space-2); }
+.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); }
+.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-export-actions { gap: var(--space-3); }
+.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-back-link { flex: 0 0 auto; width: auto; padding-inline: .625rem; white-space: nowrap; }
+.fhsis-detail-page-top.is-verified .fhsis-detail-meta-row { margin-top: var(--space-2); }
+.fhsis-detail-page-top.is-verified .fhsis-detail-meta-row > p { line-height: var(--type-body-line); }
+
+/* Verified detail rhythm and overflow safety are scoped away from the Nurse
+   editor and Midwife verification queue. */
+.fhsis-midwife-shell.is-verified, .fhsis-midwife-shell.is-verified .fhsis-main-panel { min-width: 0; overflow: visible; }
+.fhsis-midwife-shell.is-verified .fhsis-main-panel { position: relative; isolation: isolate; display: grid; gap: var(--space-4); }
+.fhsis-midwife-shell.is-verified .fhsis-midwife-sections { display: grid; min-width: 0; gap: var(--space-4); }
+.fhsis-midwife-shell.is-verified .fhsis-decision-card { margin-top: 0; }
+.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading { align-items: flex-start; gap: .75rem; padding: 1rem 1.25rem; }
+.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading > div { min-width: 0; }
+.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading .fhsis-eyebrow { margin: 0 0 .25rem; line-height: var(--type-caption-line); }
+.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading h3 { overflow-wrap: anywhere; line-height: var(--type-card-title-line); }
+.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading > span { flex: 0 0 auto; margin-top: .125rem; }
+.fhsis-midwife-shell.is-verified .fhsis-entry-table th, .fhsis-midwife-shell.is-verified .fhsis-entry-table td { line-height: var(--type-caption-line); }
+
+@media (max-width: 640px) { .fhsis-detail-title-row { align-items: flex-start; }.fhsis-detail-toolbar { width: 100%; flex-wrap: wrap; }.fhsis-detail-toolbar .fhsis-export-actions { width: auto; flex: 1 1 auto; }.fhsis-detail-toolbar .fhsis-export-actions > * { flex: 1 1 auto; }.fhsis-detail-meta-row .fhsis-back-link { width: auto; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar { justify-content: flex-start; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-export-actions { flex: 0 1 auto; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-export-actions > * { flex: 0 1 auto; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-back-link { flex: 0 1 auto; width: auto; }.fhsis-historical-trigger { width: 100%; }.fhsis-historical-menu { position: fixed; top: auto; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); left: 1rem; width: auto; max-height: min(78vh, 32rem); border-radius: var(--radius-card); }.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading { padding: .875rem 1rem; } }
+
+/* Mobile FHSIS report grids: reformat the tabular comparison view into stacked
+   label:value groups instead of squeezing a desktop table into the viewport.
+   The two views render the same values; only one is ever visible. */
+.fhsis-mobile-grid { display: none; }
+.fhsis-mobile-row { padding: .75rem 0; border-bottom: 1px solid var(--border); }
+.fhsis-mobile-row:last-child { border-bottom: 0; }
+.fhsis-mobile-row-label { margin: 0 0 .5rem; color: var(--text); font-size: var(--type-caption-size); font-weight: 600; }
+.fhsis-mobile-row-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .75rem; margin: 0; }
+.fhsis-mobile-value { display: flex; flex-direction: column; gap: .1rem; padding: .5rem .6rem; border-radius: var(--radius-control); background: var(--surface-subtle); }
+.fhsis-mobile-value dt { color: var(--text-secondary); font-size: .68rem; }
+.fhsis-mobile-value dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+.fhsis-mobile-value.fhsis-derived-cell dd { color: var(--brand-active); }
+
+@media (max-width: 640px) { .fhsis-queue-stats { grid-template-columns: 1fr; }.fhsis-queue-toolbar { flex-direction: column; }.fhsis-queue-toolbar label { width: 100%; }.fhsis-queue-toolbar select { width: 100%; }.fhsis-outcome-head { flex-direction: column; align-items: flex-start; gap: .5rem; }.fhsis-desktop-grid { display: none; }.fhsis-mobile-grid { display: grid; } }
