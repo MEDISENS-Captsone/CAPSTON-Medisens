@@ -1,0 +1,29 @@
+project_id = "sdtaotbklrienpvicdte"
+
+# Patient Account Phase 3 pre-auth Edge Functions.
+#
+# These four are called before a Patient Portal session exists (activation
+# code verification/completion, PIN recovery, and login itself), so they
+# cannot require a Supabase Auth JWT on the request -- the whole point is
+# to mint one. The live Phase 3 gate proved these fail with
+# "Missing authorization header" from the platform gateway unless JWT
+# verification is disabled, so that is persisted here rather than relying
+# on a one-off `--no-verify-jwt` deploy flag being remembered next time.
+#
+# Every other patient-* function (patient-activation-issue,
+# patient-caregiver-activation-issue, patient-access-grant) and
+# create-audit-log require an authenticated staff/user session and must
+# keep the default verify_jwt = true -- they are intentionally omitted
+# below so they fall back to that default.
+
+[functions.patient-activation-verify]
+verify_jwt = false
+
+[functions.patient-activation-complete]
+verify_jwt = false
+
+[functions.patient-account-recover]
+verify_jwt = false
+
+[functions.patient-login]
+verify_jwt = false

@@ -10,9 +10,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("PROJECT_URL")
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY");
 
-const ALLOWED_ACTIONS = new Set(["login", "logout", "create", "update", "view", "generate", "dispense", "archived", "restored"]);
-const ALLOWED_MODULES = new Set(["Authentication", "Administration", "Patient Records", "Consultation", "Census Entry", "Laboratory", "Pharmacy", "Reports", "Patient Archive"]);
-const ALLOWED_RECORD_TYPES = new Set(["profile", "patient", "patient_consent", "consultation", "initial_consultation", "follow_up", "fhsis_log", "lab_request", "lab_result", "prescription", "report", null]);
+// Patient Account Phase 3: "activate", "grant", "revoke", "recover" and
+// the "Patient Portal" module/record types/metadata keys below are
+// additive only -- every existing value is unchanged.
+const ALLOWED_ACTIONS = new Set(["login", "logout", "create", "update", "view", "generate", "dispense", "archived", "restored", "activate", "grant", "revoke", "recover"]);
+const ALLOWED_MODULES = new Set(["Authentication", "Administration", "Patient Records", "Consultation", "Census Entry", "Laboratory", "Pharmacy", "Reports", "Patient Archive", "Patient Portal"]);
+const ALLOWED_RECORD_TYPES = new Set(["profile", "patient", "patient_consent", "consultation", "initial_consultation", "follow_up", "fhsis_log", "lab_request", "lab_result", "prescription", "report", "patient_account", "patient_access_grant", "patient_correction_request", null]);
 const ALLOWED_METADATA_KEYS = new Set([
   "source",
   "status",
@@ -31,6 +34,9 @@ const ALLOWED_METADATA_KEYS = new Set([
   "profile_id",
   "name_updated",
   "consent_id",
+  "account_id",
+  "grant_id",
+  "relationship",
 ]);
 
 function auditLogFailure(stage: string, details: Record<string, unknown>) {
