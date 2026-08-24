@@ -13,7 +13,10 @@ export type GrantRelationship = 'SELF' | 'GUARDIAN' | 'AUTHORIZED_CAREGIVER';
 export type GrantScope = 'FULL' | 'STANDARD';
 
 export interface PortalMyRecord {
-    grantId: string;
+    /** Opaque, HMAC-derived token (patient_portal_grant_token) -- never
+     * the raw patient_access_grants.id UUID. Used only as a stable list
+     * key / selected-grant identifier; never sent to any RPC. */
+    grantToken: string;
     patientId: number;
     relationship: GrantRelationship;
     scope: GrantScope;
@@ -141,11 +144,11 @@ async function callRpc<T>(fn: string, args?: Record<string, unknown>): Promise<T
 }
 
 export function fetchMyRecords(): Promise<PortalMyRecord[]> {
-    return callRpc<Array<{ grant_id: string; patient_id: number; relationship: GrantRelationship; scope: GrantScope; granted_at: string }>>(
+    return callRpc<Array<{ grant_token: string; patient_id: number; relationship: GrantRelationship; scope: GrantScope; granted_at: string }>>(
         'patient_portal_my_records',
     ).then((rows) =>
         (rows ?? []).map((r) => ({
-            grantId: r.grant_id,
+            grantToken: r.grant_token,
             patientId: r.patient_id,
             relationship: r.relationship,
             scope: r.scope,

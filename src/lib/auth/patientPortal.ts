@@ -28,6 +28,9 @@ export interface PatientAccountSummary {
 }
 
 export interface PatientGrantSummary {
+    /** Opaque grant_token from patient_portal_my_records() (Phase 9
+     * correction) -- never the raw patient_access_grants.id. Used only
+     * as a stable switcher/selection key; never sent to any RPC. */
     id: string;
     patientId: number;
     relationship: GrantRelationship;
@@ -83,7 +86,7 @@ export async function getPatientPortalSession(): Promise<PatientPortalSession | 
                 // context bar fall back to the plain relationship label.
             }
             return {
-                id: record.grantId,
+                id: record.grantToken,
                 patientId: record.patientId,
                 relationship: record.relationship,
                 scope: record.scope,
