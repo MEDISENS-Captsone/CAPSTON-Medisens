@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { patientSupabase } from '../../lib/supabase/patientClient';
 import { getPatientPortalSession, signOutPatientPortal, type PatientPortalSession } from '../../lib/auth/patientPortal';
+import { fetchPreferences, updatePreferences } from '../../features/patient-portal/api';
 import { PortalShell } from '../../components/patient-portal/PortalShell';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -18,6 +19,7 @@ type ViewState =
 
 const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
 const TEXT_SIZE_STORAGE_KEY = 'medisens-patient-text-size';
+const CONTRAST_STORAGE_KEY = 'medisens-patient-contrast';
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 
 function readStoredTextSize(): 'comfortable' | 'large' {
@@ -28,9 +30,18 @@ function readStoredTextSize(): 'comfortable' | 'large' {
     }
 }
 
+function readStoredContrast(): boolean {
+    try {
+        return window.sessionStorage.getItem(CONTRAST_STORAGE_KEY) === 'high';
+    } catch {
+        return false;
+    }
+}
+
 function PatientPortalApp() {
     const [view, setView] = useState<ViewState>({ status: 'loading' });
     const [textSize, setTextSize] = useState<'comfortable' | 'large'>(() => readStoredTextSize());
+    const [highContrast, setHighContrast] = useState<boolean>(() => readStoredContrast());
     const [signInBusy, setSignInBusy] = useState(false);
     const [signInError, setSignInError] = useState<string | null>(null);
     const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,6 +67,41 @@ function PatientPortalApp() {
     useEffect(() => {
         void loadSession();
     }, [loadSession]);
+
+    // Hydrate the real, persisted preference once the account is known --
+    // sessionStorage above is only the same-tab default until this
+    // resolves, so a returning patient on a new tab/device sees their
+    // actual saved preference, not just "Comfortable" (§9.5, §17 Phase 8
+    // "preference persists correctly"). A missing preferences row (e.g. an
+    // account-only caregiver activation, §5.2.1) is not an error -- the
+    // session default stands.
+    useEffect(() => {
+        if (view.status !== 'ready') return;
+        let cancelled = false;
+        void (async () => {
+            try {
+                const prefs = await fetchPreferences(view.session.account.id);
+                if (cancelled || !prefs) return;
+                setTextSize(prefs.textSize);
+                setHighContrast(prefs.highContrast);
+                try {
+                    window.sessionStorage.setItem(TEXT_SIZE_STORAGE_KEY, prefs.textSize);
+                    window.sessionStorage.setItem(CONTRAST_STORAGE_KEY, prefs.highContrast ? 'high' : 'normal');
+                } catch {
+                    // sessionStorage unavailable -- the in-memory state above still applies.
+                }
+            } catch {
+                // Preference lookup failing must not block the shell from
+                // rendering -- the session-default text size/contrast stand.
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+        // Runs once per newly-ready session (account id is stable for its
+        // lifetime), not on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [view.status === 'ready' ? view.session.account.id : null]);
 
     const handleSignOut = useCallback(async () => {
         // Patient Portal sign-out only -- the staff Supabase client is never
@@ -96,15 +142,33 @@ function PatientPortalApp() {
         if (view.status === 'ready') {
             // Best-effort sync to the account's own preferences row. Some
             // Phase 3 activation paths (account-only caregiver, staff-mediated
-            // recovery) do not create this row yet, so this UPDATE may
+            // recovery) do not create this row yet, so this call may
             // legitimately affect zero rows -- that is not an error here, the
             // in-session toggle above already applied.
-            await patientSupabase
-                .from('patient_account_preferences')
-                .update({ text_size: next })
-                .eq('account_id', view.session.account.id);
+            try {
+                await updatePreferences(view.session.account.id, { textSize: next });
+            } catch {
+                // Save failure must not undo the in-session toggle.
+            }
         }
     }, [textSize, view]);
+
+    const handleToggleHighContrast = useCallback(async () => {
+        const next = !highContrast;
+        setHighContrast(next);
+        try {
+            window.sessionStorage.setItem(CONTRAST_STORAGE_KEY, next ? 'high' : 'normal');
+        } catch {
+            // sessionStorage unavailable -- same as text size above.
+        }
+        if (view.status === 'ready') {
+            try {
+                await updatePreferences(view.session.account.id, { highContrast: next });
+            } catch {
+                // Save failure must not undo the in-session toggle.
+            }
+        }
+    }, [highContrast, view]);
 
     const handleSignIn = useCallback(async (medisensId: string, pin: string) => {
         setSignInBusy(true);
@@ -138,7 +202,7 @@ function PatientPortalApp() {
     }, [loadSession]);
 
     return (
-        <div data-portal data-text-size={textSize}>
+        <div data-portal data-text-size={textSize} data-contrast={highContrast ? 'high' : undefined}>
             {view.status === 'loading' && <LoadingShell />}
             {view.status === 'signed-out' && (
                 <SignInShell busy={signInBusy} error={signInError} onSignIn={handleSignIn} />
@@ -152,6 +216,8 @@ function PatientPortalApp() {
                     session={view.session}
                     textSize={textSize}
                     onToggleTextSize={() => void handleToggleTextSize()}
+                    highContrast={highContrast}
+                    onToggleHighContrast={() => void handleToggleHighContrast()}
                     onSignOut={() => void handleSignOut()}
                 />
             )}

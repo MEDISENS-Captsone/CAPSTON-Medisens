@@ -185,3 +185,60 @@ export function labTestValueText(value: unknown): string {
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
     return '';
 }
+
+// ============================================================
+// Phase 8 -- Profile, correction requests, access management, recent
+// access, and preferences copy.
+// ============================================================
+
+/** "August 24, 2026, 9:14 AM" -- the §9.5 Recent Access format. Unlike
+ * formatLongDate, this is a full timestamp (occurred_at is timestamptz),
+ * so ordinary local-timezone Date parsing is correct here. */
+export function formatDateTime(value: string | null | undefined): string | null {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+const CORRECTION_FIELD_GROUP_LABELS: Record<string, string> = {
+    name: 'Name',
+    birthdate: 'Birthdate',
+    address: 'Address',
+    contact: 'Contact number',
+    philhealth: 'PhilHealth number',
+    other: 'Other',
+};
+
+export function correctionFieldGroupLabel(fieldGroup: string): string {
+    return CORRECTION_FIELD_GROUP_LABELS[fieldGroup] ?? 'Other';
+}
+
+const CORRECTION_STATUS_LABELS: Record<string, string> = {
+    submitted: 'Submitted',
+    resolved: 'Resolved',
+    declined: 'Declined',
+};
+
+export function correctionStatusLabel(status: string): string {
+    return CORRECTION_STATUS_LABELS[status] ?? 'Submitted';
+}
+
+/** Plain-language relationship line for an access-list card (§9.5). */
+export function accessRelationshipLabel(relationship: 'SELF' | 'GUARDIAN' | 'AUTHORIZED_CAREGIVER'): string {
+    if (relationship === 'SELF') return 'You (the patient)';
+    if (relationship === 'GUARDIAN') return 'Guardian';
+    return 'Authorized caregiver';
+}
+
+/** Recent-access action -> a plain sentence fragment, e.g. "viewed your
+ * lab results". Falls back to a generic, still-safe phrase for any action
+ * this list doesn't specifically know about -- never the raw action
+ * string, never a database/module name. */
+const RECENT_ACCESS_ACTION_LABELS: Record<string, string> = {
+    view: 'viewed this health record',
+};
+
+export function recentAccessActionLabel(action: string): string {
+    return RECENT_ACCESS_ACTION_LABELS[action] ?? 'accessed this health record';
+}

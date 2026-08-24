@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
     const { data: activation, error: activationError } = await adminClient
       .from("patient_activation_codes")
-      .select("id, patient_id, relationship, target_account_id, purpose, expires_at, consumed_at")
+      .select("id, patient_id, relationship, target_account_id, purpose, expires_at, consumed_at, holder_name")
       .eq("code_hash", codeHash)
       .maybeSingle();
 
@@ -192,7 +192,18 @@ Deno.serve(async (req) => {
       return errorResponse(500);
     }
 
-    const displayName = [patient.firstName, patient.lastName].filter(Boolean).join(" ") || medisensId;
+    // display_name must represent the person who owns/logs into this
+    // account, not the patient record being accessed (§17 Phase 8
+    // correction). SELF activations are correctly the patient's own name.
+    // GUARDIAN activations use the guardian's own name captured at
+    // issue time (patient-activation-issue requires it); if an older
+    // activation code was issued before that requirement existed and
+    // carries no holder_name, this falls back to the MediSens ID rather
+    // than ever inventing or reusing the child's name as the guardian's
+    // identity.
+    const displayName = activation.relationship === "GUARDIAN"
+      ? (activation.holder_name || medisensId)
+      : ([patient.firstName, patient.lastName].filter(Boolean).join(" ") || medisensId);
 
     const { data: activationRow, error: activationRowError } = await adminClient
       .from("patient_activation_codes")

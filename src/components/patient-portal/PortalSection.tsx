@@ -42,7 +42,7 @@ interface MoreRowProps {
     disabled?: boolean;
 }
 
-function MoreRow({ icon, label, onClick, danger, disabled }: MoreRowProps) {
+export function MoreRow({ icon, label, onClick, danger, disabled }: MoreRowProps) {
     return (
         <button
             type="button"

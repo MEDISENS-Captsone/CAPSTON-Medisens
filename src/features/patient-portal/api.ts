@@ -302,3 +302,179 @@ export function fetchLabResultDetail(patientId: number, resultToken: string): Pr
         }))),
     }));
 }
+
+// ============================================================
+// Phase 8 -- People who can access this record, recent access, and the
+// self-service writes RLS/an RPC already permits (§9.5, §11.1, §12.2).
+// ============================================================
+
+export interface PortalAccessGrant {
+    /** Opaque, HMAC-derived token (patient_portal_grant_token) -- never
+     * the raw patient_access_grants.id UUID. Identifier hygiene only; the
+     * real authorization check happens server-side in
+     * patient_portal_access_revoke(). */
+    accessToken: string;
+    /** The holding account's display_name (§11) -- never an email, auth
+     * user id, patient_accounts id, or identity-verification field. */
+    holderName: string;
+    relationship: GrantRelationship;
+    grantedAt: string;
+    revocable: boolean;
+}
+
+export function fetchAccessList(patientId: number): Promise<PortalAccessGrant[]> {
+    return callRpc<Array<Record<string, unknown>>>('patient_portal_access_list', { p_patient_id: patientId }).then((rows) =>
+        (rows ?? []).map((r) => ({
+            accessToken: r.access_token as string,
+            holderName: (r.holder_name as string) ?? '',
+            relationship: r.relationship as GrantRelationship,
+            grantedAt: r.granted_at as string,
+            revocable: Boolean(r.revocable),
+        })),
+    );
+}
+
+/** The one patient-initiated write RPC (§6.3, §11.1) -- server-side
+ * refuses anything but the caller's own SELF-held AUTHORIZED_CAREGIVER
+ * grants; this wrapper adds no logic of its own. Takes the opaque
+ * access_token from fetchAccessList(), never a raw grant id. */
+export async function revokeAccessGrant(patientId: number, accessToken: string): Promise<void> {
+    const { error } = await patientSupabase.rpc('patient_portal_access_revoke', { p_patient_id: patientId, p_access_token: accessToken });
+    if (error) throw new PortalApiError(error.message);
+}
+
+export interface PortalRecentAccessEntry {
+    actorLabel: string;
+    action: string;
+    occurredAt: string;
+}
+
+export function fetchRecentAccess(patientId: number, limit = 20, offset = 0): Promise<PortalRecentAccessEntry[]> {
+    return callRpc<Array<Record<string, unknown>>>('patient_portal_recent_access', {
+        p_patient_id: patientId,
+        p_limit: limit,
+        p_offset: offset,
+    }).then((rows) =>
+        (rows ?? []).map((r) => ({
+            actorLabel: r.actor_label as string,
+            action: r.action as string,
+            occurredAt: r.occurred_at as string,
+        })),
+    );
+}
+
+export type CorrectionFieldGroup = 'name' | 'birthdate' | 'address' | 'contact' | 'philhealth' | 'other';
+export type CorrectionStatus = 'submitted' | 'resolved' | 'declined';
+
+export interface PortalCorrectionRequest {
+    id: string;
+    fieldGroup: CorrectionFieldGroup;
+    requestedValue: string;
+    patientNote: string | null;
+    status: CorrectionStatus;
+    submittedAt: string;
+}
+
+/** Correction requests write directly to patient_correction_requests --
+ * no RPC exists or is needed. The Phase 2 RLS policy
+ * (`patient_correction_requests_insert_self_or_guardian`) already
+ * enforces, server-side, that the row's account_id belongs to the caller
+ * and that patient_portal_can_correct(patient_id) is true (SELF/GUARDIAN
+ * only -- an AUTHORIZED_CAREGIVER's insert is refused by the database
+ * itself, not merely hidden in the UI). This function never trusts a
+ * client-supplied account_id for anything but what RLS will itself
+ * re-verify. */
+export async function submitCorrectionRequest(params: {
+    accountId: string;
+    patientId: number;
+    fieldGroup: CorrectionFieldGroup;
+    requestedValue: string;
+    patientNote?: string;
+}): Promise<void> {
+    const { error } = await patientSupabase.from('patient_correction_requests').insert({
+        account_id: params.accountId,
+        patient_id: params.patientId,
+        field_group: params.fieldGroup,
+        requested_value: params.requestedValue,
+        patient_note: params.patientNote || null,
+    });
+    if (error) throw new PortalApiError(error.message);
+}
+
+/** Own correction-request history -- RLS already restricts this to the
+ * caller's own account_id (patient_correction_requests_select_own). */
+export async function fetchCorrectionRequests(patientId: number): Promise<PortalCorrectionRequest[]> {
+    const { data, error } = await patientSupabase
+        .from('patient_correction_requests')
+        .select('id, field_group, requested_value, patient_note, status, submitted_at')
+        .eq('patient_id', patientId)
+        .order('submitted_at', { ascending: false });
+    if (error) throw new PortalApiError(error.message);
+    return (data ?? []).map((r) => ({
+        id: r.id,
+        fieldGroup: r.field_group,
+        requestedValue: r.requested_value,
+        patientNote: r.patient_note,
+        status: r.status,
+        submittedAt: r.submitted_at,
+    }));
+}
+
+export interface PortalPreferences {
+    textSize: 'comfortable' | 'large';
+    highContrast: boolean;
+    smsReminders: boolean;
+}
+
+/** Own preferences row -- RLS restricts SELECT/UPDATE to the caller's own
+ * account_id (patient_account_preferences_select_own/_update_own). A
+ * missing row (e.g. an older account-only caregiver activation, §5.2.1)
+ * is not an error -- callers fall back to defaults. */
+export async function fetchPreferences(accountId: string): Promise<PortalPreferences | null> {
+    const { data, error } = await patientSupabase
+        .from('patient_account_preferences')
+        .select('text_size, high_contrast, sms_reminders')
+        .eq('account_id', accountId)
+        .maybeSingle();
+    if (error) throw new PortalApiError(error.message);
+    if (!data) return null;
+    return {
+        textSize: data.text_size === 'large' ? 'large' : 'comfortable',
+        highContrast: Boolean(data.high_contrast),
+        smsReminders: data.sms_reminders !== false,
+    };
+}
+
+export async function updatePreferences(accountId: string, patch: Partial<{ textSize: 'comfortable' | 'large'; highContrast: boolean; smsReminders: boolean }>): Promise<void> {
+    const row: Record<string, unknown> = {};
+    if (patch.textSize !== undefined) row.text_size = patch.textSize;
+    if (patch.highContrast !== undefined) row.high_contrast = patch.highContrast;
+    if (patch.smsReminders !== undefined) row.sms_reminders = patch.smsReminders;
+    const { error } = await patientSupabase.from('patient_account_preferences').update(row).eq('account_id', accountId);
+    if (error) throw new PortalApiError(error.message);
+}
+
+/** Self-service PIN change (§9.5) -- the one credential write with no
+ * existing client path; calls the purpose-built patient-change-pin Edge
+ * Function with the caller's own session token. Never sends the PIN
+ * anywhere but this one call, and never touches Supabase Auth directly
+ * (§5.4 D-2 -- the PIN is never presented to GoTrue from the client). */
+export async function changePin(currentPin: string, newPin: string): Promise<void> {
+    const { data: { session } } = await patientSupabase.auth.getSession();
+    if (!session) throw new PortalApiError('Please sign in again.');
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+    const response = await fetch(`${supabaseUrl}/functions/v1/patient-change-pin`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            apikey: anonKey,
+            Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ currentPin, newPin }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new PortalApiError(body?.error || 'Unable to change your PIN right now.');
+    }
+}

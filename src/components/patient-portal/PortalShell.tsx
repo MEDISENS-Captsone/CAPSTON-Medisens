@@ -4,7 +4,7 @@ import { SkipToContent } from '../layout/SkipToContent';
 import { RecordContextBar } from './RecordContextBar';
 import { PersonSwitcher } from './PersonSwitcher';
 import { BottomTabs, PORTAL_TABS } from './BottomTabs';
-import { MoreSection } from './PortalSection';
+import { MoreMenu } from './MoreMenu';
 import { HomeSection } from './HomeSection';
 import { MyHealthSection } from './MyHealthSection';
 import { MedicineList } from './MedicineList';
@@ -20,13 +20,13 @@ interface PortalShellProps {
     session: PatientPortalSession;
     textSize: 'comfortable' | 'large';
     onToggleTextSize: () => void;
+    highContrast: boolean;
+    onToggleHighContrast: () => void;
     onSignOut: () => void;
 }
 
-/** The authenticated Patient Portal shell (§8, §17 Phase 4). No clinical
- * data is fetched or rendered by this component or anything it mounts --
- * the four content sections are placeholders until their own phases. */
-export function PortalShell({ session, textSize, onToggleTextSize, onSignOut }: PortalShellProps) {
+/** The authenticated Patient Portal shell (§8, §17). */
+export function PortalShell({ session, textSize, onToggleTextSize, highContrast, onToggleHighContrast, onSignOut }: PortalShellProps) {
     const [activePage, setActivePage] = useHashPage('home', normalizePage);
     const [activeGrantId, setActiveGrantId] = useState<string | null>(session.grants[0]?.id ?? null);
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
@@ -78,11 +78,15 @@ export function PortalShell({ session, textSize, onToggleTextSize, onSignOut }: 
                 {activePage === 'labs' && activeGrant && (
                     <LabResultsSection key={activeGrant.patientId} patientId={activeGrant.patientId} />
                 )}
-                {activePage === 'more' && (
-                    <MoreSection
+                {activePage === 'more' && activeGrant && (
+                    <MoreMenu
+                        key={activeGrant.patientId}
                         account={session.account}
+                        activeGrant={activeGrant}
                         textSize={textSize}
                         onToggleTextSize={onToggleTextSize}
+                        highContrast={highContrast}
+                        onToggleHighContrast={onToggleHighContrast}
                         onSignOut={onSignOut}
                     />
                 )}

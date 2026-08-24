@@ -1,0 +1,41 @@
+-- Patient Account Phase 8 correction: root-cause fix for the GUARDIAN
+-- display_name defect surfaced by patient_portal_access_list()'s
+-- holder_name column.
+--
+-- Root cause (traced through patient-activation-issue ->
+-- patient-activation-verify -> patient-activation-complete): the fresh
+-- SELF/GUARDIAN activation branch in patient-activation-complete sets
+--   displayName = [patient.firstName, patient.lastName].join(' ')
+-- unconditionally, for both relationships. That is correct for SELF (the
+-- activating person IS the patient) and wrong for GUARDIAN (the
+-- activating person is someone else entirely) -- there was simply no
+-- field anywhere in the SELF/GUARDIAN activation payload chain
+-- (patientId, relationship, purpose -> code, otp -> code, otp, pin) that
+-- ever carried the guardian's own name. Contrast with the account-only
+-- caregiver path (patient-caregiver-activation-issue, §5.2.1), which
+-- already collects the caregiver's real name (`fullName`) from staff at
+-- issue time and writes it straight to patient_accounts.display_name --
+-- that path was never affected by this defect. The guardian's real name
+-- is not captured anywhere else in the schema today (not on `patients`,
+-- not on `profiles`) -- it must come from the staff member issuing the
+-- code, the same way the caregiver path already collects it.
+--
+-- Smallest correction: patient_activation_codes gains one nullable
+-- column, holder_name text -- the same table that already threads
+-- relationship/patient_id/target_account_id between issue and complete,
+-- so no new table or write path is introduced. Populated only for
+-- GUARDIAN activations (SELF continues to use the patient's own name,
+-- which is already correct); left null when staff omit it (never
+-- invented). patient-activation-complete's fresh-activation branch is
+-- updated in a companion change (same PR, no migration needed there) to
+-- prefer activation.holder_name for GUARDIAN and fall back to the
+-- existing medisensId-only placeholder -- never the child's name -- when
+-- it is absent.
+
+alter table public.patient_activation_codes
+  add column if not exists holder_name text;
+
+-- No RLS change: patient_activation_codes already has zero policies for
+-- any client role (service-role only, per §12.2) -- this column is
+-- exactly as inaccessible to the Patient Portal browser as every other
+-- column on this table.

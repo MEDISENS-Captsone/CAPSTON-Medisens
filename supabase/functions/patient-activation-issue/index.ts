@@ -31,6 +31,14 @@ interface IssuePayload {
   relationship: Relationship;
   purpose: Purpose;
   targetAccountId?: string; // required when purpose = "RECOVERY"
+  // The activating GUARDIAN's own name, staff-entered at the counter --
+  // never the patient's name, never client-inferred. Required for a
+  // GUARDIAN activation so patient-activation-complete can set
+  // patient_accounts.display_name to the actual account holder, the same
+  // way patient-caregiver-activation-issue already collects `fullName`
+  // for an account-only caregiver. Not used for SELF (the patient's own
+  // name from `patients` is already the correct, authoritative value).
+  holderName?: string;
 }
 
 function errorResponse(status: number, message = "Unable to issue the activation code. Please try again.") {
@@ -44,12 +52,16 @@ function validatePayload(value: unknown): IssuePayload {
   const relationship = body.relationship;
   const purpose = body.purpose === "RECOVERY" ? "RECOVERY" : "ACTIVATION";
   const targetAccountId = typeof body.targetAccountId === "string" ? body.targetAccountId : undefined;
+  const holderName = typeof body.holderName === "string" ? body.holderName.trim() : undefined;
 
   if (!Number.isFinite(patientId) || patientId <= 0) throw new Error("A valid patientId is required.");
   if (relationship !== "SELF" && relationship !== "GUARDIAN") throw new Error("relationship must be SELF or GUARDIAN.");
   if (purpose === "RECOVERY" && !targetAccountId) throw new Error("targetAccountId is required for a recovery code.");
+  if (purpose === "ACTIVATION" && relationship === "GUARDIAN" && !holderName) {
+    throw new Error("The guardian's full name is required to issue a guardian activation code.");
+  }
 
-  return { patientId, relationship, purpose, targetAccountId };
+  return { patientId, relationship, purpose, targetAccountId, holderName };
 }
 
 Deno.serve(async (req) => {
@@ -139,6 +151,7 @@ Deno.serve(async (req) => {
         purpose: payload.purpose,
         expires_at: expiresAt,
         issued_by: staff.userId,
+        holder_name: payload.relationship === "GUARDIAN" ? payload.holderName : null,
       }])
       .select("id")
       .single();
