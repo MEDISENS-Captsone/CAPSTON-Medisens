@@ -366,6 +366,7 @@ const NurseDashboard = () => {
                         patient={selectedPatient}
                         onClose={() => setSelectedPatient(null)}
                         onPatientUpdate={(updated) => setSelectedPatient(updated)}
+                        staffRole="nurse"
                     />
                 </Suspense>
             )}

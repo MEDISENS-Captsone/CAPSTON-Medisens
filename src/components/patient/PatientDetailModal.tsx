@@ -20,6 +20,8 @@ import { RELIGION_OPTIONS } from '../../types/patient';
 import { formatPatientChartName, PatientChartIdentityHeader, PatientHistoryPanel } from './PatientChart';
 import { LastPatientHandler } from './LastPatientHandler';
 import { PediatricGrowth } from './PediatricGrowth';
+import { PatientAccountSection } from './PatientAccountSection';
+import type { Role } from '../../types/user';
 
 export interface Patient {
     id: string;
@@ -84,6 +86,12 @@ interface PatientDetailModalProps {
     onRecordConsent?: (patient: Patient) => void;
     /** BHW tablet/mobile only: use the touch-first patient overview in view mode. */
     bhwTouchLayout?: boolean;
+    /** The signed-in staff member's role -- gates the read-only Patient
+     * Account section (§17 Phase 9B) to the same roles the activation
+     * Edge Functions and Patient Account RLS already authorize
+     * server-side. Optional only so existing callers keep compiling;
+     * omitting it hides the section entirely (fails closed). */
+    staffRole?: Role;
 }
 
 interface DetailItemProps {
@@ -356,6 +364,7 @@ export function PatientDetailModal({
     consentSigned,
     onRecordConsent,
     bhwTouchLayout = false,
+    staffRole,
 }: PatientDetailModalProps) {
     const [patient, setPatient] = useState<Patient>(initialPatient);
     const [showHistory, setShowHistory] = useState(false);
@@ -689,6 +698,14 @@ export function PatientDetailModal({
                                         )}
                                     </div>
                                 </div>
+                                {!isEditing && staffRole && (
+                                    <PatientAccountSection
+                                        patientId={patient.id}
+                                        staffRole={staffRole}
+                                        sectionClassName={sectionCls}
+                                        headerClassName={headerCls}
+                                    />
+                                )}
                                 {!isEditing && (
                                     <div className={sectionCls}>
                                         <div className="flex items-center justify-between mb-2">

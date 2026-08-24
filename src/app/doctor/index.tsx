@@ -810,6 +810,7 @@ const DoctorDashboard = () => {
                         onClose={() => setSelectedPatient(null)}
                         onPatientUpdate={(updated) => setSelectedPatient(updated)}
                         onConsult={(patient) => handleConsultNavigate(patient.id)}
+                        staffRole="doctor"
                     />
                 </Suspense>
             )}

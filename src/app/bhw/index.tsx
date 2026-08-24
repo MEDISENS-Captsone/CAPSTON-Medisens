@@ -634,6 +634,7 @@ const BhwDashboard = () => {
                         consentSigned={isConsentSigned(selectedPatient)}
                         onRecordConsent={activePage === 'records' ? undefined : openConsentFlow}
                         bhwTouchLayout
+                        staffRole="BHW"
                     />
                 </Suspense>
             )}
