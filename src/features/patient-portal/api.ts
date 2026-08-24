@@ -83,6 +83,52 @@ export interface PortalFollowUp {
     status: string;
 }
 
+export interface PortalMedicationItem {
+    name: string | null;
+    dosage: string | null;
+    frequency: string | null;
+    duration: string | null;
+    quantity: string | null;
+}
+
+export interface PortalPrescription {
+    prescriptionToken: string;
+    prescribedDate: string | null;
+    doctorName: string | null;
+    medications: PortalMedicationItem[];
+    malformed: boolean;
+    claimed: boolean;
+    claimedDate: string | null;
+}
+
+export interface PortalLabResultListItem {
+    kind: 'released' | 'pending';
+    resultToken: string | null;
+    testDate: string | null;
+    performedBy: string | null;
+    testLabels: string[];
+}
+
+export interface PortalLabResultTest {
+    testKey: string;
+    value: unknown;
+    unit: string | null;
+    rangeLow: number | null;
+    rangeHigh: number | null;
+    rangeText: string | null;
+}
+
+export interface PortalLabResultGroup {
+    groupKey: string;
+    tests: PortalLabResultTest[];
+}
+
+export interface PortalLabResultDetail {
+    testDate: string | null;
+    performedBy: string | null;
+    groups: PortalLabResultGroup[];
+}
+
 /** A portal RPC call raised (unauthorized, not found, tampered token, or a
  * transient failure) -- callers show a patient-friendly error, never this
  * message or the underlying Supabase error text. */
@@ -194,4 +240,65 @@ export function fetchFollowUps(patientId: number): Promise<PortalFollowUp[]> {
             status: r.status as string,
         })),
     );
+}
+
+function toMedicationItems(value: unknown): PortalMedicationItem[] {
+    if (!Array.isArray(value)) return [];
+    return value.map((item) => {
+        const record = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+        return {
+            name: typeof record.name === 'string' && record.name.trim() ? record.name : null,
+            dosage: typeof record.dosage === 'string' && record.dosage.trim() ? record.dosage : null,
+            frequency: typeof record.frequency === 'string' && record.frequency.trim() ? record.frequency : null,
+            duration: typeof record.duration === 'string' && record.duration.trim() ? record.duration : null,
+            quantity: typeof record.quantity === 'string' && record.quantity.trim() ? record.quantity : null,
+        };
+    });
+}
+
+export function fetchMedicines(patientId: number): Promise<PortalPrescription[]> {
+    return callRpc<Array<Record<string, unknown>>>('patient_portal_medicines', { p_patient_id: patientId }).then((rows) =>
+        (rows ?? []).map((r) => ({
+            prescriptionToken: r.prescription_token as string,
+            prescribedDate: (r.prescribed_date as string) ?? null,
+            doctorName: (r.doctor_name as string) ?? null,
+            medications: toMedicationItems(r.medications),
+            malformed: Boolean(r.malformed),
+            claimed: Boolean(r.claimed),
+            claimedDate: (r.claimed_date as string) ?? null,
+        })),
+    );
+}
+
+export function fetchLabResults(patientId: number): Promise<PortalLabResultListItem[]> {
+    return callRpc<Array<Record<string, unknown>>>('patient_portal_lab_results', { p_patient_id: patientId }).then((rows) =>
+        (rows ?? []).map((r) => ({
+            kind: r.kind as 'released' | 'pending',
+            resultToken: (r.result_token as string) ?? null,
+            testDate: (r.test_date as string) ?? null,
+            performedBy: (r.performed_by as string) ?? null,
+            testLabels: Array.isArray(r.test_labels) ? (r.test_labels as string[]) : [],
+        })),
+    );
+}
+
+export function fetchLabResultDetail(patientId: number, resultToken: string): Promise<PortalLabResultDetail> {
+    return callRpc<Record<string, unknown>>('patient_portal_lab_result_detail', {
+        p_patient_id: patientId,
+        p_result_token: resultToken,
+    }).then((row) => ({
+        testDate: (row.testDate as string) ?? null,
+        performedBy: (row.performedBy as string) ?? null,
+        groups: (((row.groups as Array<Record<string, unknown>>) ?? []).map((g) => ({
+            groupKey: g.groupKey as string,
+            tests: ((g.tests as Array<Record<string, unknown>>) ?? []).map((t) => ({
+                testKey: t.testKey as string,
+                value: t.value,
+                unit: (t.unit as string) ?? null,
+                rangeLow: (t.rangeLow as number) ?? null,
+                rangeHigh: (t.rangeHigh as number) ?? null,
+                rangeText: (t.rangeText as string) ?? null,
+            })),
+        }))),
+    }));
 }

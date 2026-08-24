@@ -4,9 +4,11 @@ import { SkipToContent } from '../layout/SkipToContent';
 import { RecordContextBar } from './RecordContextBar';
 import { PersonSwitcher } from './PersonSwitcher';
 import { BottomTabs, PORTAL_TABS } from './BottomTabs';
-import { PlaceholderSection, MoreSection } from './PortalSection';
+import { MoreSection } from './PortalSection';
 import { HomeSection } from './HomeSection';
 import { MyHealthSection } from './MyHealthSection';
+import { MedicineList } from './MedicineList';
+import { LabResultsSection } from './LabResultsSection';
 import type { PatientPortalSession } from '../../lib/auth/patientPortal';
 
 const VALID_PAGES = new Set(PORTAL_TABS.map((tab) => tab.id));
@@ -63,21 +65,18 @@ export function PortalShell({ session, textSize, onToggleTextSize, onSignOut }: 
                     />
                 )}
                 {activePage === 'health' && activeGrant && (
-                    <MyHealthSection key={activeGrant.patientId} patientId={activeGrant.patientId} />
-                )}
-                {activePage === 'medicines' && (
-                    <PlaceholderSection
-                        icon="pill"
-                        title="Medicines are coming soon"
-                        description="Prescribed medicines for this health record will appear here."
+                    <MyHealthSection
+                        key={activeGrant.patientId}
+                        patientId={activeGrant.patientId}
+                        onNavigateToMedicines={() => setActivePage('medicines')}
+                        onNavigateToLabs={() => setActivePage('labs')}
                     />
                 )}
-                {activePage === 'labs' && (
-                    <PlaceholderSection
-                        icon="flask"
-                        title="Lab Results are coming soon"
-                        description="Released laboratory results for this health record will appear here."
-                    />
+                {activePage === 'medicines' && activeGrant && (
+                    <MedicineList key={activeGrant.patientId} patientId={activeGrant.patientId} />
+                )}
+                {activePage === 'labs' && activeGrant && (
+                    <LabResultsSection key={activeGrant.patientId} patientId={activeGrant.patientId} />
                 )}
                 {activePage === 'more' && (
                     <MoreSection

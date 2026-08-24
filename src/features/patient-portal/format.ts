@@ -75,3 +75,113 @@ export function vaccinationCategoryLabel(category: string | null | undefined): s
     if (!category) return 'Other vaccinations';
     return VACCINE_CATEGORY_LABELS[category] ?? 'Other vaccinations';
 }
+
+/** Recent/Previous grouping (§9.3) -- recency of `prescribedDate` and the
+ * claimed/not-claimed status only. Never parses `duration` to infer
+ * whether a course is "still active" -- `duration` values like `7 days`,
+ * `1 week`, `until finished`, `PRN`, and `as directed` are not reliably
+ * machine-interpretable, and guessing here is a medication-safety risk. */
+export function isRecentPrescription(prescribedDate: string | null, claimed: boolean): boolean {
+    if (!claimed) return true;
+    return isWithinLastDays(prescribedDate, 90);
+}
+
+/** Patient-friendly claim status -- never the raw `Pending`/`Dispensed`
+ * strings (§9.3, §7.2). */
+export function claimStatusLabel(claimed: boolean, claimedDate: string | null): string {
+    if (!claimed) return 'Not yet claimed at the RHU pharmacy';
+    const date = formatLongDate(claimedDate);
+    return date ? `Claimed on ${date}` : 'Claimed at the RHU pharmacy';
+}
+
+/** Splits a medicine's recorded `dosage` into a title-line strength
+ * (e.g. "Amoxicillin 500 mg") when it plainly reads as a strength value,
+ * otherwise the full `dosage` text is shown verbatim as the "Take" line
+ * (§9.3) -- never reformatted, never reinterpreted. */
+export function medicineTitleAndTake(name: string | null, dosage: string | null): { title: string; takeLine: string | null } {
+    const safeName = name ?? 'Medicine';
+    const looksLikeStrength = dosage ? /^\d+(\.\d+)?\s*(mg|mcg|g|ml|iu|%)\b/i.test(dosage.trim()) : false;
+    if (looksLikeStrength && dosage) {
+        return { title: `${safeName} ${dosage}`.trim(), takeLine: null };
+    }
+    return { title: safeName, takeLine: dosage };
+}
+
+/** Plain-language lab findings group headings (§9.4). Presentation-only --
+ * mirrors the group names already used in the staff-side LabResultDetailModal
+ * without reusing any of its clinician-facing constants. Unknown groups
+ * never reach this function (the RPC already drops them), but an unmapped
+ * key still gets a readable fallback rather than raw camelCase. */
+const LAB_GROUP_LABELS: Record<string, string> = {
+    clinicalMicroscopy: 'Clinical Microscopy',
+    bloodChemistry: 'Blood Chemistry',
+    pregnancyTest: 'Pregnancy Test',
+    hbsagScreening: 'HBsAg Screening',
+    hivScreening: 'HIV Screening',
+    parasitology: 'Parasitology',
+    dengueRdt: 'Dengue RDT',
+};
+
+function humanizeKey(key: string): string {
+    const withSpaces = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ');
+    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}
+
+export function labGroupLabel(groupKey: string): string {
+    return LAB_GROUP_LABELS[groupKey] ?? humanizeKey(groupKey);
+}
+
+/** Plain-language labels for the snake_case `lab_request.is_*` test-flag
+ * identifiers patient_portal_lab_results() returns for pending requests
+ * (§17 Phase 7 correction). Identifiers shared with the findings-group
+ * vocabulary (clinical_microscopy, blood_chemistry, pregnancy_test,
+ * hbsag_screening, hiv_screening, parasitology, dengue_rdt) resolve to
+ * the same plain-language name as their camelCase group counterpart. */
+const LAB_TEST_FLAG_LABELS: Record<string, string> = {
+    cbc: 'Complete Blood Count',
+    cbc_platelet: 'Complete Blood Count with Platelet',
+    hgb_hct: 'Hemoglobin / Hematocrit',
+    xray: 'X-ray',
+    ultrasound: 'Ultrasound',
+    rbs: 'Random Blood Sugar',
+    fbs: 'Fasting Blood Sugar',
+    uric_acid: 'Uric Acid',
+    cholesterol: 'Cholesterol',
+    urinalysis: 'Urinalysis',
+    fecalysis: 'Fecalysis',
+    sputum: 'Sputum Test',
+    clinical_microscopy: 'Clinical Microscopy',
+    blood_chemistry: 'Blood Chemistry',
+    pregnancy_test: 'Pregnancy Test',
+    hbsag_screening: 'HBsAg Screening',
+    hiv_screening: 'HIV Screening',
+    parasitology: 'Parasitology',
+    dengue_rdt: 'Dengue RDT',
+};
+
+/** Renders the `test_labels` array patient_portal_lab_results() returns
+ * (known findings-group keys for released results, known is_* flag
+ * identifiers for pending requests) as a single plain-language line.
+ * Falls back to a safe generic label when the RPC returned no known
+ * identifiers for that row (e.g. a plain-text/malformed `findings` value)
+ * -- never raw JSON, never an empty dash. */
+export function labResultListLabel(testLabels: string[]): string {
+    if (testLabels.length === 0) return 'Lab result';
+    return testLabels.map((key) => LAB_GROUP_LABELS[key] ?? LAB_TEST_FLAG_LABELS[key] ?? humanizeKey(key)).join(', ');
+}
+
+const LAB_TEST_ACRONYMS = new Set(['wbc', 'rbc', 'hgb', 'hct', 'fbs', 'rbs', 'bun', 'alt', 'ast', 'hdl', 'ldl', 'tsh', 'ns1']);
+
+export function labTestLabel(testKey: string): string {
+    if (LAB_TEST_ACRONYMS.has(testKey.toLowerCase())) return testKey.toUpperCase();
+    return humanizeKey(testKey);
+}
+
+/** A test's recorded value, rendered exactly as returned -- never a
+ * High/Low/Abnormal/Normal verdict, never an arrow, never a computed
+ * interpretation (§9.4). */
+export function labTestValueText(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return '';
+}

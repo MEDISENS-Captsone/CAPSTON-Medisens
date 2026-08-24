@@ -9,6 +9,8 @@ interface VisitDetailProps {
     patientId: number;
     visitToken: string;
     onBack: () => void;
+    onNavigateToMedicines: () => void;
+    onNavigateToLabs: () => void;
 }
 
 type LoadState =
@@ -20,7 +22,7 @@ type LoadState =
  * Sections are omitted, never rendered empty/null/"--", when the RPC did
  * not return a value; recommendation text is shown exactly as recorded,
  * never paraphrased. */
-export function VisitDetail({ patientId, visitToken, onBack }: VisitDetailProps) {
+export function VisitDetail({ patientId, visitToken, onBack, onNavigateToMedicines, onNavigateToLabs }: VisitDetailProps) {
     const [state, setState] = useState<LoadState>({ status: 'loading' });
 
     const load = useCallback(async () => {
@@ -50,12 +52,22 @@ export function VisitDetail({ patientId, visitToken, onBack }: VisitDetailProps)
                     <SectionError onRetry={() => void load()} message="We could not load this visit right now." />
                 </div>
             )}
-            {state.status === 'ready' && <VisitDetailContent detail={state.detail} />}
+            {state.status === 'ready' && (
+                <VisitDetailContent detail={state.detail} onNavigateToMedicines={onNavigateToMedicines} onNavigateToLabs={onNavigateToLabs} />
+            )}
         </div>
     );
 }
 
-function VisitDetailContent({ detail }: { detail: PortalVisitDetail }) {
+function VisitDetailContent({
+    detail,
+    onNavigateToMedicines,
+    onNavigateToLabs,
+}: {
+    detail: PortalVisitDetail;
+    onNavigateToMedicines: () => void;
+    onNavigateToLabs: () => void;
+}) {
     const date = formatLongDate(detail.visitDate);
     const followUpDate = formatLongDate(detail.followUpDate);
     const facilityLine = detail.attendingProvider ? `Malvar Rural Health Unit · ${detail.attendingProvider}` : 'Malvar Rural Health Unit';
@@ -89,16 +101,22 @@ function VisitDetailContent({ detail }: { detail: PortalVisitDetail }) {
             {(detail.medicineCount > 0 || detail.labCount > 0 || followUpDate) && (
                 <div className="mt-4 divide-y divide-[var(--border-soft)] border-t border-[var(--border-soft)]">
                     {detail.medicineCount > 0 && (
-                        <div className="flex items-center justify-between py-3">
+                        <button type="button" onClick={onNavigateToMedicines} className="flex w-full min-h-[44px] items-center justify-between py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] rounded-[var(--radius-control)]">
                             <span className="text-[var(--text)]">Medicines prescribed</span>
-                            <span className="text-[var(--text-secondary)]">{detail.medicineCount}</span>
-                        </div>
+                            <span className="flex items-center gap-1 text-[var(--text-secondary)]">
+                                {detail.medicineCount}
+                                <Icon name="chevron-right" className="h-4 w-4 text-[var(--text-muted)]" />
+                            </span>
+                        </button>
                     )}
                     {detail.labCount > 0 && (
-                        <div className="flex items-center justify-between py-3">
+                        <button type="button" onClick={onNavigateToLabs} className="flex w-full min-h-[44px] items-center justify-between py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] rounded-[var(--radius-control)]">
                             <span className="text-[var(--text)]">Laboratory</span>
-                            <span className="text-[var(--text-secondary)]">{detail.labCount} result{detail.labCount === 1 ? '' : 's'} available</span>
-                        </div>
+                            <span className="flex items-center gap-1 text-[var(--text-secondary)]">
+                                {detail.labCount} result{detail.labCount === 1 ? '' : 's'} available
+                                <Icon name="chevron-right" className="h-4 w-4 text-[var(--text-muted)]" />
+                            </span>
+                        </button>
                     )}
                     {followUpDate && (
                         <div className="flex items-center justify-between py-3">

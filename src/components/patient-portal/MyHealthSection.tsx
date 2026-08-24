@@ -6,6 +6,8 @@ import { FollowUpList } from './FollowUpList';
 
 interface MyHealthSectionProps {
     patientId: number;
+    onNavigateToMedicines: () => void;
+    onNavigateToLabs: () => void;
 }
 
 type SubTab = 'visits' | 'vaccinations' | 'followups';
@@ -18,7 +20,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
 
 /** My Health (§9.2) -- a 3-item, full-width, wrapping segmented tab row
  * over Visits / Vaccinations / Follow-ups, plus the Visit detail drill-in. */
-export function MyHealthSection({ patientId }: MyHealthSectionProps) {
+export function MyHealthSection({ patientId, onNavigateToMedicines, onNavigateToLabs }: MyHealthSectionProps) {
     const [subTab, setSubTab] = useState<SubTab>('visits');
     const [selectedVisitToken, setSelectedVisitToken] = useState<string | null>(null);
 
@@ -30,7 +32,15 @@ export function MyHealthSection({ patientId }: MyHealthSectionProps) {
     }, [patientId]);
 
     if (selectedVisitToken) {
-        return <VisitDetail patientId={patientId} visitToken={selectedVisitToken} onBack={() => setSelectedVisitToken(null)} />;
+        return (
+            <VisitDetail
+                patientId={patientId}
+                visitToken={selectedVisitToken}
+                onBack={() => setSelectedVisitToken(null)}
+                onNavigateToMedicines={onNavigateToMedicines}
+                onNavigateToLabs={onNavigateToLabs}
+            />
+        );
     }
 
     return (
