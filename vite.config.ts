@@ -25,6 +25,7 @@ export default defineConfig({
         laboratory: 'pages/laboratory.html',
         midwife: 'pages/midwife.html',
         admin: 'pages/admin.html',
+        patient: 'pages/patient.html',
       },
     },
   },

@@ -218,6 +218,8 @@ The result should feel tactile enough to separate layers, but flat enough for cl
 
 MediSens currently has seven staff role shells. Do not create or imply a patient portal unless the user explicitly adds it to scope.
 
+**Patient Portal exception (Patient Account Phase 4, `docs/patientAccount.md` §8/§17):** the Patient Portal (`pages/patient.html`, `src/app/patient/`) is an explicitly-scoped eighth shell, built for patients/guardians/caregivers rather than staff. It is a separate design context from the seven role shells below — it does not follow §5.2's drawer requirement (see that section) and is not a role shell this document otherwise governs. Its own token/layout rules live in `src/styles/patient-portal.css` and `docs/patientAccount.md`.
+
 ### 5.2 Mobile navigation
 
 The current approved mobile shell uses a **navigation drawer**. R1 runtime testing already covered and fixed drawer keyboard behavior across all seven role shells.
@@ -228,6 +230,8 @@ Therefore:
 - Do not replace it with bottom navigation during module-level work.
 - Do not redesign the global shell unless the task explicitly requests a shell redesign.
 - The drawer must trap focus correctly, close with Escape, restore focus to the trigger, and remain usable with the on-screen keyboard.
+
+**Patient Portal exception:** the Patient Portal shell uses **bottom tabs**, not the drawer (thumb reach, permanent visibility, no hidden navigation for low-literacy users — `docs/patientAccount.md` §8). This is a deliberate, documented exception for that one shell; it does not license bottom navigation anywhere in the seven staff shells above.
 
 ### 5.3 Preserve established decisions
 
