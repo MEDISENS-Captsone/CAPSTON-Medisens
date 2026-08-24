@@ -1,6 +1,19 @@
 import { EmptyState } from '../ui/EmptyState';
+import { Button } from '../ui/Button';
 import { Icon, type IconName } from '../shared/Icon';
 import type { PatientAccountSummary } from '../../lib/auth/patientPortal';
+
+/** Shared patient-friendly error + retry panel (§17 Phase 6 "loading,
+ * empty, error, retry" requirement). Never renders the underlying
+ * Supabase/RPC error text -- only this fixed, plain-language message. */
+export function SectionError({ onRetry, message = 'We could not load this right now.' }: { onRetry: () => void; message?: string }) {
+    return (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-center sm:p-5">
+            <p className="text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{message}</p>
+            <Button className="mt-3" variant="outline" onClick={onRetry}>Try again</Button>
+        </div>
+    );
+}
 
 interface PlaceholderSectionProps {
     icon: IconName;

@@ -7,15 +7,25 @@ interface RecordContextBarProps {
     onOpenSwitcher: () => void;
 }
 
-// Plain-language relationship labels (§6.2, §4.3). Patient-safe display
-// names are not available until Phase 5's read RPCs exist (§7.1 -- names
-// live on `patients`, which the portal cannot read directly); until then
-// this shows the relationship, never a fabricated or guessed name.
+// "Viewing <Name>'s health record" (§6.2). Falls back to the plain
+// relationship label only when a name could not be resolved (e.g. a
+// transient patient_portal_profile() failure) -- never a fabricated or
+// guessed name.
 function contextCopy(grant: PatientGrantSummary | null): { title: string; subtitle: string } {
     if (!grant) return { title: 'No health record selected', subtitle: '' };
-    if (grant.relationship === 'SELF') return { title: 'Your own health record', subtitle: '' };
-    if (grant.relationship === 'GUARDIAN') return { title: 'A health record you help manage', subtitle: 'Guardian access' };
-    return { title: 'A health record you help manage', subtitle: 'Caregiver access — read-only' };
+    if (grant.relationship === 'SELF') {
+        return { title: grant.recordName ? `Viewing ${grant.recordName}'s health record` : 'Your own health record', subtitle: '' };
+    }
+    if (grant.relationship === 'GUARDIAN') {
+        return {
+            title: grant.recordName ? `Viewing ${grant.recordName}'s health record` : 'A health record you help manage',
+            subtitle: 'Guardian access',
+        };
+    }
+    return {
+        title: grant.recordName ? `Viewing ${grant.recordName}'s health record` : 'A health record you help manage',
+        subtitle: 'Caregiver access — read-only',
+    };
 }
 
 export function RecordContextBar({ activeGrant, grantCount, onOpenSwitcher }: RecordContextBarProps) {

@@ -5,6 +5,8 @@ import { RecordContextBar } from './RecordContextBar';
 import { PersonSwitcher } from './PersonSwitcher';
 import { BottomTabs, PORTAL_TABS } from './BottomTabs';
 import { PlaceholderSection, MoreSection } from './PortalSection';
+import { HomeSection } from './HomeSection';
+import { MyHealthSection } from './MyHealthSection';
 import type { PatientPortalSession } from '../../lib/auth/patientPortal';
 
 const VALID_PAGES = new Set(PORTAL_TABS.map((tab) => tab.id));
@@ -52,19 +54,16 @@ export function PortalShell({ session, textSize, onToggleTextSize, onSignOut }: 
             <main className="portal-main">
                 <h1 className="sr-only">{PORTAL_TABS.find((t) => t.id === activePage)?.label ?? 'Home'}</h1>
 
-                {activePage === 'home' && (
-                    <PlaceholderSection
-                        icon="home"
-                        title="Nothing needs your attention right now"
-                        description="Visits, medicines, and lab results for this health record will appear here once they are available."
+                {activePage === 'home' && activeGrant && (
+                    <HomeSection
+                        key={activeGrant.patientId}
+                        patientId={activeGrant.patientId}
+                        greetingName={session.account.displayName}
+                        onViewVisits={() => setActivePage('health')}
                     />
                 )}
-                {activePage === 'health' && (
-                    <PlaceholderSection
-                        icon="heart-pulse"
-                        title="My Health is coming soon"
-                        description="Visits, vaccinations, and follow-ups for this health record will appear here."
-                    />
+                {activePage === 'health' && activeGrant && (
+                    <MyHealthSection key={activeGrant.patientId} patientId={activeGrant.patientId} />
                 )}
                 {activePage === 'medicines' && (
                     <PlaceholderSection

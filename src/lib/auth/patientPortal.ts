@@ -1,23 +1,23 @@
 import { patientSupabase } from '../supabase/patientClient';
+import { fetchMyRecords, fetchProfile, type GrantScope } from '../../features/patient-portal/api';
 
-// Patient Account Phase 4 — session guard for the Patient Portal.
+// Patient Account Phase 6 — session guard for the Patient Portal.
 //
-// Built exclusively on patientSupabase (never the staff client) and on
-// reads that are already RLS-protected and non-clinical as of Phase 2:
-// the account's own patient_accounts row (its own display name /
-// MediSens ID, never a patient's clinical identity) and its own
-// patient_access_grants rows (relationship + patient_id only).
-//
-// patient_portal_my_records() (docs/patientAccount.md §11.1) does not
-// exist until Phase 5 -- this guard reads the same two Phase-2 tables
-// that RPC will eventually wrap, so it is a temporary, equally-safe
-// stand-in, not a shortcut around RLS. No `patients` row, and no other
-// clinical table, is read here at all.
+// Built exclusively on patientSupabase (never the staff client). The
+// account's own identity (its own display name / MediSens ID -- never a
+// patient's clinical identity) still comes from its own patient_accounts
+// row, which RLS already restricts to `auth_user_id = auth.uid()` (§12.2)
+// and no RPC wraps. The grant list now comes from the audited
+// patient_portal_my_records() RPC (§11.1) instead of Phase 4's temporary
+// direct read of patient_access_grants -- same authorization boundary
+// (RLS), but the real, audited read path. Each grant's record name is
+// resolved via patient_portal_profile(), the only patient-safe source for
+// a name (§7.1 -- names live on `patients`, which this guard never reads
+// directly).
 //
 // This guard is UX only. It decides what the shell shows; it grants no
 // access itself. Every actual authorization decision remains server-side
-// (patient_portal_can_access, patient_portal_scope, RLS) once Phase 5
-// RPCs exist.
+// (patient_portal_can_access, patient_portal_scope, RLS).
 
 export type GrantRelationship = 'SELF' | 'GUARDIAN' | 'AUTHORIZED_CAREGIVER';
 
@@ -31,11 +31,17 @@ export interface PatientGrantSummary {
     id: string;
     patientId: number;
     relationship: GrantRelationship;
+    scope: GrantScope;
+    recordName: string;
 }
 
 export interface PatientPortalSession {
     account: PatientAccountSummary;
     grants: PatientGrantSummary[];
+}
+
+function fullName(profile: { firstName: string | null; lastName: string | null }): string {
+    return [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
 }
 
 /**
@@ -58,21 +64,37 @@ export async function getPatientPortalSession(): Promise<PatientPortalSession | 
 
     if (accountError || !account) return null;
 
-    const { data: grantRows, error: grantsError } = await patientSupabase
-        .from('patient_access_grants')
-        .select('id, patient_id, relationship, revoked_at, expires_at')
-        .eq('account_id', account.id);
+    let records;
+    try {
+        records = await fetchMyRecords();
+    } catch {
+        return null;
+    }
 
-    if (grantsError) return null;
-
-    const now = Date.now();
-    const activeGrants: PatientGrantSummary[] = (grantRows ?? [])
-        .filter((g) => !g.revoked_at && (!g.expires_at || new Date(g.expires_at).getTime() > now))
-        .map((g) => ({ id: g.id, patientId: g.patient_id, relationship: g.relationship as GrantRelationship }));
+    const grants: PatientGrantSummary[] = await Promise.all(
+        records.map(async (record) => {
+            let recordName = '';
+            try {
+                const profile = await fetchProfile(record.patientId);
+                recordName = fullName(profile);
+            } catch {
+                // A name lookup failing (e.g. a transient network error)
+                // must not hide the grant itself -- the switcher and
+                // context bar fall back to the plain relationship label.
+            }
+            return {
+                id: record.grantId,
+                patientId: record.patientId,
+                relationship: record.relationship,
+                scope: record.scope,
+                recordName,
+            };
+        }),
+    );
 
     return {
         account: { id: account.id, medisensId: account.medisens_id, displayName: account.display_name },
-        grants: activeGrants,
+        grants,
     };
 }
 

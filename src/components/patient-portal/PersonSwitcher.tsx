@@ -11,9 +11,9 @@ interface PersonSwitcherProps {
 }
 
 function relationshipLabel(grant: PatientGrantSummary): { title: string; hint: string } {
-    if (grant.relationship === 'SELF') return { title: 'Your own health record', hint: 'You are the patient' };
-    if (grant.relationship === 'GUARDIAN') return { title: 'A record you help manage', hint: 'You are the guardian' };
-    return { title: 'A record you help manage', hint: 'You are an authorized caregiver' };
+    if (grant.relationship === 'SELF') return { title: grant.recordName || 'Your own health record', hint: 'You are the patient' };
+    if (grant.relationship === 'GUARDIAN') return { title: grant.recordName || 'A record you help manage', hint: 'You are the guardian' };
+    return { title: grant.recordName || 'A record you help manage', hint: 'You are an authorized caregiver' };
 }
 
 /** Person switcher (§6.2). Explicit, never automatic: switching re-renders

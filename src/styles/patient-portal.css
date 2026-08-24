@@ -301,6 +301,140 @@
     color: var(--coral);
 }
 
+/* Home attention cards (§9.1) */
+
+.portal-attention-card {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    text-align: left;
+    color: inherit;
+    font: inherit;
+    cursor: default;
+}
+
+.portal-attention-card.is-interactive {
+    cursor: pointer;
+}
+
+.portal-attention-card.is-interactive:hover {
+    border-color: var(--brand-primary);
+    background: var(--brand-soft-surface);
+}
+
+.portal-attention-card.is-interactive:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
+.portal-attention-icon {
+    display: flex;
+    height: 40px;
+    width: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--brand-accent-surface);
+    background: var(--brand-soft-surface);
+    color: var(--brand-active);
+}
+
+/* Visit cards + chips (§9.2) */
+
+.portal-visit-card {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    text-align: left;
+    cursor: pointer;
+}
+
+.portal-visit-card:hover {
+    border-color: var(--brand-primary);
+    background: var(--brand-soft-surface);
+}
+
+.portal-visit-card:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
+.portal-chip {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    border-radius: var(--radius-badge);
+    border: 1px solid var(--border);
+    background: var(--surface-subtle);
+    padding: 2px var(--space-2);
+    font-size: var(--type-caption-size);
+    color: var(--text-secondary);
+}
+
+/* Visit detail back link */
+
+.portal-back-link {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border: 0;
+    background: transparent;
+    color: var(--brand-active);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+}
+
+.portal-back-link:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
+/* My Health segmented tab row (§9.2) -- wraps rather than scrolls
+   horizontally at narrow widths. */
+
+.portal-segmented-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.portal-segmented-tab {
+    min-height: 44px;
+    flex: 1 1 auto;
+    min-width: 100px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+}
+
+.portal-segmented-tab[aria-selected='true'] {
+    border-color: var(--brand-active);
+    background: var(--brand-soft-surface);
+    color: var(--brand-active);
+    font-weight: var(--font-weight-semibold);
+}
+
+.portal-segmented-tab:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
     [data-portal] * {
         animation-duration: 0.01ms !important;
