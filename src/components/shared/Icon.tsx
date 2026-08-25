@@ -36,7 +36,8 @@ export type IconName =
     | 'smile'
     | 'shield-plus'
     | 'menu'
-    | 'chevron-right';
+    | 'chevron-right'
+    | 'globe';
 
 interface IconProps {
     name: IconName | string;
@@ -81,6 +82,7 @@ const paths: Record<IconName, ReactNode> = {
     'shield-plus': <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8v6M9 11h6"/></>,
     menu: <><path d="M4 6h16M4 12h16M4 18h16"/></>,
     'chevron-right': <><path d="m9 18 6-6-6-6"/></>,
+    globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
 };
 
 function resolveIcon(name: string): IconName {

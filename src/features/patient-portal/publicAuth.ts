@@ -29,18 +29,21 @@ export async function callPublicPatientFunction<T>(name: string, body: Record<st
     return { ok: response.ok, status: response.status, data };
 }
 
+import { translate, type PatientLanguage } from '../../lib/i18n/patientPortal';
+
 export const PUBLIC_FUNCTION_GENERIC_ERROR = "Something went wrong. Please try again.";
 
 /** Extracts a patient-safe error message from a callPublicPatientFunction
  * result. Every patient-* Edge Function already crafts its own
  * patient-readable `error` string server-side (docs/patientAccount.md --
  * "never reveal whether a MediSens ID exists" is a *server*-side
- * decision already baked into which message it chooses to send) -- this
- * only falls back to a generic client-side message when the response
- * body itself is missing or malformed, never invents a more specific one. */
-export function extractErrorMessage(data: unknown): string {
+ * decision already baked into which message it chooses to send, always in
+ * English) -- this only falls back to a generic, localized client-side
+ * message when the response body itself is missing or malformed, never
+ * invents a more specific one. */
+export function extractErrorMessage(data: unknown, language: PatientLanguage = 'en'): string {
     if (data && typeof data === 'object' && 'error' in data && typeof (data as PublicFunctionError).error === 'string') {
         return (data as PublicFunctionError).error;
     }
-    return PUBLIC_FUNCTION_GENERIC_ERROR;
+    return translate('common.somethingWrong', language);
 }

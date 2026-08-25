@@ -427,6 +427,11 @@ export interface PortalPreferences {
     textSize: 'comfortable' | 'large';
     highContrast: boolean;
     smsReminders: boolean;
+    /** Interface language only (§17 Phase 9C) -- never applied to
+     * clinician-authored/free-text clinical data, medication names, lab
+     * test names, or diagnoses, which always render exactly as recorded
+     * regardless of this value. */
+    language: 'en' | 'fil';
 }
 
 /** Own preferences row -- RLS restricts SELECT/UPDATE to the caller's own
@@ -436,7 +441,7 @@ export interface PortalPreferences {
 export async function fetchPreferences(accountId: string): Promise<PortalPreferences | null> {
     const { data, error } = await patientSupabase
         .from('patient_account_preferences')
-        .select('text_size, high_contrast, sms_reminders')
+        .select('text_size, high_contrast, sms_reminders, language')
         .eq('account_id', accountId)
         .maybeSingle();
     if (error) throw new PortalApiError(error.message);
@@ -445,14 +450,16 @@ export async function fetchPreferences(accountId: string): Promise<PortalPrefere
         textSize: data.text_size === 'large' ? 'large' : 'comfortable',
         highContrast: Boolean(data.high_contrast),
         smsReminders: data.sms_reminders !== false,
+        language: data.language === 'fil' ? 'fil' : 'en',
     };
 }
 
-export async function updatePreferences(accountId: string, patch: Partial<{ textSize: 'comfortable' | 'large'; highContrast: boolean; smsReminders: boolean }>): Promise<void> {
+export async function updatePreferences(accountId: string, patch: Partial<{ textSize: 'comfortable' | 'large'; highContrast: boolean; smsReminders: boolean; language: 'en' | 'fil' }>): Promise<void> {
     const row: Record<string, unknown> = {};
     if (patch.textSize !== undefined) row.text_size = patch.textSize;
     if (patch.highContrast !== undefined) row.high_contrast = patch.highContrast;
     if (patch.smsReminders !== undefined) row.sms_reminders = patch.smsReminders;
+    if (patch.language !== undefined) row.language = patch.language;
     const { error } = await patientSupabase.from('patient_account_preferences').update(row).eq('account_id', accountId);
     if (error) throw new PortalApiError(error.message);
 }

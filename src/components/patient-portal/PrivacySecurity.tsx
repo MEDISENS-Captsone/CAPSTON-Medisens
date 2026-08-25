@@ -3,6 +3,7 @@ import { RecentAccess } from './RecentAccess';
 import { Button } from '../ui/Button';
 import { Icon } from '../shared/Icon';
 import { changePin } from '../../features/patient-portal/api';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface PrivacySecurityProps {
     patientId: number;
@@ -16,11 +17,12 @@ interface PrivacySecurityProps {
  * non-SELF caller, so the recent-access feed is gated here too rather
  * than letting the RPC error surface as a broken screen. */
 export function PrivacySecurity({ patientId, isSelf, onBack }: PrivacySecurityProps) {
+    const { t } = useT();
     return (
         <div>
             <button type="button" onClick={onBack} className="portal-back-link">
                 <Icon name="chevron-right" className="h-4 w-4 rotate-180" />
-                <span>Back</span>
+                <span>{t('more.back')}</span>
             </button>
 
             <div className="mt-4 space-y-4">
@@ -28,17 +30,17 @@ export function PrivacySecurity({ patientId, isSelf, onBack }: PrivacySecurityPr
 
                 {isSelf && (
                     <div>
-                        <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">Recent access to this record</h2>
+                        <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{t('privacy.recentAccessHeading')}</h2>
                         <RecentAccess patientId={patientId} />
                     </div>
                 )}
 
                 <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
                     <p className="text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
-                        MediSens keeps your health information private and only shows it to accounts the Rural Health Unit has approved.
+                        {t('privacy.keepsInfoPrivate')}
                     </p>
                     <a href="/pages/privacy-policy.html" className="mt-2 inline-block font-semibold text-[var(--brand-active)] underline">
-                        Read the full privacy policy
+                        {t('privacy.readFullPolicy')}
                     </a>
                 </div>
             </div>
@@ -47,6 +49,7 @@ export function PrivacySecurity({ patientId, isSelf, onBack }: PrivacySecurityPr
 }
 
 function ChangePinCard() {
+    const { t } = useT();
     const [currentPin, setCurrentPin] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -61,7 +64,7 @@ function ChangePinCard() {
         setSuccess(false);
 
         if (newPin !== confirmPin) {
-            setError('The new PIN entries do not match.');
+            setError(t('privacy.pinMismatch'));
             return;
         }
 
@@ -73,7 +76,7 @@ function ChangePinCard() {
             setNewPin('');
             setConfirmPin('');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'We could not change your PIN right now.');
+            setError(err instanceof Error ? err.message : t('privacy.pinChangeGenericError'));
         } finally {
             setBusy(false);
         }
@@ -81,11 +84,11 @@ function ChangePinCard() {
 
     return (
         <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-            <h2 className="text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)]">Change PIN</h2>
+            <h2 className="text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)]">{t('privacy.changePin')}</h2>
 
             <form onSubmit={handleSubmit} className="mt-3 space-y-3">
                 <label className="block">
-                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">Current PIN</span>
+                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('privacy.currentPin')}</span>
                     <input
                         type="password"
                         inputMode="numeric"
@@ -97,7 +100,7 @@ function ChangePinCard() {
                     />
                 </label>
                 <label className="block">
-                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">New PIN (6+ digits)</span>
+                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('privacy.newPin')}</span>
                     <input
                         type="password"
                         inputMode="numeric"
@@ -109,7 +112,7 @@ function ChangePinCard() {
                     />
                 </label>
                 <label className="block">
-                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">Confirm new PIN</span>
+                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('privacy.confirmNewPin')}</span>
                     <input
                         type="password"
                         inputMode="numeric"
@@ -128,11 +131,11 @@ function ChangePinCard() {
                 )}
                 {success && (
                     <p role="status" className="rounded-[var(--radius-control)] border border-[var(--green-border)] bg-[var(--green-light)] px-3 py-2 text-[length:var(--type-supporting-size)] text-[var(--green)]">
-                        Your PIN has been changed.
+                        {t('privacy.pinChanged')}
                     </p>
                 )}
 
-                <Button type="submit" className="w-full" isLoading={busy}>Change PIN</Button>
+                <Button type="submit" className="w-full" isLoading={busy}>{t('privacy.changePin')}</Button>
             </form>
         </div>
     );

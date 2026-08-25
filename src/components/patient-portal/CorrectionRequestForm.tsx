@@ -11,6 +11,7 @@ import {
     type PortalCorrectionRequest,
 } from '../../features/patient-portal/api';
 import { correctionFieldGroupLabel, correctionStatusLabel, formatDateTime } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface CorrectionRequestFormProps {
     patientId: number;
@@ -30,6 +31,7 @@ type ListState =
  * authorization boundary; a caregiver session reaching this screen would
  * still have its insert refused by the database. */
 export function CorrectionRequestForm({ patientId, accountId, onBack }: CorrectionRequestFormProps) {
+    const { t, language } = useT();
     const [listState, setListState] = useState<ListState>({ status: 'loading' });
     const [fieldGroup, setFieldGroup] = useState<CorrectionFieldGroup>('name');
     const [requestedValue, setRequestedValue] = useState('');
@@ -62,7 +64,7 @@ export function CorrectionRequestForm({ patientId, accountId, onBack }: Correcti
             setNote('');
             await load();
         } catch {
-            setSubmitError('We could not submit this request. Please try again.');
+            setSubmitError(t('correction.submitError'));
         } finally {
             setSubmitting(false);
         }
@@ -72,42 +74,42 @@ export function CorrectionRequestForm({ patientId, accountId, onBack }: Correcti
         <div>
             <button type="button" onClick={onBack} className="portal-back-link">
                 <Icon name="chevron-right" className="h-4 w-4 rotate-180" />
-                <span>Back to profile</span>
+                <span>{t('correction.backToProfile')}</span>
             </button>
 
             <div className="mt-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-                <h2 className="text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)]">Request a correction</h2>
+                <h2 className="text-[length:var(--type-card-title-size)] font-semibold text-[var(--text)]">{t('correction.title')}</h2>
                 <p className="mt-1 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
-                    This sends a request to Rural Health Unit staff for review. Nothing on the health record changes until staff review and update it.
+                    {t('correction.description')}
                 </p>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                     <label className="block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">What needs to be corrected?</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('correction.whatToCorrect')}</span>
                         <select
                             value={fieldGroup}
                             onChange={(e) => setFieldGroup(e.target.value as CorrectionFieldGroup)}
                             className="h-11 w-full rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3 text-[var(--text)]"
                         >
                             {FIELD_GROUPS.map((group) => (
-                                <option key={group} value={group}>{correctionFieldGroupLabel(group)}</option>
+                                <option key={group} value={group}>{correctionFieldGroupLabel(group, language)}</option>
                             ))}
                         </select>
                     </label>
 
                     <label className="block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">What should it say?</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('correction.whatShouldItSay')}</span>
                         <input
                             value={requestedValue}
                             onChange={(e) => setRequestedValue(e.target.value)}
                             required
                             className="h-11 w-full rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3 text-[var(--text)]"
-                            placeholder="The correct value"
+                            placeholder={t('correction.correctValuePlaceholder')}
                         />
                     </label>
 
                     <label className="block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">Note for RHU staff (optional)</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('correction.noteForStaff')}</span>
                         <textarea
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
@@ -122,27 +124,27 @@ export function CorrectionRequestForm({ patientId, accountId, onBack }: Correcti
                         </p>
                     )}
 
-                    <Button type="submit" className="w-full" isLoading={submitting} disabled={!requestedValue.trim()}>Submit request</Button>
+                    <Button type="submit" className="w-full" isLoading={submitting} disabled={!requestedValue.trim()}>{t('correction.submit')}</Button>
                 </form>
             </div>
 
             <div className="mt-4">
-                <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">Your requests</h2>
+                <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{t('correction.yourRequests')}</h2>
                 {listState.status === 'loading' && <SkeletonText lines={3} />}
-                {listState.status === 'error' && <SectionError onRetry={() => void load()} message="We could not load past requests right now." />}
+                {listState.status === 'error' && <SectionError onRetry={() => void load()} message={t('correction.loadPastError')} />}
                 {listState.status === 'ready' && listState.requests.length === 0 && (
-                    <EmptyState icon={<Icon name="edit" className="h-5 w-5" />} title="No correction requests yet" />
+                    <EmptyState icon={<Icon name="edit" className="h-5 w-5" />} title={t('correction.noneTitle')} />
                 )}
                 {listState.status === 'ready' && listState.requests.length > 0 && (
                     <ul className="space-y-3">
                         {listState.requests.map((r) => (
                             <li key={r.id} className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
                                 <div className="flex items-center justify-between gap-2">
-                                    <span className="font-semibold text-[var(--text)]">{correctionFieldGroupLabel(r.fieldGroup)}</span>
-                                    <span className="text-[length:var(--type-caption-size)] font-medium text-[var(--brand-active)]">{correctionStatusLabel(r.status)}</span>
+                                    <span className="font-semibold text-[var(--text)]">{correctionFieldGroupLabel(r.fieldGroup, language)}</span>
+                                    <span className="text-[length:var(--type-caption-size)] font-medium text-[var(--brand-active)]">{correctionStatusLabel(r.status, language)}</span>
                                 </div>
                                 <p className="mt-1 text-[length:var(--type-supporting-size)] text-[var(--text)]">{r.requestedValue}</p>
-                                <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">Submitted {formatDateTime(r.submittedAt)}</p>
+                                <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('correction.submittedOn', { date: formatDateTime(r.submittedAt, language) ?? '' })}</p>
                             </li>
                         ))}
                     </ul>

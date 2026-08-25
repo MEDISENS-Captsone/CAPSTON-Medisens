@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon } from '../shared/Icon';
+import { useT } from '../../lib/i18n/patientPortal';
 import medisensLogo from '../../assets/MEDISENS Logo.png';
 import pageBackgroundPhoto from '../../assets/Login Page 3.png';
 
@@ -24,6 +25,7 @@ interface PatientFrontDoorShellProps {
 }
 
 export function PatientFrontDoorShell({ showBackToStaffLogin = false, children }: PatientFrontDoorShellProps) {
+    const { t } = useT();
     return (
         <div className="patient-frontdoor-page">
             {/* Login Page 3.png -- a light-blue RHU ward interior, the only
@@ -51,7 +53,7 @@ export function PatientFrontDoorShell({ showBackToStaffLogin = false, children }
                     {showBackToStaffLogin ? (
                         <a href={STAFF_LOGIN_PATH} className="patient-frontdoor-back-link">
                             <Icon name="chevron-right" className="h-4 w-4 rotate-180" />
-                            <span>Back to Staff Login</span>
+                            <span>{t('frontdoor.backToStaffLogin')}</span>
                         </a>
                     ) : (
                         <span className="patient-frontdoor-back-link patient-frontdoor-back-link-placeholder" aria-hidden="true" />

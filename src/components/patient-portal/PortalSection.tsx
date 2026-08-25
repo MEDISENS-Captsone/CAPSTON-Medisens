@@ -1,16 +1,22 @@
 import { EmptyState } from '../ui/EmptyState';
 import { Button } from '../ui/Button';
 import { Icon, type IconName } from '../shared/Icon';
+import { useT } from '../../lib/i18n/patientPortal';
 import type { PatientAccountSummary } from '../../lib/auth/patientPortal';
 
 /** Shared patient-friendly error + retry panel (§17 Phase 6 "loading,
  * empty, error, retry" requirement). Never renders the underlying
- * Supabase/RPC error text -- only this fixed, plain-language message. */
-export function SectionError({ onRetry, message = 'We could not load this right now.' }: { onRetry: () => void; message?: string }) {
+ * Supabase/RPC error text -- only this fixed, plain-language message.
+ * A caller-supplied `message` is already-translated interface copy (or a
+ * server-crafted, patient-safe message that is itself never translated,
+ * e.g. patient-login's lockout wording) -- only the default falls back to
+ * the dictionary. */
+export function SectionError({ onRetry, message }: { onRetry: () => void; message?: string }) {
+    const { t } = useT();
     return (
         <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-center sm:p-5">
-            <p className="text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{message}</p>
-            <Button className="mt-3" variant="outline" onClick={onRetry}>Try again</Button>
+            <p className="text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{message ?? t('common.loadError')}</p>
+            <Button className="mt-3" variant="outline" onClick={onRetry}>{t('common.retry')}</Button>
         </div>
     );
 }
@@ -43,6 +49,7 @@ interface MoreRowProps {
 }
 
 export function MoreRow({ icon, label, onClick, danger, disabled }: MoreRowProps) {
+    const { t } = useT();
     return (
         <button
             type="button"
@@ -54,7 +61,7 @@ export function MoreRow({ icon, label, onClick, danger, disabled }: MoreRowProps
             <Icon name={icon} className="h-5 w-5 shrink-0" />
             <span className="flex-1 font-medium">{label}</span>
             {disabled ? (
-                <span className="shrink-0 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">Coming soon</span>
+                <span className="shrink-0 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('more.comingSoon')}</span>
             ) : (
                 <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
             )}

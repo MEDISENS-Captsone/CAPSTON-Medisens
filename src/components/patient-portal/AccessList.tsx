@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Icon } from '../shared/Icon';
 import { fetchAccessList, revokeAccessGrant, type PortalAccessGrant } from '../../features/patient-portal/api';
 import { accessRelationshipLabel, formatLongDate } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface AccessListProps {
     patientId: number;
@@ -24,6 +25,7 @@ type LoadState =
  * card never gets a remove control here, and the RPC refuses one anyway
  * even if this UI were bypassed. */
 export function AccessList({ patientId }: AccessListProps) {
+    const { t, language } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [revokingId, setRevokingId] = useState<string | null>(null);
@@ -52,23 +54,23 @@ export function AccessList({ patientId }: AccessListProps) {
             setConfirmingId(null);
             await load();
         } catch {
-            setError('We could not remove this access right now. Please try again.');
+            setError(t('access.removeError'));
         } finally {
             setRevokingId(null);
         }
     };
 
     if (state.status === 'loading') return <SkeletonList rows={3} />;
-    if (state.status === 'error') return <SectionError onRetry={() => void load()} message="We could not load this list right now." />;
+    if (state.status === 'error') return <SectionError onRetry={() => void load()} message={t('access.loadError')} />;
 
     if (state.grants.length === 0) {
-        return <EmptyState icon={<Icon name="users" className="h-5 w-5" />} title="No one else has access to this health record" />;
+        return <EmptyState icon={<Icon name="users" className="h-5 w-5" />} title={t('access.noneTitle')} />;
     }
 
     return (
         <div>
             <p className="mb-3 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">
-                Only the Rural Health Unit can add someone here. Ask at the RHU counter.
+                {t('access.onlyRhuCanAdd')}
             </p>
 
             {error && (
@@ -79,32 +81,32 @@ export function AccessList({ patientId }: AccessListProps) {
 
             <ul className="space-y-3">
                 {state.grants.map((grant) => {
-                    const granted = formatLongDate(grant.grantedAt);
+                    const granted = formatLongDate(grant.grantedAt, language);
                     const isConfirming = confirmingId === grant.accessToken;
                     return (
                         <li key={grant.accessToken} className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
                             {grant.holderName && <p className="font-semibold text-[var(--text)]">{grant.holderName}</p>}
                             <p className={grant.holderName ? 'mt-0.5 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]' : 'font-semibold text-[var(--text)]'}>
-                                {accessRelationshipLabel(grant.relationship)}
+                                {accessRelationshipLabel(grant.relationship, language)}
                             </p>
-                            <p className="mt-0.5 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">Can view this health record</p>
-                            {granted && <p className="mt-0.5 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">Access granted {granted}</p>}
+                            <p className="mt-0.5 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{t('access.canView')}</p>
+                            {granted && <p className="mt-0.5 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('access.grantedOn', { date: granted })}</p>}
 
                             {grant.relationship === 'GUARDIAN' && (
                                 <p className="mt-2 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">
-                                    Guardian access is set up and changed by the Rural Health Unit. Ask at the RHU counter to update this.
+                                    {t('access.guardianManagedByRhu')}
                                 </p>
                             )}
 
                             {grant.revocable && !isConfirming && (
                                 <Button variant="outline" size="sm" className="mt-3" onClick={() => setConfirmingId(grant.accessToken)}>
-                                    Remove access
+                                    {t('access.removeAccess')}
                                 </Button>
                             )}
 
                             {grant.revocable && isConfirming && (
                                 <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
-                                    <p className="text-[length:var(--type-supporting-size)] text-[var(--text)]">Remove this caregiver's access to this health record?</p>
+                                    <p className="text-[length:var(--type-supporting-size)] text-[var(--text)]">{t('access.confirmRemove')}</p>
                                     <div className="mt-2 flex gap-2">
                                         <Button
                                             variant="danger"
@@ -112,10 +114,10 @@ export function AccessList({ patientId }: AccessListProps) {
                                             isLoading={revokingId === grant.accessToken}
                                             onClick={() => void handleRevoke(grant.accessToken)}
                                         >
-                                            Remove access
+                                            {t('access.removeAccess')}
                                         </Button>
                                         <Button variant="ghost" size="sm" onClick={() => setConfirmingId(null)} disabled={revokingId === grant.accessToken}>
-                                            Cancel
+                                            {t('access.cancel')}
                                         </Button>
                                     </div>
                                 </div>

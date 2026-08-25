@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/Button';
 import { Icon } from '../shared/Icon';
 import { extractMedisensIdFromScan } from '../../lib/utils/qr';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface QrScanProps {
     /** Called with an already-validated MediSens ID. Scanning never signs
@@ -30,6 +31,7 @@ type ScanStatus =
  * extractMedisensIdFromScan()'s validated output is ever handed back to
  * the caller. */
 export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
+    const { t } = useT();
     const [status, setStatus] = useState<ScanStatus>('idle');
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -170,8 +172,8 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
             <div key={visualStatus} className={status === 'idle' ? undefined : 'patient-state-enter'}>
             {status === 'idle' && (
                 <div className="text-center">
-                    <p className="mb-3 text-[var(--text-secondary)]">Scan the QR code on your MediSens Patient Card.</p>
-                    <Button className="w-full" onClick={() => void startScanning()}>Start scanning</Button>
+                    <p className="mb-3 text-[var(--text-secondary)]">{t('qr.instruction')}</p>
+                    <Button className="w-full" onClick={() => void startScanning()}>{t('qr.startScanning')}</Button>
                 </div>
             )}
 
@@ -182,7 +184,7 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
                         <video ref={videoRef} playsInline muted className="aspect-square w-full object-cover" />
                     </div>
                     <p className="mt-3 text-center text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
-                        {status === 'requesting' ? 'Starting camera…' : 'Point your camera at the QR code.'}
+                        {status === 'requesting' ? t('qr.startingCamera') : t('qr.pointCamera')}
                     </p>
                 </div>
             )}
@@ -190,37 +192,37 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
             {status === 'invalid-qr' && (
                 <div className="text-center">
                     <Icon name="alert-triangle" className="mx-auto mb-2 h-6 w-6 text-[var(--amber-text)]" />
-                    <p className="mb-3 text-[var(--text)]">That QR code isn't a MediSens Patient Card.</p>
-                    <Button className="w-full" variant="outline" onClick={handleRetry}>Try again</Button>
+                    <p className="mb-3 text-[var(--text)]">{t('qr.invalidQr')}</p>
+                    <Button className="w-full" variant="outline" onClick={handleRetry}>{t('qr.tryAgain')}</Button>
                 </div>
             )}
 
             {status === 'permission-denied' && (
                 <div className="text-center">
                     <Icon name="alert-triangle" className="mx-auto mb-2 h-6 w-6 text-[var(--amber-text)]" />
-                    <p className="mb-1 text-[var(--text)]">Camera access was not allowed.</p>
-                    <p className="mb-3 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">You can still sign in without the camera.</p>
+                    <p className="mb-1 text-[var(--text)]">{t('qr.permissionDenied')}</p>
+                    <p className="mb-3 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('qr.canStillSignIn')}</p>
                 </div>
             )}
 
             {status === 'no-camera' && (
                 <div className="text-center">
                     <Icon name="alert-triangle" className="mx-auto mb-2 h-6 w-6 text-[var(--amber-text)]" />
-                    <p className="mb-3 text-[var(--text)]">No camera was found on this device.</p>
+                    <p className="mb-3 text-[var(--text)]">{t('qr.noCamera')}</p>
                 </div>
             )}
 
             {status === 'unsupported' && (
                 <div className="text-center">
                     <Icon name="alert-triangle" className="mx-auto mb-2 h-6 w-6 text-[var(--amber-text)]" />
-                    <p className="mb-3 text-[var(--text)]">Scanning isn't available on this browser.</p>
+                    <p className="mb-3 text-[var(--text)]">{t('qr.unsupported')}</p>
                 </div>
             )}
 
             {status === 'error' && (
                 <div className="text-center">
                     <Icon name="alert-triangle" className="mx-auto mb-2 h-6 w-6 text-[var(--amber-text)]" />
-                    <p className="mb-3 text-[var(--text)]">We couldn't start the camera. Please try again.</p>
+                    <p className="mb-3 text-[var(--text)]">{t('qr.error')}</p>
                 </div>
             )}
             </div>
@@ -234,7 +236,7 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
                 }}
                 className="patient-motion-link mt-4 min-h-[44px] w-full text-center font-semibold text-[var(--brand-active)] underline"
             >
-                Can't scan? Enter your MediSens ID instead.
+                {t('qr.manualEntry')}
             </button>
         </div>
     );

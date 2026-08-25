@@ -6,6 +6,7 @@ import { callPublicPatientFunction, extractErrorMessage } from '../../features/p
 import { PatientMotionError } from './patientMotion';
 import { formatMedisensIdInput, isValidMedisensId, normalizeMedisensId } from '../../lib/utils/qr';
 import { getRememberedMedisensId } from '../../lib/utils/rememberedMedisensId';
+import { useT, translate } from '../../lib/i18n/patientPortal';
 
 interface RecoverResult {
     recovered: boolean;
@@ -21,14 +22,6 @@ type Step =
 
 const OTP_PATTERN = /^\d{6}$/;
 const PIN_PATTERN = /^\d{6}$/;
-
-// The exact acknowledgement patient-account-recover always returns for
-// the request step -- identical whether or not the MediSens ID exists or
-// has a phone number on file (docs/patientAccount.md §5.5 point 1). Shown
-// verbatim: it is the one message the backend designed to be shown to
-// the account holder, and repeating it here rather than inventing new
-// copy keeps the UI honest about what actually happened.
-const REQUEST_ACK_COPY = 'If that MediSens ID has a phone number on file, a verification code was sent to it.';
 
 interface RecoverAccountProps {
     /** Fired once recovery succeeds. `session` is set only when the
@@ -53,6 +46,7 @@ interface RecoverAccountProps {
  * counter, patient-activation-issue purpose="RECOVERY"), which is
  * unrelated to this screen. */
 export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
+    const { t, language } = useT();
     const [step, setStep] = useState<Step>({ name: 'request' });
     const [medisensIdInput, setMedisensIdInput] = useState('');
     const [otpInput, setOtpInput] = useState('');
@@ -92,7 +86,7 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
         event.preventDefault();
         const normalized = normalizeMedisensId(medisensIdInput);
         if (!isValidMedisensId(normalized)) {
-            setError('Please enter a valid MediSens ID, e.g. MS-AB23-CD45.');
+            setError(translate('recover.invalidId', language));
             return;
         }
         setSubmitting(true);
@@ -103,14 +97,18 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                 medisensId: normalized,
             });
             if (!result.ok || !result.data) {
-                setError(extractErrorMessage(result.data));
+                setError(extractErrorMessage(result.data, language));
                 return;
             }
-            // The backend's own ack message, shown as-is -- see REQUEST_ACK_COPY.
-            setAckMessage(REQUEST_ACK_COPY);
+            // patient-account-recover always returns the same fixed English
+            // ack regardless of language (docs/patientAccount.md §5.5 point
+            // 1) -- its own response text is never rendered directly here.
+            // This dictionary entry is UI-owned copy that mirrors the same
+            // constant, non-disclosing meaning in the selected language.
+            setAckMessage(t('recover.ackMessage'));
             moveToStep({ name: 'verify', medisensId: normalized });
         } catch {
-            setError('Something went wrong. Please check your connection and try again.');
+            setError(translate('common.connectionError', language));
         } finally {
             setSubmitting(false);
         }
@@ -119,15 +117,15 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
     async function handleVerifySubmit(event: React.FormEvent, medisensId: string) {
         event.preventDefault();
         if (!OTP_PATTERN.test(otpInput.trim())) {
-            setError('Please enter the 6-digit code sent to your phone.');
+            setError(translate('recover.invalidOtp', language));
             return;
         }
         if (!PIN_PATTERN.test(newPin)) {
-            setError('Your new PIN must be exactly 6 digits.');
+            setError(translate('recover.invalidNewPin', language));
             return;
         }
         if (newPin !== confirmPin) {
-            setError('The two PINs do not match.');
+            setError(translate('recover.pinMismatch', language));
             return;
         }
         setSubmitting(true);
@@ -140,7 +138,7 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                 newPin,
             });
             if (!result.ok || !result.data || !('recovered' in result.data) || !result.data.recovered) {
-                setError(extractErrorMessage(result.data));
+                setError(extractErrorMessage(result.data, language));
                 return;
             }
             setOtpInput('');
@@ -154,7 +152,7 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                 moveToStep({ name: 'done' });
             }
         } catch {
-            setError('Something went wrong. Please check your connection and try again.');
+            setError(translate('common.connectionError', language));
         } finally {
             setSubmitting(false);
         }
@@ -164,13 +162,13 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
         <div key={step.name} className={hasChangedStepRef.current ? 'patient-state-enter' : undefined}>
             {step.name === 'request' && (
                 <form onSubmit={(e) => void handleRequestSubmit(e)}>
-                    <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Forgot PIN?</h1>
+                    <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('recover.title')}</h1>
                     <p className="mb-5 text-base text-[var(--text-secondary)]">
-                        Enter your MediSens ID. If a phone number is on file with Malvar RHU, we'll send a verification code to it.
+                        {t('recover.enterId')}
                     </p>
 
                     <label className="mb-4 block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">MediSens ID</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('signin.medisensId')}</span>
                         <Input
                             ref={medisensIdInputRef}
                             value={medisensIdInput}
@@ -187,18 +185,18 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
 
                     <PatientMotionError message={error} className="mt-3" />
 
-                    <Button type="submit" className="mt-4 w-full" isLoading={submitting}>Continue</Button>
-                    <Button type="button" variant="ghost" className="mt-2 w-full" onClick={onCancel} disabled={submitting}>Back to sign in</Button>
+                    <Button type="submit" className="mt-4 w-full" isLoading={submitting}>{t('recover.continue')}</Button>
+                    <Button type="button" variant="ghost" className="mt-2 w-full" onClick={onCancel} disabled={submitting}>{t('recover.backToSignIn')}</Button>
                 </form>
             )}
 
             {step.name === 'verify' && (
                 <form onSubmit={(e) => void handleVerifySubmit(e, step.medisensId)}>
-                    <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Enter your code</h1>
+                    <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('recover.enterCode')}</h1>
                     {ackMessage && <p className="mb-5 text-base text-[var(--text-secondary)]">{ackMessage}</p>}
 
                     <label className="mb-3 block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">SMS code</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('recover.smsCode')}</span>
                         <Input
                             value={otpInput}
                             onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -210,7 +208,7 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                     </label>
 
                     <label className="mb-3 block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">New 6-digit PIN</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('recover.newPin')}</span>
                         <Input
                             type="password"
                             value={newPin}
@@ -222,7 +220,7 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                     </label>
 
                     <label className="mb-3 block">
-                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">Confirm new PIN</span>
+                        <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('recover.confirmPin')}</span>
                         <Input
                             type="password"
                             value={confirmPin}
@@ -234,13 +232,13 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                     </label>
 
                     <p className="mb-4 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">
-                        Choose a PIN you can remember but other people cannot easily guess. RHU staff will never ask you for your PIN.
+                        {t('recover.pinHint')}
                     </p>
 
                     <PatientMotionError message={error} className="mb-4" />
 
-                    <Button type="submit" className="w-full" isLoading={submitting}>Update PIN</Button>
-                    <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => moveToStep({ name: 'request' })} disabled={submitting}>Back</Button>
+                    <Button type="submit" className="w-full" isLoading={submitting}>{t('recover.updatePin')}</Button>
+                    <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => moveToStep({ name: 'request' })} disabled={submitting}>{t('recover.back')}</Button>
                 </form>
             )}
 
@@ -249,11 +247,11 @@ export function RecoverAccount({ onRecovered, onCancel }: RecoverAccountProps) {
                     <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--green-light)] text-[var(--green)]" aria-hidden="true">
                         <Icon name="check" className="h-6 w-6" />
                     </span>
-                    <h1 className="mb-2 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Your PIN has been updated.</h1>
+                    <h1 className="mb-2 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('recover.done')}</h1>
                     <p className="mb-5 text-base text-[var(--text-secondary)]">
-                        {step.unavailableMessage ?? 'You can now sign in with your MediSens ID and your new PIN.'}
+                        {step.unavailableMessage ?? t('recover.canSignIn')}
                     </p>
-                    <Button className="w-full" onClick={onCancel}>Go to sign in</Button>
+                    <Button className="w-full" onClick={onCancel}>{t('recover.goToSignIn')}</Button>
                 </div>
             )}
         </div>

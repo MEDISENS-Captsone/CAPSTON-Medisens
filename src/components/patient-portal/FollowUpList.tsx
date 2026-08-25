@@ -5,6 +5,7 @@ import { SkeletonList } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { fetchFollowUps, type PortalFollowUp } from '../../features/patient-portal/api';
 import { formatLongDate, isFollowUpDone, isTodayOrFuture } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface FollowUpListProps {
     patientId: number;
@@ -15,12 +16,11 @@ type LoadState =
     | { status: 'error' }
     | { status: 'ready'; followUps: PortalFollowUp[] };
 
-const DISAMBIGUATION = 'This is a recommended return date from the healthcare provider. It is not a booked appointment — you may visit the RHU on or near this date.';
-
 /** Follow-ups (§9.2) -- upcoming first, then past. Every card carries the
  * disambiguating line; MediSens has no appointment/scheduling feature and
  * none is implied here. */
 export function FollowUpList({ patientId }: FollowUpListProps) {
+    const { t } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
 
     const load = useCallback(async () => {
@@ -38,14 +38,14 @@ export function FollowUpList({ patientId }: FollowUpListProps) {
     }, [load]);
 
     if (state.status === 'loading') return <SkeletonList rows={3} />;
-    if (state.status === 'error') return <SectionError onRetry={() => void load()} message="We could not load follow-ups right now." />;
+    if (state.status === 'error') return <SectionError onRetry={() => void load()} message={t('followups.loadError')} />;
 
     if (state.followUps.length === 0) {
         return (
             <EmptyState
                 icon={<Icon name="calendar" className="h-5 w-5" />}
-                title="No follow-ups recorded"
-                description="Recommended return dates from the healthcare provider will appear here."
+                title={t('followups.noneTitle')}
+                description={t('followups.noneDescription')}
             />
         );
     }
@@ -61,7 +61,7 @@ export function FollowUpList({ patientId }: FollowUpListProps) {
         <div className="space-y-5">
             {upcoming.length > 0 && (
                 <div>
-                    <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">Upcoming</h2>
+                    <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{t('followups.upcoming')}</h2>
                     <ul className="space-y-3">
                         {upcoming.map((f) => (
                             <li key={f.followUpToken}>
@@ -73,7 +73,7 @@ export function FollowUpList({ patientId }: FollowUpListProps) {
             )}
             {past.length > 0 && (
                 <div>
-                    <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">Past</h2>
+                    <h2 className="mb-2 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{t('followups.past')}</h2>
                     <ul className="space-y-3">
                         {past.map((f) => (
                             <li key={f.followUpToken}>
@@ -88,7 +88,8 @@ export function FollowUpList({ patientId }: FollowUpListProps) {
 }
 
 function FollowUpCard({ followUp }: { followUp: PortalFollowUp }) {
-    const date = formatLongDate(followUp.visitDate);
+    const { t, language } = useT();
+    const date = formatLongDate(followUp.visitDate, language);
     const done = isFollowUpDone(followUp.status);
     const pastDue = !done && !isTodayOrFuture(followUp.visitDate);
 
@@ -96,9 +97,9 @@ function FollowUpCard({ followUp }: { followUp: PortalFollowUp }) {
         <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
             {date && <p className="font-semibold text-[var(--text)]">{date}</p>}
             {followUp.reason && <p className="mt-0.5 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{followUp.reason}</p>}
-            {done && <p className="mt-1 text-[length:var(--type-caption-size)] font-medium text-[var(--green)]">Completed</p>}
-            {pastDue && <p className="mt-1 text-[length:var(--type-caption-size)] font-medium text-[var(--amber-text)]">This return date has passed. Please visit the RHU.</p>}
-            <p className="mt-2 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{DISAMBIGUATION}</p>
+            {done && <p className="mt-1 text-[length:var(--type-caption-size)] font-medium text-[var(--green)]">{t('followups.completed')}</p>}
+            {pastDue && <p className="mt-1 text-[length:var(--type-caption-size)] font-medium text-[var(--amber-text)]">{t('followups.pastDue')}</p>}
+            <p className="mt-2 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('followups.disambiguation')}</p>
         </div>
     );
 }

@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Icon } from '../shared/Icon';
 import { callPublicPatientFunction, extractErrorMessage } from '../../features/patient-portal/publicAuth';
 import { PatientMotionError } from './patientMotion';
+import { useT, translate, type PatientLanguage } from '../../lib/i18n/patientPortal';
 
 type Relationship = 'SELF' | 'GUARDIAN' | 'AUTHORIZED_CAREGIVER';
 
@@ -25,12 +26,6 @@ type Step =
     | { name: 'otp'; code: string }
     | { name: 'create-pin'; code: string; context: VerifiedContext }
     | { name: 'done'; medisensId: string; autoSignedIn: boolean; unavailableMessage?: string };
-
-const RELATIONSHIP_LABEL: Record<Relationship, string> = {
-    SELF: 'Patient',
-    GUARDIAN: 'Parent / legal guardian',
-    AUTHORIZED_CAREGIVER: 'Authorized caregiver',
-};
 
 interface ActivationSetupProps {
     /** Fired once activation completes. `session` is set only when the
@@ -55,7 +50,14 @@ const PIN_PATTERN = /^\d{6}$/;
  * comes straight from the server's response. The activation code and any
  * PIN typed here live only in this component's React state and are never
  * written to localStorage/sessionStorage or logged. */
+const RELATIONSHIP_LABEL_KEY: Record<Relationship, 'activation.relationshipSelf' | 'activation.relationshipGuardian' | 'activation.relationshipCaregiver'> = {
+    SELF: 'activation.relationshipSelf',
+    GUARDIAN: 'activation.relationshipGuardian',
+    AUTHORIZED_CAREGIVER: 'activation.relationshipCaregiver',
+};
+
 export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps) {
+    const { t, language } = useT();
     const [step, setStep] = useState<Step>({ name: 'code' });
     const [codeInput, setCodeInput] = useState('');
     const [otpInput, setOtpInput] = useState('');
@@ -79,7 +81,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                 otp ? { code, otp } : { code },
             );
             if (!result.ok || !result.data || !('verified' in result.data)) {
-                setError(extractErrorMessage(result.data));
+                setError(extractErrorMessage(result.data, language));
                 return;
             }
             if (result.data.otpRequired) {
@@ -98,9 +100,9 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                 });
                 return;
             }
-            setError(extractErrorMessage(result.data));
+            setError(extractErrorMessage(result.data, language));
         } catch {
-            setError('Something went wrong. Please check your connection and try again.');
+            setError(translate('common.connectionError', language));
         } finally {
             setSubmitting(false);
         }
@@ -110,7 +112,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
         event.preventDefault();
         const normalized = codeInput.trim().toUpperCase();
         if (!CODE_PATTERN.test(normalized)) {
-            setError('Please enter the 8-character activation code exactly as given to you.');
+            setError(translate('activation.invalidCode', language));
             return;
         }
         await verifyCode(normalized);
@@ -119,7 +121,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
     async function handleOtpSubmit(event: React.FormEvent, code: string) {
         event.preventDefault();
         if (!OTP_PATTERN.test(otpInput.trim())) {
-            setError('Please enter the 6-digit code sent to your phone.');
+            setError(translate('activation.invalidOtp', language));
             return;
         }
         await verifyCode(code, otpInput.trim());
@@ -128,11 +130,11 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
     async function handleCreatePin(event: React.FormEvent, code: string) {
         event.preventDefault();
         if (!PIN_PATTERN.test(pin)) {
-            setError('Your PIN must be exactly 6 digits.');
+            setError(translate('activation.invalidPin', language));
             return;
         }
         if (pin !== confirmPin) {
-            setError('The two PINs do not match.');
+            setError(translate('activation.pinMismatch', language));
             return;
         }
         setSubmitting(true);
@@ -140,7 +142,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
         try {
             const result = await callPublicPatientFunction<ActivationCompleteResult>('patient-activation-complete', { code, pin });
             if (!result.ok || !result.data || !('medisensId' in result.data)) {
-                setError(extractErrorMessage(result.data));
+                setError(extractErrorMessage(result.data, language));
                 return;
             }
             setPin('');
@@ -153,7 +155,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                 moveToStep({ name: 'done', medisensId: result.data.medisensId, autoSignedIn: false });
             }
         } catch {
-            setError('Something went wrong. Please check your connection and try again.');
+            setError(translate('common.connectionError', language));
         } finally {
             setSubmitting(false);
         }
@@ -163,11 +165,11 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
         <div key={step.name} className={hasChangedStepRef.current ? 'patient-state-enter' : undefined}>
                 {step.name === 'code' && (
                     <form onSubmit={(e) => void handleCodeSubmit(e)}>
-                        <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Set up my account</h1>
-                        <p className="mb-5 text-base text-[var(--text-secondary)]">Use the activation code given to you by Malvar RHU.</p>
+                        <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('activation.title')}</h1>
+                        <p className="mb-5 text-base text-[var(--text-secondary)]">{t('activation.useCode')}</p>
 
                         <label className="mb-4 block">
-                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">Activation code</span>
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('activation.code')}</span>
                             <Input
                                 value={codeInput}
                                 onChange={(e) => {
@@ -195,18 +197,18 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
 
                         <PatientMotionError message={error} className="mt-3" />
 
-                        <Button type="submit" className="mt-4 w-full" isLoading={submitting}>Continue</Button>
-                        <Button type="button" variant="ghost" className="mt-2 w-full" onClick={onCancel} disabled={submitting}>Back to sign in</Button>
+                        <Button type="submit" className="mt-4 w-full" isLoading={submitting}>{t('recover.continue')}</Button>
+                        <Button type="button" variant="ghost" className="mt-2 w-full" onClick={onCancel} disabled={submitting}>{t('recover.backToSignIn')}</Button>
                     </form>
                 )}
 
                 {step.name === 'otp' && (
                     <form onSubmit={(e) => void handleOtpSubmit(e, step.code)}>
-                        <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Confirm your phone</h1>
-                        <p className="mb-5 text-base text-[var(--text-secondary)]">We sent a 6-digit code by SMS. Enter it below to continue.</p>
+                        <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('activation.confirmPhone')}</h1>
+                        <p className="mb-5 text-base text-[var(--text-secondary)]">{t('activation.otpSentDescription')}</p>
 
                         <label className="mb-4 block">
-                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">SMS code</span>
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('activation.smsCode')}</span>
                             <Input
                                 value={otpInput}
                                 onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -219,29 +221,29 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
 
                         <PatientMotionError message={error} className="mt-3" />
 
-                        <Button type="submit" className="mt-4 w-full" isLoading={submitting}>Continue</Button>
-                        <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => moveToStep({ name: 'code' })} disabled={submitting}>Back</Button>
+                        <Button type="submit" className="mt-4 w-full" isLoading={submitting}>{t('recover.continue')}</Button>
+                        <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => moveToStep({ name: 'code' })} disabled={submitting}>{t('activation.back')}</Button>
                     </form>
                 )}
 
                 {step.name === 'create-pin' && (
                     <form onSubmit={(e) => void handleCreatePin(e, step.code)}>
-                        <h1 className="mb-4 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Create your PIN</h1>
+                        <h1 className="mb-4 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('activation.createPin')}</h1>
 
                         <div className="mb-5 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
-                            <p className="text-[length:var(--type-caption-size)] font-medium uppercase tracking-[var(--tracking-label)] text-[var(--text-muted)]">Account for</p>
-                            <p className="mt-0.5 text-base font-semibold text-[var(--text)]">{step.context.holderName ?? 'You'}</p>
+                            <p className="text-[length:var(--type-caption-size)] font-medium uppercase tracking-[var(--tracking-label)] text-[var(--text-muted)]">{t('activation.accountFor')}</p>
+                            <p className="mt-0.5 text-base font-semibold text-[var(--text)]">{step.context.holderName ?? t('activation.you')}</p>
                             {step.context.relationship !== 'SELF' && step.context.accessPatientName && (
                                 <>
-                                    <p className="mt-2.5 text-[length:var(--type-caption-size)] font-medium uppercase tracking-[var(--tracking-label)] text-[var(--text-muted)]">Access to</p>
-                                    <p className="mt-0.5 text-base font-semibold text-[var(--text)]">{step.context.accessPatientName}'s health record</p>
+                                    <p className="mt-2.5 text-[length:var(--type-caption-size)] font-medium uppercase tracking-[var(--tracking-label)] text-[var(--text-muted)]">{t('activation.accessTo')}</p>
+                                    <p className="mt-0.5 text-base font-semibold text-[var(--text)]">{t('activation.healthRecordOf', { name: step.context.accessPatientName })}</p>
                                 </>
                             )}
-                            <p className="mt-2.5 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{RELATIONSHIP_LABEL[step.context.relationship]}</p>
+                            <p className="mt-2.5 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{t(RELATIONSHIP_LABEL_KEY[step.context.relationship])}</p>
                         </div>
 
                         <label className="mb-3 block">
-                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">6-digit PIN</span>
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('activation.pinLabel')}</span>
                             <Input
                                 type="password"
                                 value={pin}
@@ -254,7 +256,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                         </label>
 
                         <label className="mb-3 block">
-                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">Confirm PIN</span>
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('activation.confirmPinLabel')}</span>
                             <Input
                                 type="password"
                                 value={confirmPin}
@@ -266,12 +268,12 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                         </label>
 
                         <p className="mb-4 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">
-                            Choose a PIN you can remember but other people cannot easily guess. RHU staff will never ask you for your PIN.
+                            {t('activation.pinHint')}
                         </p>
 
                         <PatientMotionError message={error} className="mb-4" />
 
-                        <Button type="submit" className="w-full" isLoading={submitting}>Create account</Button>
+                        <Button type="submit" className="w-full" isLoading={submitting}>{t('activation.createAccount')}</Button>
                     </form>
                 )}
 
@@ -280,13 +282,13 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                         <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--green-light)] text-[var(--green)]" aria-hidden="true">
                             <Icon name="check" className="h-6 w-6" />
                         </span>
-                        <h1 className="mb-2 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Your MediSens Patient Account is ready.</h1>
+                        <h1 className="mb-2 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('activation.ready')}</h1>
                         <p className="mb-5 text-base text-[var(--text-secondary)]">
                             {step.unavailableMessage ?? (
-                                <>You can now sign in with your MediSens ID <span className="font-mono font-semibold text-[var(--text)]">{step.medisensId}</span> and the PIN you just created.</>
+                                <>{t('activation.canSignInWithPrefix')}<span className="font-mono font-semibold text-[var(--text)]">{step.medisensId}</span>{t('activation.canSignInWithSuffix')}</>
                             )}
                         </p>
-                        <Button className="w-full" onClick={onCancel}>Go to sign in</Button>
+                        <Button className="w-full" onClick={onCancel}>{t('recover.goToSignIn')}</Button>
                     </div>
                 )}
         </div>

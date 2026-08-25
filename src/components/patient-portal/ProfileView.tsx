@@ -4,6 +4,7 @@ import { SkeletonText } from '../ui/Skeleton';
 import { Button } from '../ui/Button';
 import { fetchProfile, type PortalProfile } from '../../features/patient-portal/api';
 import { formatLongDate } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface ProfileViewProps {
     patientId: number;
@@ -32,6 +33,7 @@ function Row({ label, value }: { label: string; value: string | null }) {
  * server-side for an AUTHORIZED_CAREGIVER session regardless of what this
  * component shows. */
 export function ProfileView({ patientId, canRequestCorrection, onRequestCorrection }: ProfileViewProps) {
+    const { t, language } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
 
     const load = useCallback(async () => {
@@ -49,7 +51,7 @@ export function ProfileView({ patientId, canRequestCorrection, onRequestCorrecti
     }, [load]);
 
     if (state.status === 'loading') return <SkeletonText lines={6} />;
-    if (state.status === 'error') return <SectionError onRetry={() => void load()} message="We could not load this profile right now." />;
+    if (state.status === 'error') return <SectionError onRetry={() => void load()} message={t('profile.loadError')} />;
 
     const { profile } = state;
     const fullName = [profile.firstName, profile.middleName, profile.lastName, profile.suffix].filter(Boolean).join(' ');
@@ -57,37 +59,37 @@ export function ProfileView({ patientId, canRequestCorrection, onRequestCorrecti
     return (
         <div className="space-y-4">
             <section className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-                <h2 className="mb-1 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">Ask the RHU to correct these</h2>
+                <h2 className="mb-1 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{t('profile.askRhuToCorrect')}</h2>
                 <p className="mb-3 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">
-                    These details are kept by the Rural Health Unit. If something is wrong, request a correction below.
+                    {t('profile.keptByRhu')}
                 </p>
                 <dl>
-                    <Row label="Name" value={fullName || null} />
-                    <Row label="Birthdate" value={formatLongDate(profile.birthday)} />
-                    <Row label="Age" value={profile.age !== null ? String(profile.age) : null} />
-                    <Row label="Sex" value={profile.sex} />
-                    <Row label="Civil status" value={profile.civilStatus} />
-                    <Row label="Address" value={profile.address} />
-                    <Row label="Contact number" value={profile.contactNumber} />
-                    <Row label="PhilHealth number" value={profile.philhealthNo} />
-                    <Row label="PhilHealth status" value={profile.philhealthStatus} />
+                    <Row label={t('profile.name')} value={fullName || null} />
+                    <Row label={t('profile.birthdate')} value={formatLongDate(profile.birthday, language)} />
+                    <Row label={t('profile.age')} value={profile.age !== null ? String(profile.age) : null} />
+                    <Row label={t('profile.sex')} value={profile.sex} />
+                    <Row label={t('profile.civilStatus')} value={profile.civilStatus} />
+                    <Row label={t('profile.address')} value={profile.address} />
+                    <Row label={t('profile.contactNumber')} value={profile.contactNumber} />
+                    <Row label={t('profile.philhealthNo')} value={profile.philhealthNo} />
+                    <Row label={t('profile.philhealthStatus')} value={profile.philhealthStatus} />
                 </dl>
                 {canRequestCorrection ? (
-                    <Button variant="outline" className="mt-4 w-full" onClick={onRequestCorrection}>Request a correction</Button>
+                    <Button variant="outline" className="mt-4 w-full" onClick={onRequestCorrection}>{t('profile.requestCorrection')}</Button>
                 ) : (
                     <p className="mt-4 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">
-                        Only the patient or their guardian can request a correction to this record.
+                        {t('profile.onlyPatientOrGuardian')}
                     </p>
                 )}
             </section>
 
             {profile.bloodType && (
                 <section className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-                    <h2 className="mb-1 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">Recorded by the RHU</h2>
+                    <h2 className="mb-1 text-[length:var(--type-label-size)] font-semibold text-[var(--text-secondary)]">{t('profile.recordedByRhu')}</h2>
                     <dl>
-                        <Row label="Blood type" value={profile.bloodType} />
+                        <Row label={t('profile.bloodType')} value={profile.bloodType} />
                     </dl>
-                    <p className="mt-3 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">This information is kept by the Rural Health Unit.</p>
+                    <p className="mt-3 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('profile.keptByRhuShort')}</p>
                 </section>
             )}
         </div>

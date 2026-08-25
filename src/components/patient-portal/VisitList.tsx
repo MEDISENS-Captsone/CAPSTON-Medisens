@@ -6,6 +6,7 @@ import { SkeletonList } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { fetchVisits, type PortalVisit } from '../../features/patient-portal/api';
 import { formatLongDate } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 const PAGE_SIZE = 10;
 
@@ -25,6 +26,7 @@ type LoadState =
  * a linked initial + doctor consultation into one visit already happened
  * inside patient_portal_visits(); this component never reconstructs it. */
 export function VisitList({ patientId, onSelectVisit }: VisitListProps) {
+    const { t, language } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
     const [loadingMore, setLoadingMore] = useState(false);
 
@@ -57,14 +59,14 @@ export function VisitList({ patientId, onSelectVisit }: VisitListProps) {
     };
 
     if (state.status === 'loading') return <SkeletonList rows={4} />;
-    if (state.status === 'error') return <SectionError onRetry={() => void load()} message="We could not load these visits right now." />;
+    if (state.status === 'error') return <SectionError onRetry={() => void load()} message={t('visits.loadError')} />;
 
     if (state.visits.length === 0) {
         return (
             <EmptyState
                 icon={<Icon name="stethoscope" className="h-5 w-5" />}
-                title="No visits yet"
-                description="Visits to the Rural Health Unit will appear here."
+                title={t('visits.noneTitle')}
+                description={t('visits.noneDescription')}
             />
         );
     }
@@ -80,7 +82,7 @@ export function VisitList({ patientId, onSelectVisit }: VisitListProps) {
             </ul>
             {state.hasMore && (
                 <Button variant="outline" className="mt-3 w-full" onClick={() => void handleShowMore()} isLoading={loadingMore}>
-                    Show more visits
+                    {t('visits.showMore')}
                 </Button>
             )}
         </div>
@@ -88,16 +90,17 @@ export function VisitList({ patientId, onSelectVisit }: VisitListProps) {
 }
 
 function VisitCard({ visit, onClick }: { visit: PortalVisit; onClick: () => void }) {
-    const date = formatLongDate(visit.visitDate);
+    const { t, language } = useT();
+    const date = formatLongDate(visit.visitDate, language);
     return (
         <button type="button" onClick={onClick} className="portal-visit-card">
-            <span className="block font-semibold text-[var(--text)]">{date ?? 'Visit'}</span>
+            <span className="block font-semibold text-[var(--text)]">{date ?? t('visits.fallbackLabel')}</span>
             {visit.reason && <span className="mt-0.5 block text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{visit.reason}</span>}
             {visit.diagnosis && <span className="mt-0.5 block text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{visit.diagnosis}</span>}
             <span className="mt-2 flex flex-wrap gap-2">
-                {visit.medicineCount > 0 && <span className="portal-chip">{visit.medicineCount} medicine{visit.medicineCount === 1 ? '' : 's'}</span>}
-                {visit.labCount > 0 && <span className="portal-chip">{visit.labCount} lab result{visit.labCount === 1 ? '' : 's'}</span>}
-                {visit.followUpDate && <span className="portal-chip">Follow-up {formatLongDate(visit.followUpDate)}</span>}
+                {visit.medicineCount > 0 && <span className="portal-chip">{t('visits.medicineCount', { count: visit.medicineCount, plural: visit.medicineCount === 1 ? '' : 's' })}</span>}
+                {visit.labCount > 0 && <span className="portal-chip">{t('visits.labCount', { count: visit.labCount, plural: visit.labCount === 1 ? '' : 's' })}</span>}
+                {visit.followUpDate && <span className="portal-chip">{t('visits.followUpChip', { date: formatLongDate(visit.followUpDate, language) ?? '' })}</span>}
             </span>
         </button>
     );

@@ -127,10 +127,25 @@
 
 @media (min-width: 1024px) {
     .portal-main {
-        max-width: 720px;
+        /* Phase 9C desktop hardening: 720px left the primary tab pages
+           (Home/My Health/Medicines/Labs/More) reading as an awkward,
+           over-narrow phone-width column on a real desktop viewport.
+           Widened to a comfortable ~960px reading measure -- still well
+           short of edge-to-edge, still centered, mobile layout untouched
+           (this block only applies at >=1024px). */
+        max-width: 960px;
         margin-inline: auto;
         width: 100%;
         padding-bottom: var(--space-4);
+    }
+
+    /* Opt-in narrower measure for forms and single-record detail
+       subpages (More > Profile/Access/Privacy/Notifications/Display/
+       Language/Help, correction request, etc.) -- these read better at
+       a shorter line length than the wider primary tab pages above. */
+    .portal-subpage {
+        max-width: 800px;
+        margin-inline: auto;
     }
 }
 

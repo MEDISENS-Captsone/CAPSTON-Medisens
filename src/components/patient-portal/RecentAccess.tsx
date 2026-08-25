@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Icon } from '../shared/Icon';
 import { fetchRecentAccess, type PortalRecentAccessEntry } from '../../features/patient-portal/api';
 import { formatDateTime, recentAccessActionLabel } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface RecentAccessProps {
     patientId: number;
@@ -22,6 +23,7 @@ type LoadState =
  * from patient_portal_recent_access(); staff activity is never listed
  * here, by RPC design, not a frontend filter. */
 export function RecentAccess({ patientId }: RecentAccessProps) {
+    const { t, language } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
     const [loadingMore, setLoadingMore] = useState(false);
 
@@ -53,21 +55,21 @@ export function RecentAccess({ patientId }: RecentAccessProps) {
     };
 
     if (state.status === 'loading') return <SkeletonList rows={3} />;
-    if (state.status === 'error') return <SectionError onRetry={() => void load()} message="We could not load recent access right now." />;
+    if (state.status === 'error') return <SectionError onRetry={() => void load()} message={t('recentAccess.loadError')} />;
 
     if (state.entries.length === 0) {
-        return <EmptyState icon={<Icon name="clock" className="h-5 w-5" />} title="No recent access recorded" description="Views of this health record through the Patient Portal will appear here." />;
+        return <EmptyState icon={<Icon name="clock" className="h-5 w-5" />} title={t('recentAccess.noneTitle')} description={t('recentAccess.noneDescription')} />;
     }
 
     return (
         <div>
             <ul className="space-y-2">
                 {state.entries.map((entry, index) => {
-                    const when = formatDateTime(entry.occurredAt);
+                    const when = formatDateTime(entry.occurredAt, language);
                     return (
                         <li key={index} className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-3">
                             <p className="text-[var(--text)]">
-                                <span className="font-semibold">{entry.actorLabel}</span> {recentAccessActionLabel(entry.action)}
+                                <span className="font-semibold">{entry.actorLabel}</span> {recentAccessActionLabel(entry.action, language)}
                             </p>
                             {when && <p className="mt-0.5 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{when}</p>}
                         </li>
@@ -76,7 +78,7 @@ export function RecentAccess({ patientId }: RecentAccessProps) {
             </ul>
             {state.hasMore && (
                 <Button variant="outline" className="mt-3 w-full" onClick={() => void handleShowMore()} isLoading={loadingMore}>
-                    Show more
+                    {t('recentAccess.showMore')}
                 </Button>
             )}
         </div>

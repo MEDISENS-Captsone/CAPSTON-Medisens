@@ -5,6 +5,7 @@ import { getPatientPortalSession, signOutPatientPortal, type PatientPortalSessio
 import { fetchPreferences, updatePreferences } from '../../features/patient-portal/api';
 import { callPublicPatientFunction, extractErrorMessage } from '../../features/patient-portal/publicAuth';
 import { PortalShell } from '../../components/patient-portal/PortalShell';
+import { SignOutConfirm } from '../../components/patient-portal/SignOutConfirm';
 import { QrScan } from '../../components/patient-portal/QrScan';
 import { ActivationSetup } from '../../components/patient-portal/ActivationSetup';
 import { RecoverAccount } from '../../components/patient-portal/RecoverAccount';
@@ -16,6 +17,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Icon } from '../../components/shared/Icon';
 import { formatMedisensIdInput, isValidMedisensId, normalizeMedisensId, parseMedisensIdFromFragment } from '../../lib/utils/qr';
 import { getRememberedMedisensId, setRememberedMedisensId, forgetRememberedMedisensId } from '../../lib/utils/rememberedMedisensId';
+import { PatientLanguageProvider, useT, translate, type PatientLanguage } from '../../lib/i18n/patientPortal';
 import '../../styles/patient-portal.css';
 
 type ViewState =
@@ -28,6 +30,7 @@ type ViewState =
 const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
 const TEXT_SIZE_STORAGE_KEY = 'medisens-patient-text-size';
 const CONTRAST_STORAGE_KEY = 'medisens-patient-contrast';
+const LANGUAGE_STORAGE_KEY = 'medisens-patient-language';
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 
 // The shared GENERIC_AUTH_ERROR wording (supabase/functions/_shared/patientPortal.ts)
@@ -38,10 +41,13 @@ const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'ke
 // and pass through untouched, so the server's non-disclosure behavior
 // (never revealing which part of the input was wrong) is unaffected.
 const SHARED_GENERIC_AUTH_ERROR = 'That MediSens ID, code, or PIN was not recognized. Please try again.';
-const SIGN_IN_GENERIC_ERROR = 'The MediSens ID or PIN was not recognized. Please try again.';
 
-function toSignInErrorCopy(message: string): string {
-    return message === SHARED_GENERIC_AUTH_ERROR ? SIGN_IN_GENERIC_ERROR : message;
+// The remap target is localized (the matched-against source string is
+// always this one fixed English constant patient-login actually returns
+// -- that comparison itself never changes with language, only the copy
+// shown to the patient afterward does).
+function toSignInErrorCopy(message: string, language: PatientLanguage): string {
+    return message === SHARED_GENERIC_AUTH_ERROR ? translate('frontdoor.genericSignInError', language) : message;
 }
 
 function readStoredTextSize(): 'comfortable' | 'large' {
@@ -60,10 +66,19 @@ function readStoredContrast(): boolean {
     }
 }
 
+function readStoredLanguage(): PatientLanguage {
+    try {
+        return window.sessionStorage.getItem(LANGUAGE_STORAGE_KEY) === 'fil' ? 'fil' : 'en';
+    } catch {
+        return 'en';
+    }
+}
+
 function PatientPortalApp() {
     const [view, setView] = useState<ViewState>({ status: 'loading' });
     const [textSize, setTextSize] = useState<'comfortable' | 'large'>(() => readStoredTextSize());
     const [highContrast, setHighContrast] = useState<boolean>(() => readStoredContrast());
+    const [language, setLanguage] = useState<PatientLanguage>(() => readStoredLanguage());
     const [signInBusy, setSignInBusy] = useState(false);
     const [signInError, setSignInError] = useState<string | null>(null);
     const [prefillMedisensId, setPrefillMedisensId] = useState<string | null>(null);
@@ -97,8 +112,13 @@ function PatientPortalApp() {
             }
             setView({ status: 'ready', session });
         } catch {
-            setView({ status: 'error', message: 'Something went wrong loading your account. Please try again.' });
+            setView({ status: 'error', message: translate('frontdoor.loadAccountError', language) });
         }
+        // `language` is intentionally not a dependency -- including it would
+        // re-trigger a full session reload every time the patient switches
+        // languages in More > Language. The error string is read fresh from
+        // `language`'s current value on each call regardless.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -121,9 +141,11 @@ function PatientPortalApp() {
                 if (cancelled || !prefs) return;
                 setTextSize(prefs.textSize);
                 setHighContrast(prefs.highContrast);
+                setLanguage(prefs.language);
                 try {
                     window.sessionStorage.setItem(TEXT_SIZE_STORAGE_KEY, prefs.textSize);
                     window.sessionStorage.setItem(CONTRAST_STORAGE_KEY, prefs.highContrast ? 'high' : 'normal');
+                    window.sessionStorage.setItem(LANGUAGE_STORAGE_KEY, prefs.language);
                 } catch {
                     // sessionStorage unavailable -- the in-memory state above still applies.
                 }
@@ -207,6 +229,30 @@ function PatientPortalApp() {
         }
     }, [highContrast, view]);
 
+    // Language preference (§17 Phase 9C) -- same in-session-first, then
+    // best-effort-persisted pattern as text size/contrast above. Only ever
+    // changes which strings the localization dictionary resolves to; it
+    // never touches how patient/guardian/caregiver names, MediSens IDs,
+    // medications, lab tests, or diagnoses are rendered -- those read
+    // straight from the database in every component regardless of this
+    // value.
+    const handleSelectLanguage = useCallback(async (next: PatientLanguage) => {
+        setLanguage(next);
+        try {
+            window.sessionStorage.setItem(LANGUAGE_STORAGE_KEY, next);
+        } catch {
+            // sessionStorage unavailable -- the toggle still works for the
+            // current render, it just will not survive a reload.
+        }
+        if (view.status === 'ready') {
+            try {
+                await updatePreferences(view.session.account.id, { language: next });
+            } catch {
+                // Save failure must not undo the in-session toggle.
+            }
+        }
+    }, [view]);
+
     // Establishes the Patient Supabase session from a {access_token,
     // refresh_token} pair already minted server-side by patient-login or
     // patient-activation-complete -- this function never derives or
@@ -239,22 +285,22 @@ function PatientPortalApp() {
                 // (soft-lock, hard-lock) still passes through unchanged,
                 // preserving the non-disclosure behavior (this remap
                 // still reveals nothing that the original text didn't).
-                setSignInError(toSignInErrorCopy(extractErrorMessage(result.data)));
+                setSignInError(toSignInErrorCopy(extractErrorMessage(result.data, language), language));
                 return;
             }
             const ok = await establishSession(accessToken, refreshToken);
             if (!ok) {
-                setSignInError('Something went wrong signing you in. Please try again.');
+                setSignInError(translate('frontdoor.signInFailed', language));
                 return;
             }
             setRememberedMedisensId(medisensId);
             await loadSession();
         } catch {
-            setSignInError('Something went wrong signing you in. Please try again.');
+            setSignInError(translate('frontdoor.signInFailed', language));
         } finally {
             setSignInBusy(false);
         }
-    }, [establishSession, loadSession]);
+    }, [establishSession, loadSession, language]);
 
     // Fired by ActivationSetup once patient-activation-complete succeeds.
     // If the backend's own post-activation sign-in already returned a
@@ -291,68 +337,85 @@ function PatientPortalApp() {
     }, [establishSession, loadSession]);
 
     return (
-        <div data-portal data-text-size={textSize} data-contrast={highContrast ? 'high' : undefined}>
-            {view.status === 'loading' && <LoadingShell />}
-            {view.status === 'signed-out' && (
-                <PatientFrontDoor
-                    busy={signInBusy}
-                    error={signInError}
-                    prefillMedisensId={prefillMedisensId}
-                    onSignIn={handleSignIn}
-                    onActivated={(session, medisensId) => void handleActivated(session, medisensId)}
-                    onRecovered={(session, medisensId) => void handleRecovered(session, medisensId)}
-                />
-            )}
-            {view.status === 'error' && <ErrorShell message={view.message} onRetry={() => void loadSession()} />}
-            {view.status === 'empty' && (
-                <EmptyAccountShell account={view.session.account} onSignOut={() => void handleSignOut()} />
-            )}
-            {view.status === 'ready' && (
-                <div className="patient-auth-shell-enter">
-                    <PortalShell
-                        session={view.session}
-                        textSize={textSize}
-                        onToggleTextSize={() => void handleToggleTextSize()}
-                        highContrast={highContrast}
-                        onToggleHighContrast={() => void handleToggleHighContrast()}
-                        onSignOut={() => void handleSignOut()}
+        <PatientLanguageProvider language={language}>
+            <div data-portal data-text-size={textSize} data-contrast={highContrast ? 'high' : undefined}>
+                {view.status === 'loading' && <LoadingShell />}
+                {view.status === 'signed-out' && (
+                    <PatientFrontDoor
+                        busy={signInBusy}
+                        error={signInError}
+                        prefillMedisensId={prefillMedisensId}
+                        onSignIn={handleSignIn}
+                        onActivated={(session, medisensId) => void handleActivated(session, medisensId)}
+                        onRecovered={(session, medisensId) => void handleRecovered(session, medisensId)}
                     />
-                </div>
-            )}
-        </div>
+                )}
+                {view.status === 'error' && <ErrorShell message={view.message} onRetry={() => void loadSession()} />}
+                {view.status === 'empty' && (
+                    <EmptyAccountShell account={view.session.account} onSignOut={() => void handleSignOut()} />
+                )}
+                {view.status === 'ready' && (
+                    <div className="patient-auth-shell-enter">
+                        <PortalShell
+                            session={view.session}
+                            textSize={textSize}
+                            onToggleTextSize={() => void handleToggleTextSize()}
+                            highContrast={highContrast}
+                            onToggleHighContrast={() => void handleToggleHighContrast()}
+                            language={language}
+                            onSelectLanguage={(next) => void handleSelectLanguage(next)}
+                            onSignOut={() => void handleSignOut()}
+                        />
+                    </div>
+                )}
+            </div>
+        </PatientLanguageProvider>
     );
 }
 
 function LoadingShell() {
+    const { t } = useT();
     return (
         <div className="flex min-h-[100dvh] items-center justify-center p-6" role="status" aria-live="polite">
-            <p className="text-[length:var(--type-body-size)] text-[var(--text-secondary)]">Loading your account…</p>
+            <p className="text-[length:var(--type-body-size)] text-[var(--text-secondary)]">{t('frontdoor.loadingAccount')}</p>
         </div>
     );
 }
 
 function ErrorShell({ message, onRetry }: { message: string; onRetry: () => void }) {
+    const { t } = useT();
     return (
         <div className="flex min-h-[100dvh] items-center justify-center p-6">
             <div className="w-full max-w-sm">
-                <EmptyState icon={<Icon name="alert-triangle" className="h-5 w-5" />} title="We couldn't load your account" description={message} />
-                <Button className="mt-4 w-full" onClick={onRetry}>Try again</Button>
+                <EmptyState icon={<Icon name="alert-triangle" className="h-5 w-5" />} title={t('frontdoor.couldNotLoadAccount')} description={message} />
+                <Button className="mt-4 w-full" onClick={onRetry}>{t('qr.tryAgain')}</Button>
             </div>
         </div>
     );
 }
 
 function EmptyAccountShell({ account, onSignOut }: { account: PatientPortalSession['account']; onSignOut: () => void }) {
+    const { t } = useT();
+    const [confirmingSignOut, setConfirmingSignOut] = useState(false);
     return (
         <div className="flex min-h-[100dvh] items-center justify-center p-6">
             <div className="w-full max-w-sm text-center">
-                <p className="mb-4 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">Signed in as {account.displayName}</p>
+                <p className="mb-4 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{t('more.signedInAs')} {account.displayName}</p>
                 <EmptyState
                     icon={<Icon name="inbox" className="h-5 w-5" />}
-                    title="You do not currently have access to any health record"
-                    description="If you believe this is a mistake, please visit the Rural Health Unit."
+                    title={t('frontdoor.noAccessTitle')}
+                    description={t('frontdoor.noAccessDescription')}
                 />
-                <Button className="mt-4 w-full" variant="outline" onClick={onSignOut}>Sign out</Button>
+                <Button className="mt-4 w-full" variant="outline" onClick={() => setConfirmingSignOut(true)}>{t('more.signOut')}</Button>
+                {confirmingSignOut && (
+                    <SignOutConfirm
+                        onCancel={() => setConfirmingSignOut(false)}
+                        onConfirm={() => {
+                            setConfirmingSignOut(false);
+                            onSignOut();
+                        }}
+                    />
+                )}
             </div>
         </div>
     );
@@ -378,6 +441,7 @@ type FrontDoorView = 'login' | 'scan' | 'activate' | 'recover';
  * performs no account lookup of its own (task §5: format validation
  * only, never a name/DOB/phone search). */
 function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivated, onRecovered }: PatientFrontDoorProps) {
+    const { t } = useT();
     const [view, setView] = useState<FrontDoorView>('login');
     const [medisensId, setMedisensId] = useState('');
     const [pin, setPin] = useState('');
@@ -448,11 +512,11 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
         event.preventDefault();
         const normalized = normalizeMedisensId(medisensId);
         if (!isValidMedisensId(normalized)) {
-            setFormatError('Please enter a valid MediSens ID, e.g. MS-AB23-CD45.');
+            setFormatError(t('frontdoor.invalidId'));
             return;
         }
         if (!/^\d{6}$/.test(pin)) {
-            setFormatError('Your PIN is 6 digits.');
+            setFormatError(t('frontdoor.invalidPin'));
             return;
         }
         setFormatError(null);
@@ -469,21 +533,21 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                     <RecoverAccount onRecovered={onRecovered} onCancel={() => moveToView('login')} />
                 ) : (
                     <>
-                <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">MediSens Patient Portal</h1>
-                <p className="mb-5 text-base text-[var(--text-secondary)]">Access your health information from Malvar RHU.</p>
+                <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">{t('frontdoor.title')}</h1>
+                <p className="mb-5 text-base text-[var(--text-secondary)]">{t('frontdoor.subtitle')}</p>
 
                 {view === 'scan' ? (
                     <QrScan onDetected={handleScanned} onManualEntry={() => moveToView('login')} />
                 ) : (
                     <Button type="button" variant="outline" className="mb-4 w-full min-h-11" onClick={() => moveToView('scan')}>
-                        Scan Patient Card
+                        {t('frontdoor.scanCard')}
                     </Button>
                 )}
 
                 {view === 'login' && (
                     <form onSubmit={handleSubmit}>
                         <label className="mb-3 block">
-                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">MediSens ID</span>
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('signin.medisensId')}</span>
                             <Input
                                 ref={medisensIdInputRef}
                                 value={medisensId}
@@ -498,13 +562,13 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                         </label>
 
                         <label className="mb-1.5 block">
-                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">6-digit PIN</span>
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">{t('frontdoor.pinLabel')}</span>
                             <Input
                                 ref={pinInputRef}
                                 type="password"
                                 value={pin}
                                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                placeholder="Enter your PIN"
+                                placeholder={t('frontdoor.pinPlaceholder')}
                                 autoComplete="current-password"
                                 inputMode="numeric"
                                 maxLength={6}
@@ -520,7 +584,7 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                             onClick={() => moveToView('recover')}
                             className="patient-motion-link mb-4 min-h-11 text-[length:var(--type-supporting-size)] font-semibold text-[var(--brand-active)] underline"
                         >
-                            Forgot PIN?
+                            {t('signin.forgotPin')}
                         </button>
 
                         <label className="mb-4 flex min-h-11 items-center gap-2 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
@@ -530,12 +594,12 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                                 onChange={(e) => handleRememberChange(e.target.checked)}
                                 className="h-5 w-5"
                             />
-                            <span>Remember my MediSens ID on this device</span>
+                            <span>{t('frontdoor.rememberId')}</span>
                         </label>
 
                         <PatientMotionError message={formatError ?? error} className="mb-4" />
 
-                        <Button type="submit" className="w-full" isLoading={busy}>Sign in</Button>
+                        <Button type="submit" className="w-full" isLoading={busy}>{t('frontdoor.signIn')}</Button>
                     </form>
                 )}
 
@@ -545,9 +609,9 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                         onClick={() => moveToView('activate')}
                         className="patient-motion-link min-h-11 font-semibold text-[var(--brand-active)] underline"
                     >
-                        Set up my account
+                        {t('signin.setupAccount')}
                     </button>
-                    <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">Use the activation code given to you by Malvar RHU.</p>
+                    <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">{t('frontdoor.setupAccountHint')}</p>
                 </div>
                     </>
                 )}
