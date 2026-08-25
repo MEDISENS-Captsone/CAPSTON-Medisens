@@ -58,33 +58,51 @@ function buildActivationSlipHtml(input: ActivationSlipInput): string {
         ? null
         : `<div class="row"><span class="label">Access to</span><span class="value">${escapeHtml(input.accessPatientName ?? '')}'s health record</span></div>`;
 
+    // Print-polish pass: the page stays A6 (task requirement), but the
+    // content is now a single bordered "slip" box centered on that page,
+    // the same composition pattern already used for the Patient Card
+    // (.card below) -- rather than loose lines starting at the top-left
+    // of an otherwise blank A6 sheet. Internal spacing is tightened
+    // (row/title/expiry margins roughly halved) so the box reads as one
+    // compact, intentional handoff document instead of sparse text.
     return `<!doctype html><html><head><meta charset="utf-8"><title>MediSens Activation Slip</title><style>
         @page { size: A6 portrait; margin: 8mm; }
         ${PRINT_BASE_STYLE}
-        .row { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 9.5pt; }
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .slip {
+            width: 100%;
+            border: 1.25px solid #14212A;
+            border-radius: 3mm;
+            padding: 5mm 5.5mm;
+        }
+        .row { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; font-size: 9pt; }
         .label { color: #52616B; }
         .value { font-weight: 600; text-align: right; }
-        .title { margin-top: 10px; font-size: 10pt; font-weight: 700; }
-        .code-box { margin-top: 10px; border: 1.5px solid #14212A; border-radius: 6px; padding: 10px; text-align: center; }
-        .code { font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace; font-size: 24pt; font-weight: 700; letter-spacing: 0.12em; }
-        .expiry { margin-top: 6px; font-size: 9pt; color: #52616B; text-align: center; }
-        .instructions { margin-top: 12px; font-size: 8.5pt; line-height: 1.5; }
-        .instructions p { margin: 0 0 4px; }
+        .title { margin-top: 6px; font-size: 10pt; font-weight: 700; }
+        .divider { margin-top: 6px; border-top: 1px solid #DDE3E6; }
+        .code-box { margin-top: 6px; border: 1.5px solid #14212A; border-radius: 4px; padding: 7px; text-align: center; }
+        .code { font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace; font-size: 22pt; font-weight: 700; letter-spacing: 0.1em; }
+        .expiry { margin-top: 5px; font-size: 8.5pt; color: #52616B; text-align: center; }
+        .instructions { margin-top: 7px; font-size: 8pt; line-height: 1.4; }
+        .instructions p { margin: 0 0 3px; }
         .warn { font-weight: 600; }
     </style></head><body>
-        <div class="brand">MediSens &middot; Malvar Rural Health Unit</div>
-        <div class="facility">Patient Portal Activation</div>
-        <div class="title">Activation for: ${escapeHtml(input.holderName)}</div>
-        <div class="row"><span class="label">Relationship</span><span class="value">${escapeHtml(RELATIONSHIP_SLIP_LABEL[input.relationship])}</span></div>
-        ${accessLine ?? ''}
-        <div class="code-box">
-            <div class="code">${escapeHtml(input.code)}</div>
-        </div>
-        <div class="expiry">Expires: ${escapeHtml(expiresLabel)}</div>
-        <div class="instructions">
-            <p>Use this activation code to set up your MediSens Patient Account.</p>
-            <p>During setup, you will create your own 6-digit PIN.</p>
-            <p class="warn">Do not share your PIN with RHU staff or other people.</p>
+        <div class="slip">
+            <div class="brand">MediSens &middot; Malvar Rural Health Unit</div>
+            <div class="facility">Patient Portal Activation</div>
+            <div class="title">Activation for: ${escapeHtml(input.holderName)}</div>
+            <div class="row"><span class="label">Relationship</span><span class="value">${escapeHtml(RELATIONSHIP_SLIP_LABEL[input.relationship])}</span></div>
+            ${accessLine ?? ''}
+            <div class="divider"></div>
+            <div class="code-box">
+                <div class="code">${escapeHtml(input.code)}</div>
+            </div>
+            <div class="expiry">Expires: ${escapeHtml(expiresLabel)}</div>
+            <div class="instructions">
+                <p>Use this activation code to set up your MediSens Patient Account.</p>
+                <p>During setup, you will create your own 6-digit PIN.</p>
+                <p class="warn">Do not share your PIN with RHU staff or other people.</p>
+            </div>
         </div>
     </body></html>`;
 }

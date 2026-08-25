@@ -56,26 +56,34 @@ function formatExpiry(expiresAt: string): string {
     return new Date(expiresAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
+// Shared compact-card shell for both the patient's own account block and
+// each "People with access" row -- visual grouping only, no state logic.
+const ACCOUNT_CARD_CLASS =
+    'rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3';
+
 function PendingActivationNote({ pending }: { pending: PendingActivation }) {
     return (
         <div>
-            <Badge tone="amber">Setup pending</Badge>
-            <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
+            <p className="text-sm font-semibold text-[var(--text)]">Activation issued</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 {pending.relationship === 'SELF'
-                    ? 'An activation was issued and is waiting for the patient to finish setup.'
-                    : `An activation was issued and is waiting for ${pending.holderName ?? 'the guardian'} to finish setup.`}
+                    ? 'Waiting for the patient to finish setup.'
+                    : `Waiting for ${pending.holderName ?? 'the guardian'} to finish setup.`}
             </p>
             <p className="mt-0.5 text-sm text-[var(--text-muted)]">Expires {formatExpiry(pending.expiresAt)}</p>
         </div>
     );
 }
 
-/** Patient Account (§17 Phase 9B Step 3) -- read-only. Visible only to
- * the same staff roles the activation Edge Functions already authorize
- * server-side (STAFF_ISSUING_ROLES / the Phase 2 RLS policies) --
- * canSeePatientAccountSection() gates this before any query runs, but
- * the real boundary is RLS: a role outside that set gets zero rows back
- * regardless. No activation/revoke/print action exists yet -- Step 4. */
+/** Patient Account (§17 Phase 9B Steps 3-5, visual refinement pass) --
+ * read-only account summary plus the Step 4/5 activation and printing
+ * actions. Visible only to the same staff roles the activation Edge
+ * Functions already authorize server-side (STAFF_ISSUING_ROLES / the
+ * Phase 2 RLS policies) -- canSeePatientAccountSection() gates this
+ * before any query runs, but the real boundary is RLS: a role outside
+ * that set gets zero rows back regardless. This pass changes layout and
+ * copy only -- state derivation, action visibility, and every Edge
+ * Function/RPC call below are unchanged from Steps 3-5. */
 export function PatientAccountSection({ patientId, patientName, staffRole, sectionClassName, headerClassName }: PatientAccountSectionProps) {
     const [state, setState] = useState<LoadState>({ status: 'loading' });
     const [showActivateModal, setShowActivateModal] = useState(false);
@@ -98,13 +106,15 @@ export function PatientAccountSection({ patientId, patientName, staffRole, secti
 
     if (!canSeePatientAccountSection(staffRole)) return null;
 
+    const hasOtherAccess = state.status === 'ready' && (state.data.otherAccess.length > 0 || state.data.pendingGuardians.length > 0);
+
     return (
         <div className={sectionClassName}>
-            <div className="flex items-center justify-between gap-2">
-                <div className={headerClassName} style={{ marginBottom: 0 }}>Patient Account</div>
+            <div className={headerClassName}>
+                <span>Patient Account</span>
                 {state.status === 'ready' && (
                     <Button type="button" size="sm" variant="outline" onClick={() => setShowActivateModal(true)}>
-                        {state.data.selfAccount || state.data.pendingSelf ? 'Manage access' : 'Activate Patient Account'}
+                        {state.data.selfAccount || state.data.pendingSelf ? 'Manage access' : 'Activate account'}
                     </Button>
                 )}
             </div>
@@ -119,103 +129,112 @@ export function PatientAccountSection({ patientId, patientName, staffRole, secti
                 )}
 
                 {state.status === 'ready' && (
-                    <div>
-                        <p className="mb-1.5 text-sm font-semibold text-[var(--text-secondary)]">Patient's own account</p>
+                    <div className="max-w-xl">
+                        <p className="mb-3 text-sm text-[var(--text-secondary)]">Manage Patient Portal access for this patient.</p>
 
-                        {!state.data.selfAccount && !state.data.pendingSelf && (
-                            <div>
-                                <Badge tone="slate">Not activated</Badge>
-                                <p className="mt-1.5 text-sm text-[var(--text-secondary)]">This patient does not have Patient Portal access yet.</p>
+                        <div className={ACCOUNT_CARD_CLASS}>
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-[var(--text-secondary)]">Patient's own account</p>
+                                {!state.data.selfAccount && !state.data.pendingSelf && <Badge tone="slate">Not activated</Badge>}
+                                {!state.data.selfAccount && state.data.pendingSelf && <Badge tone="amber">Setup pending</Badge>}
+                                {state.data.selfAccount && (
+                                    <Badge tone={STATE_BADGE[state.data.selfAccount.state].tone}>{STATE_BADGE[state.data.selfAccount.state].label}</Badge>
+                                )}
                             </div>
-                        )}
 
-                        {!state.data.selfAccount && state.data.pendingSelf && (
-                            <PendingActivationNote pending={state.data.pendingSelf} />
-                        )}
+                            {!state.data.selfAccount && !state.data.pendingSelf && (
+                                <p className="text-sm text-[var(--text-secondary)]">This patient has not set up their Patient Portal account.</p>
+                            )}
 
-                        {state.data.selfAccount && (() => {
-                            const self = state.data.selfAccount;
-                            return (
-                                <div>
-                                    <Badge tone={STATE_BADGE[self.state].tone}>{STATE_BADGE[self.state].label}</Badge>
+                            {!state.data.selfAccount && state.data.pendingSelf && (
+                                <PendingActivationNote pending={state.data.pendingSelf} />
+                            )}
 
-                                    <div className="mt-2 flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-semibold text-[var(--text)]">{self.holderName}</p>
-                                            <p className="text-sm text-[var(--text-secondary)]">
-                                                {RELATIONSHIP_LABEL.SELF} · {SCOPE_LABEL[self.scope]}
-                                            </p>
-                                            <p className="mt-0.5 text-sm text-[var(--text-muted)]">MediSens ID: {self.holderMedisensId}</p>
-                                            {accountStatusNote(self.holderStatus) && (
-                                                <p className="mt-1 text-sm text-[var(--amber-text)]">{accountStatusNote(self.holderStatus)}</p>
-                                            )}
-                                        </div>
+                            {state.data.selfAccount && (() => {
+                                const self = state.data.selfAccount;
+                                return (
+                                    <div>
+                                        <p className="font-semibold leading-snug text-[var(--text)] [overflow-wrap:anywhere]">{self.holderName}</p>
+                                        <p className="mt-0.5 font-mono text-sm text-[var(--text-muted)]">{self.holderMedisensId}</p>
+                                        {/* No "Patient ·" prefix here -- the card is already labelled
+                                            "Patient's own account" above, so repeating the relationship
+                                            would be redundant (task: "Do not repeat the patient's name
+                                            unnecessarily" applies the same way to the relationship label). */}
+                                        <p className="mt-1 text-sm text-[var(--text-secondary)]">{SCOPE_LABEL[self.scope]}</p>
+                                        {accountStatusNote(self.holderStatus) && (
+                                            <p className="mt-1 text-sm text-[var(--amber-text)]">{accountStatusNote(self.holderStatus)}</p>
+                                        )}
                                         {self.state === 'active' && (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => setPrintCardFor({ holderName: self.holderName, medisensId: self.holderMedisensId })}
-                                            >
-                                                Print Patient Card
-                                            </Button>
+                                            <div className="mt-3 border-t border-[var(--border-soft)] pt-2.5">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="w-full sm:w-auto"
+                                                    onClick={() => setPrintCardFor({ holderName: self.holderName, medisensId: self.holderMedisensId })}
+                                                >
+                                                    Print Patient Card
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
-                                </div>
-                            );
-                        })()}
-                    </div>
-                )}
+                                );
+                            })()}
+                        </div>
 
-                {state.status === 'ready' && (state.data.otherAccess.length > 0 || state.data.pendingGuardians.length > 0) && (
-                    <div className={state.data.selfAccount || state.data.pendingSelf ? 'mt-4 border-t border-[var(--border-soft)] pt-3' : ''}>
-                        <p className="mb-2 text-sm font-semibold text-[var(--text-secondary)]">People with access</p>
-                        <ul className="space-y-2.5">
-                            {state.data.otherAccess.map((row) => (
-                                <li key={`${row.holderMedisensId}-${row.relationship}`}>
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-medium text-[var(--text)]">{row.holderName}</p>
+                        {hasOtherAccess && (
+                            <div className="mt-4">
+                                <p className="mb-2 text-sm font-semibold text-[var(--text-secondary)]">People with access</p>
+                                <ul className="space-y-2">
+                                    {state.data.otherAccess.map((row) => (
+                                        <li key={`${row.holderMedisensId}-${row.relationship}`} className={ACCOUNT_CARD_CLASS}>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-medium leading-snug text-[var(--text)] [overflow-wrap:anywhere]">{row.holderName}</p>
                                                 {row.state !== 'active' && (
                                                     <Badge tone={STATE_BADGE[row.state].tone}>{STATE_BADGE[row.state].label}</Badge>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-[var(--text-secondary)]">
+                                            <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
                                                 {RELATIONSHIP_LABEL[row.relationship]} · {SCOPE_LABEL[row.scope]}
                                             </p>
                                             {row.state === 'setup_pending' ? (
-                                                <p className="text-sm text-[var(--text-muted)]">Waiting for the account holder to finish setup.</p>
+                                                <p className="mt-0.5 text-sm text-[var(--text-muted)]">Waiting for account setup.</p>
                                             ) : (
-                                                accountStatusNote(row.holderStatus) && (
-                                                    <p className="text-sm text-[var(--amber-text)]">{accountStatusNote(row.holderStatus)}</p>
-                                                )
+                                                <>
+                                                    <p className="mt-0.5 font-mono text-sm text-[var(--text-muted)]">{row.holderMedisensId}</p>
+                                                    {accountStatusNote(row.holderStatus) && (
+                                                        <p className="mt-1 text-sm text-[var(--amber-text)]">{accountStatusNote(row.holderStatus)}</p>
+                                                    )}
+                                                </>
                                             )}
-                                        </div>
-                                        {row.state === 'active' && (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => setPrintCardFor({ holderName: row.holderName, medisensId: row.holderMedisensId })}
-                                            >
-                                                Print card
-                                            </Button>
-                                        )}
-                                    </div>
-                                </li>
-                            ))}
-                            {state.data.pendingGuardians.map((pending) => (
-                                <li key={`pending-guardian-${pending.expiresAt}`}>
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-medium text-[var(--text)]">{pending.holderName ?? 'Guardian'}</p>
-                                        <Badge tone="amber">Setup pending</Badge>
-                                    </div>
-                                    <p className="text-sm text-[var(--text-secondary)]">{RELATIONSHIP_LABEL.GUARDIAN}</p>
-                                    <p className="text-sm text-[var(--text-muted)]">Expires {formatExpiry(pending.expiresAt)}</p>
-                                </li>
-                            ))}
-                        </ul>
+                                            {row.state === 'active' && (
+                                                <div className="mt-2.5 border-t border-[var(--border-soft)] pt-2">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="w-full sm:w-auto"
+                                                        onClick={() => setPrintCardFor({ holderName: row.holderName, medisensId: row.holderMedisensId })}
+                                                    >
+                                                        Print card
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </li>
+                                    ))}
+                                    {state.data.pendingGuardians.map((pending) => (
+                                        <li key={`pending-guardian-${pending.expiresAt}`} className={ACCOUNT_CARD_CLASS}>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-medium leading-snug text-[var(--text)] [overflow-wrap:anywhere]">{pending.holderName ?? 'Guardian'}</p>
+                                                <Badge tone="amber">Setup pending</Badge>
+                                            </div>
+                                            <p className="mt-0.5 text-sm text-[var(--text-secondary)]">{RELATIONSHIP_LABEL.GUARDIAN}</p>
+                                            <p className="mt-0.5 text-sm text-[var(--text-muted)]">Expires {formatExpiry(pending.expiresAt)}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

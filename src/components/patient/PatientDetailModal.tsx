@@ -698,15 +698,6 @@ export function PatientDetailModal({
                                         )}
                                     </div>
                                 </div>
-                                {!isEditing && staffRole && (
-                                    <PatientAccountSection
-                                        patientId={patient.id}
-                                        patientName={`${patient.firstName} ${patient.lastName}`}
-                                        staffRole={staffRole}
-                                        sectionClassName={sectionCls}
-                                        headerClassName={headerCls}
-                                    />
-                                )}
                                 {!isEditing && (
                                     <div className={sectionCls}>
                                         <div className="flex items-center justify-between mb-2">
@@ -919,6 +910,15 @@ export function PatientDetailModal({
                                         </div>
                                     </div>
                                 </div>
+                                {!isEditing && staffRole && (
+                                    <PatientAccountSection
+                                        patientId={patient.id}
+                                        patientName={`${patient.firstName} ${patient.lastName}`}
+                                        staffRole={staffRole}
+                                        sectionClassName={sectionCls}
+                                        headerClassName={headerCls}
+                                    />
+                                )}
 
                                 {isEditing ? (
                                     <div className="patient-chart-footer flex gap-3">

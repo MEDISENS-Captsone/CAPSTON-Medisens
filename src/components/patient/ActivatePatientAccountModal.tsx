@@ -310,7 +310,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
 
     function renderChoose() {
         return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
                 <p className="text-sm text-[var(--text-secondary)]">Who needs access to this health record?</p>
                 {!hasSelfAccount && (
                     pendingSelf ? (
@@ -351,9 +351,9 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                     ]}
                 />
                 {error && <ErrorNote message={error} />}
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => goTo({ name: 'choose' })} disabled={submitting}>Back</Button>
-                    <Button type="button" onClick={() => void handleSelfIssue()} isLoading={submitting}>Issue activation</Button>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={() => goTo({ name: 'choose' })} disabled={submitting}>Back</Button>
+                    <Button type="button" className="w-full sm:w-auto" onClick={() => void handleSelfIssue()} isLoading={submitting}>Issue activation</Button>
                 </div>
             </div>
         );
@@ -361,7 +361,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
 
     function renderGuardianChoice() {
         return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
                 <p className="text-sm text-[var(--text-secondary)]">Set up guardian access for {patientName}.</p>
                 {pendingGuardian ? (
                     <div className="rounded-[var(--radius-control)] border border-[var(--amber-border)] bg-[var(--amber-surface)] p-3">
@@ -413,9 +413,9 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                     ]}
                 />
                 {error && <ErrorNote message={error} />}
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => goTo({ name: 'guardian-choice' })} disabled={submitting}>Back</Button>
-                    <Button type="button" onClick={() => void handleGuardianIssue()} isLoading={submitting}>Issue activation</Button>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={() => goTo({ name: 'guardian-choice' })} disabled={submitting}>Back</Button>
+                    <Button type="button" className="w-full sm:w-auto" onClick={() => void handleGuardianIssue()} isLoading={submitting}>Issue activation</Button>
                 </div>
             </div>
         );
@@ -472,10 +472,11 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
 
                 {error && <ErrorNote message={error} />}
 
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => goTo(backStep)} disabled={submitting}>Back</Button>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={() => goTo(backStep)} disabled={submitting}>Back</Button>
                     <Button
                         type="button"
+                        className="w-full sm:w-auto"
                         onClick={() => void handleExistingGrant(relationship)}
                         isLoading={submitting && !!lookup}
                         disabled={!lookup || lookup.status !== 'active' || (relationship === 'AUTHORIZED_CAREGIVER' && !existingConsent)}
@@ -489,7 +490,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
 
     function renderCaregiverChoice() {
         return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
                 <p className="text-sm text-[var(--text-secondary)]">Set up caregiver access for {patientName}.</p>
                 <RelationshipOption
                     title="New caregiver account"
@@ -524,9 +525,9 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                     <span>The patient is present and agrees to give this caregiver access.</span>
                 </label>
                 {error && <ErrorNote message={error} />}
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => goTo({ name: 'caregiver-choice' })} disabled={submitting}>Back</Button>
-                    <Button type="button" onClick={() => void handleNewCaregiverIssue()} isLoading={submitting}>Issue activation</Button>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={() => goTo({ name: 'caregiver-choice' })} disabled={submitting}>Back</Button>
+                    <Button type="button" className="w-full sm:w-auto" onClick={() => void handleNewCaregiverIssue()} isLoading={submitting}>Issue activation</Button>
                 </div>
             </div>
         );
@@ -545,9 +546,10 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                     The account holder must complete setup and create their own 6-digit PIN. RHU staff should not ask for or record their PIN.
                 </p>
                 {slipError && <ErrorNote message={slipError} />}
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                         type="button"
+                        className="w-full sm:w-auto"
                         variant="outline"
                         onClick={() => {
                             setSlipError(null);
@@ -563,7 +565,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                     >
                         Print activation slip
                     </Button>
-                    <Button type="button" onClick={onClose}>Done</Button>
+                    <Button type="button" className="w-full sm:w-auto" onClick={onClose}>Done</Button>
                 </div>
             </div>
         );
@@ -633,7 +635,7 @@ function RelationshipOption({ title, description, onClick }: { title: string; de
         <button
             type="button"
             onClick={onClick}
-            className="flex flex-col items-start gap-0.5 rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-4 py-3 text-left transition-colors hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
+            className="flex min-h-11 flex-col items-start gap-0.5 rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3.5 py-2.5 text-left transition-colors hover:border-[var(--brand-primary)] hover:bg-[var(--brand-soft-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
         >
             <span className="font-semibold text-[var(--text)]">{title}</span>
             <span className="text-sm text-[var(--text-secondary)]">{description}</span>
@@ -641,15 +643,29 @@ function RelationshipOption({ title, description, onClick }: { title: string; de
     );
 }
 
+/** The first row is always the "who" (Account for) -- rendered as a
+ * small headline, visually separated from the remaining "what" rows
+ * (Access to / Relationship / Access) so staff can scan identity apart
+ * from grant details at a glance (visual refinement only; the rows
+ * themselves and their values are unchanged from Steps 4-5). */
 function SummaryBlock({ rows }: { rows: [string, string][] }) {
+    const [firstRow, ...restRows] = rows;
     return (
-        <div className="flex flex-col gap-1.5 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
-            {rows.map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-3 text-sm">
-                    <span className="text-[var(--text-secondary)]">{label}</span>
-                    <span className="text-right font-medium text-[var(--text)]">{value}</span>
+        <div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+            {firstRow && (
+                <div className="mb-2.5 border-b border-[var(--border-soft)] pb-2.5">
+                    <p className="text-[length:var(--type-caption-size)] font-medium uppercase tracking-[var(--tracking-label)] text-[var(--text-muted)]">{firstRow[0]}</p>
+                    <p className="mt-0.5 text-base font-semibold text-[var(--text)] [overflow-wrap:anywhere]">{firstRow[1]}</p>
                 </div>
-            ))}
+            )}
+            <div className="flex flex-col gap-1.5">
+                {restRows.map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-3 text-sm">
+                        <span className="text-[var(--text-secondary)]">{label}</span>
+                        <span className="text-right font-medium text-[var(--text)] [overflow-wrap:anywhere]">{value}</span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
