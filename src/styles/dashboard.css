@@ -4247,6 +4247,11 @@ button.clinical-worklist-row {
     flex-direction: column;
 }
 
+.clinical-dialog.activate-account-modal {
+    width: min(100%, 30rem);
+    max-width: 30rem;
+}
+
 .consent-modal-header {
     display: flex;
     flex-shrink: 0;

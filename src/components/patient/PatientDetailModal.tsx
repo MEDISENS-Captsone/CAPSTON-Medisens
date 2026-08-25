@@ -701,6 +701,7 @@ export function PatientDetailModal({
                                 {!isEditing && staffRole && (
                                     <PatientAccountSection
                                         patientId={patient.id}
+                                        patientName={`${patient.firstName} ${patient.lastName}`}
                                         staffRole={staffRole}
                                         sectionClassName={sectionCls}
                                         headerClassName={headerCls}
