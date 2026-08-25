@@ -8,6 +8,7 @@ import { PortalShell } from '../../components/patient-portal/PortalShell';
 import { QrScan } from '../../components/patient-portal/QrScan';
 import { ActivationSetup } from '../../components/patient-portal/ActivationSetup';
 import { PatientFrontDoorShell } from '../../components/patient-portal/PatientFrontDoorShell';
+import { PatientMotionError } from '../../components/patient-portal/patientMotion';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -289,14 +290,16 @@ function PatientPortalApp() {
                 <EmptyAccountShell account={view.session.account} onSignOut={() => void handleSignOut()} />
             )}
             {view.status === 'ready' && (
-                <PortalShell
-                    session={view.session}
-                    textSize={textSize}
-                    onToggleTextSize={() => void handleToggleTextSize()}
-                    highContrast={highContrast}
-                    onToggleHighContrast={() => void handleToggleHighContrast()}
-                    onSignOut={() => void handleSignOut()}
-                />
+                <div className="patient-auth-shell-enter">
+                    <PortalShell
+                        session={view.session}
+                        textSize={textSize}
+                        onToggleTextSize={() => void handleToggleTextSize()}
+                        highContrast={highContrast}
+                        onToggleHighContrast={() => void handleToggleHighContrast()}
+                        onSignOut={() => void handleSignOut()}
+                    />
+                </div>
             )}
         </div>
     );
@@ -363,6 +366,12 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
     const [remember, setRemember] = useState(false);
     const pinInputRef = useRef<HTMLInputElement>(null);
     const medisensIdInputRef = useRef<HTMLInputElement>(null);
+    const hasChangedViewRef = useRef(false);
+
+    function moveToView(nextView: FrontDoorView) {
+        hasChangedViewRef.current = true;
+        setView(nextView);
+    }
 
     // Prefill precedence: a freshly scanned/opened QR or a just-completed
     // activation (both passed down as `prefillMedisensId`) always wins
@@ -382,7 +391,7 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
 
     function handleScanned(scannedMedisensId: string) {
         setMedisensId(scannedMedisensId);
-        setView('login');
+        moveToView('login');
         setFormatError(null);
         // The QR only ever supplies the ID -- a PIN is still required
         // (task §7, §8). Focusing the PIN field makes that requirement
@@ -432,20 +441,20 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
         onSignIn(normalized, pin);
     }
 
-    if (view === 'activate') {
-        return <ActivationSetup onActivated={onActivated} onCancel={() => setView('login')} />;
-    }
-
     return (
-        <PatientFrontDoorShell showBackToStaffLogin>
-            <div className="patient-frontdoor-sheet-content">
+        <PatientFrontDoorShell showBackToStaffLogin={view !== 'activate'}>
+            <div key={view} className={`patient-frontdoor-sheet-content ${hasChangedViewRef.current ? 'patient-state-enter' : 'patient-initial-enter'}`}>
+                {view === 'activate' ? (
+                    <ActivationSetup onActivated={onActivated} onCancel={() => moveToView('login')} />
+                ) : (
+                    <>
                 <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">MediSens Patient Portal</h1>
                 <p className="mb-5 text-base text-[var(--text-secondary)]">Access your health information from Malvar RHU.</p>
 
                 {view === 'scan' ? (
-                    <QrScan onDetected={handleScanned} onManualEntry={() => setView('login')} />
+                    <QrScan onDetected={handleScanned} onManualEntry={() => moveToView('login')} />
                 ) : (
-                    <Button type="button" variant="outline" className="mb-4 w-full min-h-11" onClick={() => setView('scan')}>
+                    <Button type="button" variant="outline" className="mb-4 w-full min-h-11" onClick={() => moveToView('scan')}>
                         Scan Patient Card
                     </Button>
                 )}
@@ -491,11 +500,7 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                             <span>Remember my MediSens ID on this device</span>
                         </label>
 
-                        {(formatError || error) && (
-                            <p role="alert" className="mb-4 rounded-[var(--radius-control)] border border-[var(--coral-border)] bg-[var(--coral-tint)] px-3 py-2 text-[length:var(--type-supporting-size)] text-[var(--coral)]">
-                                {formatError ?? error}
-                            </p>
-                        )}
+                        <PatientMotionError message={formatError ?? error} className="mb-4" />
 
                         <Button type="submit" className="w-full" isLoading={busy}>Sign in</Button>
                     </form>
@@ -504,13 +509,15 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                 <div className="mt-5 border-t border-[var(--border)] pt-4 text-center">
                     <button
                         type="button"
-                        onClick={() => setView('activate')}
-                        className="min-h-11 font-semibold text-[var(--brand-active)] underline"
+                        onClick={() => moveToView('activate')}
+                        className="patient-motion-link min-h-11 font-semibold text-[var(--brand-active)] underline"
                     >
                         Set up my account
                     </button>
                     <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">Use the activation code given to you by Malvar RHU.</p>
                 </div>
+                    </>
+                )}
             </div>
         </PatientFrontDoorShell>
     );

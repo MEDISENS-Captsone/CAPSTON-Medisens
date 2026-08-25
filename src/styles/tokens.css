@@ -120,7 +120,10 @@
     --radius-badge: 0.5rem;
     --shadow-surface: 0 1px 2px rgba(13, 33, 44, 0.04), 0 8px 24px -20px rgba(13, 33, 44, 0.28);
     --motion-fast: 160ms;
+    --motion-state: 180ms;
     --motion-base: 220ms;
+    --motion-slow: 300ms;
+    --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
     /* Status accents — additional shades of --green/--coral/amber used by
        badges, pills, and inline alerts. Values preserved from prior inline

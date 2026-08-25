@@ -48,11 +48,13 @@ export function PatientFrontDoorShell({ showBackToStaffLogin = false, children }
                     <div className="patient-frontdoor-motif patient-frontdoor-motif-b" aria-hidden="true" />
                     <div className="patient-frontdoor-motif patient-frontdoor-motif-c" aria-hidden="true" />
 
-                    {showBackToStaffLogin && (
+                    {showBackToStaffLogin ? (
                         <a href={STAFF_LOGIN_PATH} className="patient-frontdoor-back-link">
                             <Icon name="chevron-right" className="h-4 w-4 rotate-180" />
                             <span>Back to Staff Login</span>
                         </a>
+                    ) : (
+                        <span className="patient-frontdoor-back-link patient-frontdoor-back-link-placeholder" aria-hidden="true" />
                     )}
 
                     <div className="patient-frontdoor-hero-spacer" />

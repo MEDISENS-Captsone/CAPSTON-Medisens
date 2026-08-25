@@ -18,6 +18,67 @@
     line-height: var(--type-body-line);
 }
 
+/* Phase 9B Step 6 motion language: state updates are immediate and only
+   the newly mounted inner content animates. No outgoing snapshots, shell
+   transitions, directional slides, or animated container dimensions. */
+@keyframes patient-soft-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes patient-content-enter {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 6px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes patient-camera-enter {
+    from {
+        opacity: 0;
+        transform: scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes patient-error-enter {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 4px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.patient-state-enter {
+    animation: patient-content-enter var(--motion-state) var(--motion-ease-out) both;
+}
+
+.patient-initial-enter {
+    animation: patient-content-enter var(--motion-base) var(--motion-ease-out) both;
+}
+
+.patient-auth-shell-enter {
+    animation: patient-soft-fade-in var(--motion-base) var(--motion-ease-out) both;
+}
+
+.patient-motion-error {
+    animation: patient-error-enter var(--motion-fast) var(--motion-ease-out) both;
+}
+
+.patient-camera-preview-enter {
+    animation: patient-camera-enter var(--motion-base) var(--motion-ease-out) both;
+}
+
 /* "Larger text" preference (§9.5) -- an accessibility setting available to
    every account, never labelled "Senior Mode" anywhere in the UI copy. */
 [data-portal][data-text-size='large'] {
@@ -294,6 +355,14 @@
     font-weight: var(--font-weight-medium);
     color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
+    transition:
+        transform var(--motion-fast) var(--motion-ease-out),
+        color var(--motion-fast) var(--motion-ease-out),
+        background-color var(--motion-fast) var(--motion-ease-out);
+}
+
+.patient-frontdoor-back-link-placeholder {
+    visibility: hidden;
 }
 
 .patient-frontdoor-back-link:hover,
@@ -421,6 +490,38 @@
     width: 100%;
     max-width: 360px;
     margin-inline: auto;
+}
+
+/* Immediate, restrained pointer feedback for pre-auth controls only. */
+.patient-frontdoor-sheet button,
+.patient-motion-link {
+    transition:
+        transform var(--motion-fast) var(--motion-ease-out),
+        color var(--motion-fast) var(--motion-ease-out),
+        background-color var(--motion-fast) var(--motion-ease-out),
+        border-color var(--motion-fast) var(--motion-ease-out),
+        box-shadow var(--motion-fast) var(--motion-ease-out);
+}
+
+.patient-frontdoor-sheet input:not([type='checkbox']) {
+    transition:
+        border-color var(--motion-fast) var(--motion-ease-out),
+        background-color var(--motion-fast) var(--motion-ease-out),
+        box-shadow var(--motion-fast) var(--motion-ease-out);
+}
+
+.patient-frontdoor-sheet button:not(:disabled):active,
+.patient-frontdoor-back-link:active,
+.patient-motion-link:active {
+    transform: scale(0.985);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .patient-frontdoor-sheet button:not(:disabled):hover,
+    .patient-frontdoor-back-link:hover,
+    .patient-motion-link:hover {
+        transform: translateY(-1px);
+    }
 }
 
 @media (min-width: 1024px) {
@@ -799,5 +900,17 @@
     [data-portal] * {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+    }
+
+    .patient-state-enter,
+    .patient-initial-enter,
+    .patient-camera-preview-enter,
+    .patient-auth-shell-enter,
+    .patient-motion-error,
+    .patient-frontdoor-sheet button,
+    .patient-frontdoor-back-link,
+    .patient-motion-link {
+        transform: none !important;
     }
 }

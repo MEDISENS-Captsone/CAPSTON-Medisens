@@ -38,6 +38,8 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
     const jsQrRef = useRef<typeof import('jsqr').default | null>(null);
     const stoppedRef = useRef(false);
 
+    const moveToStatus = useCallback((nextStatus: ScanStatus) => setStatus(nextStatus), []);
+
     const stopCamera = useCallback(() => {
         stoppedRef.current = true;
         if (rafRef.current !== null) {
@@ -111,20 +113,20 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
             }
             // A QR code was read, but it isn't a MediSens Patient Portal
             // code -- never log its contents, just tell the patient.
-            setStatus('invalid-qr');
+            moveToStatus('invalid-qr');
             stopCamera();
             return;
         }
 
         rafRef.current = requestAnimationFrame(() => void decodeLoop());
-    }, [onDetected, stopCamera]);
+    }, [moveToStatus, onDetected, stopCamera]);
 
     const startScanning = useCallback(async () => {
-        setStatus('requesting');
+        moveToStatus('requesting');
         stoppedRef.current = false;
 
         if (!navigator.mediaDevices?.getUserMedia) {
-            setStatus('unsupported');
+            moveToStatus('unsupported');
             return;
         }
 
@@ -148,21 +150,24 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
         } catch (err) {
             const name = err instanceof DOMException ? err.name : '';
             if (name === 'NotAllowedError' || name === 'SecurityError') {
-                setStatus('permission-denied');
+                moveToStatus('permission-denied');
             } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-                setStatus('no-camera');
+                moveToStatus('no-camera');
             } else {
-                setStatus('error');
+                moveToStatus('error');
             }
         }
-    }, [decodeLoop]);
+    }, [decodeLoop, moveToStatus]);
 
     const handleRetry = () => {
-        setStatus('idle');
+        moveToStatus('idle');
     };
+
+    const visualStatus = status === 'requesting' || status === 'scanning' ? 'camera' : status;
 
     return (
         <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+            <div key={visualStatus} className={status === 'idle' ? undefined : 'patient-state-enter'}>
             {status === 'idle' && (
                 <div className="text-center">
                     <p className="mb-3 text-[var(--text-secondary)]">Scan the QR code on your MediSens Patient Card.</p>
@@ -172,7 +177,7 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
 
             {(status === 'requesting' || status === 'scanning') && (
                 <div>
-                    <div className="relative overflow-hidden rounded-[var(--radius-control)] bg-black">
+                    <div className={`relative overflow-hidden rounded-[var(--radius-control)] bg-black ${status === 'scanning' ? 'patient-camera-preview-enter' : ''}`}>
                         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                         <video ref={videoRef} playsInline muted className="aspect-square w-full object-cover" />
                     </div>
@@ -218,6 +223,7 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
                     <p className="mb-3 text-[var(--text)]">We couldn't start the camera. Please try again.</p>
                 </div>
             )}
+            </div>
 
             {/* Always-available manual escape, in every state (§17 Phase 9B). */}
             <button
@@ -226,7 +232,7 @@ export function QrScan({ onDetected, onManualEntry }: QrScanProps) {
                     stopCamera();
                     onManualEntry();
                 }}
-                className="mt-4 min-h-[44px] w-full text-center font-semibold text-[var(--brand-active)] underline"
+                className="patient-motion-link mt-4 min-h-[44px] w-full text-center font-semibold text-[var(--brand-active)] underline"
             >
                 Can't scan? Enter your MediSens ID instead.
             </button>

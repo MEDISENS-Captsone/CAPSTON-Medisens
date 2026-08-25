@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { PatientFrontDoorShell } from './PatientFrontDoorShell';
+import { Icon } from '../shared/Icon';
 import { callPublicPatientFunction, extractErrorMessage } from '../../features/patient-portal/publicAuth';
+import { PatientMotionError } from './patientMotion';
 
 type Relationship = 'SELF' | 'GUARDIAN' | 'AUTHORIZED_CAREGIVER';
 
@@ -60,6 +61,12 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
     const [confirmPin, setConfirmPin] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const hasChangedStepRef = useRef(false);
+
+    function moveToStep(nextStep: Step) {
+        hasChangedStepRef.current = true;
+        setStep(nextStep);
+    }
 
     async function verifyCode(code: string, otp?: string) {
         setSubmitting(true);
@@ -74,11 +81,11 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                 return;
             }
             if (result.data.otpRequired) {
-                setStep({ name: 'otp', code });
+                moveToStep({ name: 'otp', code });
                 return;
             }
             if (result.data.verified) {
-                setStep({
+                moveToStep({
                     name: 'create-pin',
                     code,
                     context: {
@@ -139,7 +146,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
             if (result.data.session) {
                 onActivated(result.data.session, result.data.medisensId);
             } else {
-                setStep({ name: 'done', medisensId: result.data.medisensId, autoSignedIn: false });
+                moveToStep({ name: 'done', medisensId: result.data.medisensId, autoSignedIn: false });
             }
         } catch {
             setError('Something went wrong. Please check your connection and try again.');
@@ -149,8 +156,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
     }
 
     return (
-        <PatientFrontDoorShell>
-            <div className="patient-frontdoor-sheet-content">
+        <div key={step.name} className={hasChangedStepRef.current ? 'patient-state-enter' : undefined}>
                 {step.name === 'code' && (
                     <form onSubmit={(e) => void handleCodeSubmit(e)}>
                         <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Set up my account</h1>
@@ -183,7 +189,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                             />
                         </label>
 
-                        {error && <ErrorNote message={error} />}
+                        <PatientMotionError message={error} className="mt-3" />
 
                         <Button type="submit" className="mt-4 w-full" isLoading={submitting}>Continue</Button>
                         <Button type="button" variant="ghost" className="mt-2 w-full" onClick={onCancel} disabled={submitting}>Back to sign in</Button>
@@ -207,10 +213,10 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                             />
                         </label>
 
-                        {error && <ErrorNote message={error} />}
+                        <PatientMotionError message={error} className="mt-3" />
 
                         <Button type="submit" className="mt-4 w-full" isLoading={submitting}>Continue</Button>
-                        <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => setStep({ name: 'code' })} disabled={submitting}>Back</Button>
+                        <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => moveToStep({ name: 'code' })} disabled={submitting}>Back</Button>
                     </form>
                 )}
 
@@ -259,7 +265,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                             Choose a PIN you can remember but other people cannot easily guess. RHU staff will never ask you for your PIN.
                         </p>
 
-                        {error && <ErrorNote message={error} />}
+                        <PatientMotionError message={error} className="mb-4" />
 
                         <Button type="submit" className="w-full" isLoading={submitting}>Create account</Button>
                     </form>
@@ -267,6 +273,9 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
 
                 {step.name === 'done' && (
                     <div className="text-center">
+                        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--green-light)] text-[var(--green)]" aria-hidden="true">
+                            <Icon name="check" className="h-6 w-6" />
+                        </span>
                         <h1 className="mb-2 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Your MediSens Patient Account is ready.</h1>
                         <p className="mb-5 text-base text-[var(--text-secondary)]">
                             You can now sign in with your MediSens ID <span className="font-mono font-semibold text-[var(--text)]">{step.medisensId}</span> and the PIN you just created.
@@ -274,15 +283,6 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                         <Button className="w-full" onClick={onCancel}>Go to sign in</Button>
                     </div>
                 )}
-            </div>
-        </PatientFrontDoorShell>
-    );
-}
-
-function ErrorNote({ message }: { message: string }) {
-    return (
-        <p role="alert" className="mt-3 rounded-[var(--radius-control)] border border-[var(--coral-border)] bg-[var(--coral-tint)] px-3 py-2 text-[length:var(--type-supporting-size)] text-[var(--coral)]">
-            {message}
-        </p>
+        </div>
     );
 }
