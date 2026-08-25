@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -9,11 +10,22 @@
     <title>MediSens | Login</title>
     <link rel="stylesheet" href="../src/styles/tokens.css">
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        :root { --login-error: #b42318; }
+        :root {
+            --login-error: #b42318;
+        }
 
-        html { min-height: 100%; background: var(--brand-active); }
+        html {
+            min-height: 100%;
+            background: var(--brand-active);
+        }
 
         body {
             min-height: 100vh;
@@ -120,7 +132,9 @@
             text-transform: uppercase;
         }
 
-        .field { margin-bottom: 18px; }
+        .field {
+            margin-bottom: 18px;
+        }
 
         .field label {
             display: block;
@@ -145,15 +159,39 @@
             transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
         }
 
-        .field input:hover { border-color: var(--brand-primary); }
-        .field input:focus-visible { border-color: var(--focus-color); box-shadow: 0 0 0 3px var(--focus-ring); }
-        .field input[aria-invalid="true"] { border-color: var(--login-error); background: var(--coral-tint); }
-        .field input::placeholder { color: var(--text-muted); opacity: 0.88; }
+        .field input:hover {
+            border-color: var(--brand-primary);
+        }
 
-        .password-control { position: relative; }
-        .password-control input { padding-right: 52px; }
+        .field input:focus-visible {
+            border-color: var(--focus-color);
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+
+        .field input[aria-invalid="true"] {
+            border-color: var(--login-error);
+            background: var(--coral-tint);
+        }
+
+        .field input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.88;
+        }
+
+        .password-control {
+            position: relative;
+        }
+
+        .password-control input {
+            padding-right: 52px;
+        }
+
         .password-control input::-ms-reveal,
-        .password-control input::-ms-clear { display: none; width: 0; height: 0; }
+        .password-control input::-ms-clear {
+            display: none;
+            width: 0;
+            height: 0;
+        }
 
         .password-toggle {
             position: absolute;
@@ -172,10 +210,26 @@
             transition: color var(--motion-fast), background var(--motion-fast);
         }
 
-        .password-toggle:hover { color: var(--brand-primary); background: var(--surface-subtle); }
-        .password-toggle:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 1px; }
-        .password-toggle:active { color: var(--brand-active); background: var(--brand-soft-surface); }
-        .password-toggle svg { width: 20px; height: 20px; pointer-events: none; }
+        .password-toggle:hover {
+            color: var(--brand-primary);
+            background: var(--surface-subtle);
+        }
+
+        .password-toggle:focus-visible {
+            outline: 2px solid var(--focus-color);
+            outline-offset: 1px;
+        }
+
+        .password-toggle:active {
+            color: var(--brand-active);
+            background: var(--brand-soft-surface);
+        }
+
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
 
         .login-btn {
             display: flex;
@@ -197,10 +251,26 @@
             transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
         }
 
-        .login-btn:hover { border-color: var(--brand-active-hover); background: var(--brand-active-hover); box-shadow: 0 7px 18px rgba(16, 46, 64, 0.18); }
-        .login-btn:active { box-shadow: none; }
-        .login-btn:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 3px; }
-        .login-btn.loading { cursor: wait; opacity: 0.78; pointer-events: none; }
+        .login-btn:hover {
+            border-color: var(--brand-active-hover);
+            background: var(--brand-active-hover);
+            box-shadow: 0 7px 18px rgba(16, 46, 64, 0.18);
+        }
+
+        .login-btn:active {
+            box-shadow: none;
+        }
+
+        .login-btn:focus-visible {
+            outline: 2px solid var(--focus-color);
+            outline-offset: 3px;
+        }
+
+        .login-btn.loading {
+            cursor: wait;
+            opacity: 0.78;
+            pointer-events: none;
+        }
 
         .spinner {
             display: none;
@@ -212,7 +282,11 @@
             animation: spin 0.7s linear infinite;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         .error-msg {
             display: none;
@@ -274,15 +348,27 @@
             background: var(--brand-soft-surface);
         }
 
-        .legal-separator { color: var(--border-strong); }
-        .copyright { margin-top: 7px; }
+        .legal-separator {
+            color: var(--border-strong);
+        }
+
+        .copyright {
+            margin-top: 7px;
+        }
 
         @media (max-width: 900px) {
-            .login-page { justify-content: center; padding: 32px; }
-            .login-card { width: min(100%, 480px); }
+            .login-page {
+                justify-content: center;
+                padding: 32px;
+            }
+
+            .login-card {
+                width: min(100%, 480px);
+            }
         }
 
         @media (max-width: 600px) {
+
             html,
             body {
                 min-height: 0;
@@ -298,7 +384,9 @@
             }
 
             .clinical-background,
-            .background-wash { display: none; }
+            .background-wash {
+                display: none;
+            }
 
             .login-card {
                 width: 100%;
@@ -344,9 +432,21 @@
                 background: rgba(11, 34, 48, 0.62);
             }
 
-            .brand-lockup { position: relative; z-index: 1; display: block; text-align: center; }
-            .brand-logo { width: 82px; height: 82px; }
-            .brand-copy { display: none; }
+            .brand-lockup {
+                position: relative;
+                z-index: 1;
+                display: block;
+                text-align: center;
+            }
+
+            .brand-logo {
+                width: 82px;
+                height: 82px;
+            }
+
+            .brand-copy {
+                display: none;
+            }
 
             .form-sheet {
                 position: relative;
@@ -356,40 +456,115 @@
                 background: var(--surface);
             }
 
-            .card-kicker { margin-bottom: 24px; text-align: center; }
-            .privacy-notice { margin-top: 22px; }
-            .legal-footer { margin-top: 13px; }
+            .card-kicker {
+                margin-bottom: 24px;
+                text-align: center;
+            }
+
+            .privacy-notice {
+                margin-top: 22px;
+            }
+
+            .legal-footer {
+                margin-top: 13px;
+            }
         }
 
         @media (max-width: 390px) {
-            .brand-header { min-height: 142px; padding-bottom: 40px; }
-            .brand-logo { width: 74px; height: 74px; }
-            .form-sheet { margin-top: -22px; padding: 28px 18px 22px; }
-            .field { margin-bottom: 16px; }
+            .brand-header {
+                min-height: 142px;
+                padding-bottom: 40px;
+            }
+
+            .brand-logo {
+                width: 74px;
+                height: 74px;
+            }
+
+            .form-sheet {
+                margin-top: -22px;
+                padding: 28px 18px 22px;
+            }
+
+            .field {
+                margin-bottom: 16px;
+            }
         }
 
         @media (max-height: 620px) and (max-width: 600px) {
-            .brand-header { min-height: 126px; padding-top: 16px; padding-bottom: 34px; }
-            .brand-logo { width: 68px; height: 68px; }
-            .form-sheet { margin-top: -20px; padding-top: 24px; }
-            .card-kicker { margin-bottom: 18px; }
-            .field { margin-bottom: 14px; }
-            .privacy-notice { margin-top: 18px; padding-top: 14px; }
-            .legal-footer { margin-top: 11px; }
+            .brand-header {
+                min-height: 126px;
+                padding-top: 16px;
+                padding-bottom: 34px;
+            }
+
+            .brand-logo {
+                width: 68px;
+                height: 68px;
+            }
+
+            .form-sheet {
+                margin-top: -20px;
+                padding-top: 24px;
+            }
+
+            .card-kicker {
+                margin-bottom: 18px;
+            }
+
+            .field {
+                margin-bottom: 14px;
+            }
+
+            .privacy-notice {
+                margin-top: 18px;
+                padding-top: 14px;
+            }
+
+            .legal-footer {
+                margin-top: 11px;
+            }
         }
 
         @media (max-height: 650px) and (min-width: 601px) {
-            .login-page { padding-block: 22px; }
-            .brand-header { padding-top: 24px; padding-bottom: 12px; }
-            .brand-logo { width: 58px; height: 58px; }
-            .form-sheet { padding-top: 8px; padding-bottom: 24px; }
-            .card-kicker { margin-bottom: 18px; }
-            .field { margin-bottom: 14px; }
-            .privacy-notice { margin-top: 17px; padding-top: 13px; }
+            .login-page {
+                padding-block: 22px;
+            }
+
+            .brand-header {
+                padding-top: 24px;
+                padding-bottom: 12px;
+            }
+
+            .brand-logo {
+                width: 58px;
+                height: 58px;
+            }
+
+            .form-sheet {
+                padding-top: 8px;
+                padding-bottom: 24px;
+            }
+
+            .card-kicker {
+                margin-bottom: 18px;
+            }
+
+            .field {
+                margin-bottom: 14px;
+            }
+
+            .privacy-notice {
+                margin-top: 17px;
+                padding-top: 13px;
+            }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+
+            *,
+            *::before,
+            *::after {
                 scroll-behavior: auto !important;
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
@@ -398,60 +573,68 @@
         }
     </style>
 </head>
+
 <body>
-<main class="login-page">
-    <img class="clinical-background" id="loginBackground" alt="" aria-hidden="true">
-    <div class="background-wash" aria-hidden="true"></div>
+    <main class="login-page">
+        <img class="clinical-background" id="loginBackground" alt="" aria-hidden="true">
+        <div class="background-wash" aria-hidden="true"></div>
 
-    <article class="login-card">
-        <header class="brand-header">
-            <div class="brand-lockup">
-                <img class="brand-logo" id="medisensLogo" alt="MEDISENS logo">
-                <div class="brand-copy">
-                    <span class="brand-name">MEDISENS</span>
-                    <span class="brand-subtitle">RHU Information System</span>
-                </div>
-            </div>
-        </header>
-
-        <section class="form-sheet" aria-label="Authorized access">
-            <h1 class="card-kicker">Authorized Access</h1>
-            <form id="loginForm" novalidate>
-                <div class="field">
-                    <label for="emailInput">Email</label>
-                    <input type="email" id="emailInput" name="email" placeholder="Enter your email" autocomplete="email" required aria-describedby="errorMsg">
-                </div>
-                <div class="field">
-                    <label for="passwordInput">Password</label>
-                    <div class="password-control">
-                        <input type="password" id="passwordInput" name="password" placeholder="Enter your password" autocomplete="current-password" required aria-describedby="errorMsg">
-                        <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password" aria-pressed="false">
-                            <svg id="passwordVisibilityIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
-                                <circle cx="12" cy="12" r="2.75"></circle>
-                            </svg>
-                        </button>
+        <article class="login-card">
+            <header class="brand-header">
+                <div class="brand-lockup">
+                    <img class="brand-logo" id="medisensLogo" alt="MEDISENS logo">
+                    <div class="brand-copy">
+                        <span class="brand-name">MEDISENS</span>
+                        <span class="brand-subtitle">RHU Information System</span>
                     </div>
                 </div>
-                <button class="login-btn" id="loginBtn" type="submit">
-                    <span id="btnText">Sign In</span>
-                    <span class="spinner" id="spinner" aria-hidden="true"></span>
-                </button>
-                <div class="error-msg" id="errorMsg" role="alert"></div>
-            </form>
-            <p class="privacy-notice">By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
-            <footer class="legal-footer" aria-label="Legal information">
-                <div class="legal-links">
-                    <a class="legal-link" href="./privacy-policy.html">Privacy Policy</a>
-                    <span class="legal-separator" aria-hidden="true">&middot;</span>
-                    <a class="legal-link" href="./terms-of-service.html">Terms of Service</a>
-                </div>
-                <p class="copyright">&copy; <span id="copyrightYear"></span> MEDISENS. All rights reserved.</p>
-            </footer>
-        </section>
-    </article>
-</main>
+            </header>
 
-<script type="module" src="../src/app/auth/login.ts"></script>
+            <section class="form-sheet" aria-label="Authorized access">
+                <h1 class="card-kicker">Authorized Access</h1>
+                <form id="loginForm" novalidate>
+                    <div class="field">
+                        <label for="emailInput">Email</label>
+                        <input type="email" id="emailInput" name="email" placeholder="Enter your email"
+                            autocomplete="email" required aria-describedby="errorMsg">
+                    </div>
+                    <div class="field">
+                        <label for="passwordInput">Password</label>
+                        <div class="password-control">
+                            <input type="password" id="passwordInput" name="password" placeholder="Enter your password"
+                                autocomplete="current-password" required aria-describedby="errorMsg">
+                            <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password"
+                                aria-pressed="false">
+                                <svg id="passwordVisibilityIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                                    aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="2.75"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="login-btn" id="loginBtn" type="submit">
+                        <span id="btnText">Sign In</span>
+                        <span class="spinner" id="spinner" aria-hidden="true"></span>
+                    </button>
+                    <div class="error-msg" id="errorMsg" role="alert"></div>
+                </form>
+                <p class="privacy-notice">By accessing MEDISENS, you acknowledge your responsibility to handle patient
+                    information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
+                <footer class="legal-footer" aria-label="Legal information">
+                    <div class="legal-links">
+                        <a class="legal-link" href="./privacy-policy.html">Privacy Policy</a>
+                        <span class="legal-separator" aria-hidden="true">&middot;</span>
+                        <a class="legal-link" href="./terms-of-service.html">Terms of Service</a>
+                    </div>
+                    <p class="copyright">&copy; <span id="copyrightYear"></span> MEDISENS. All rights reserved.</p>
+                </footer>
+            </section>
+        </article>
+    </main>
+
+    <script type="module" src="../src/app/auth/login.ts"></script>
 </body>
+
 </html>
