@@ -7,6 +7,7 @@ import { Icon } from '../shared/Icon';
 import { supabase } from '../../lib/supabase/client';
 import { isValidMedisensId, normalizeMedisensId } from '../../lib/utils/qr';
 import { lookupPatientAccountByMedisensId, type PatientAccountLookupResult, type PendingActivation } from '../../features/patient-account/staffReads';
+import { printActivationSlip } from '../../features/patient-account/printing';
 import { logError } from '../../lib/utils/errors';
 
 const TITLE_ID = 'activate-patient-account-dialog-title';
@@ -46,7 +47,16 @@ type Step =
     | { name: 'caregiver-choice' }
     | { name: 'caregiver-new' }
     | { name: 'caregiver-existing' }
-    | { name: 'issued'; code: string; expiresAt: string }
+    | {
+          name: 'issued';
+          code: string;
+          expiresAt: string;
+          relationship: Relationship;
+          holderName: string;
+          /** Only set for GUARDIAN/AUTHORIZED_CAREGIVER -- whose record
+           * this grants access to, for the printed slip (task §2). */
+          accessPatientName?: string;
+      }
     | { name: 'granted'; holderName: string; relationship: 'GUARDIAN' | 'AUTHORIZED_CAREGIVER' };
 
 const GENERIC_ERROR = "Couldn't complete this action. Please try again.";
@@ -114,6 +124,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
     const [step, setStep] = useState<Step>({ name: 'choose' });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [slipError, setSlipError] = useState<string | null>(null);
 
     // Guardian (new) form state
     const [guardianName, setGuardianName] = useState('');
@@ -153,7 +164,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                 relationship: 'SELF',
                 purpose: 'ACTIVATION',
             });
-            setStep({ name: 'issued', code: result.code, expiresAt: result.expiresAt });
+            setStep({ name: 'issued', code: result.code, expiresAt: result.expiresAt, relationship: 'SELF', holderName: patientName });
             onChanged();
         } catch (err) {
             logError('Failed to issue SELF activation', err);
@@ -177,7 +188,14 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                 purpose: 'ACTIVATION',
                 holderName: guardianName.trim(),
             });
-            setStep({ name: 'issued', code: result.code, expiresAt: result.expiresAt });
+            setStep({
+                name: 'issued',
+                code: result.code,
+                expiresAt: result.expiresAt,
+                relationship: 'GUARDIAN',
+                holderName: guardianName.trim(),
+                accessPatientName: patientName,
+            });
             onChanged();
         } catch (err) {
             logError('Failed to issue GUARDIAN activation', err);
@@ -273,7 +291,14 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                 relationship: 'AUTHORIZED_CAREGIVER',
                 patientPresentConsent: true,
             });
-            setStep({ name: 'issued', code: issued.code, expiresAt: issued.expiresAt });
+            setStep({
+                name: 'issued',
+                code: issued.code,
+                expiresAt: issued.expiresAt,
+                relationship: 'AUTHORIZED_CAREGIVER',
+                holderName: caregiverName.trim(),
+                accessPatientName: patientName,
+            });
             onChanged();
         } catch (err) {
             logError('Failed to issue new caregiver activation', err);
@@ -519,7 +544,25 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                 <p className="text-sm text-[var(--text-secondary)]">
                     The account holder must complete setup and create their own 6-digit PIN. RHU staff should not ask for or record their PIN.
                 </p>
-                <div className="flex justify-end">
+                {slipError && <ErrorNote message={slipError} />}
+                <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            setSlipError(null);
+                            const ok = printActivationSlip({
+                                holderName: s.holderName,
+                                relationship: s.relationship,
+                                accessPatientName: s.accessPatientName,
+                                code: s.code,
+                                expiresAt: s.expiresAt,
+                            });
+                            if (!ok) setSlipError('Unable to open the print window. Please try again.');
+                        }}
+                    >
+                        Print activation slip
+                    </Button>
                     <Button type="button" onClick={onClose}>Done</Button>
                 </div>
             </div>

@@ -33,6 +33,68 @@ export function isValidMedisensId(raw: string): boolean {
     return MEDISENS_ID_PATTERN.test(normalizeMedisensId(raw));
 }
 
+// Patient Account Phase 9B Step 5 -- there is no existing canonical
+// public-URL config anywhere in the repo (grepped vite.config.ts,
+// README.md, vercel.json: none exists). Printing a permanent Patient
+// Card QR against `window.location.origin` alone would silently bake a
+// `localhost`/preview-deploy URL into a physical card the moment staff
+// print from a dev machine or a Vercel preview build. This introduces
+// the smallest possible fix: one optional build-time env var staff/ops
+// can set to the real production origin; everything else (safety
+// checks, fallback to window.location.origin for non-printing preview
+// use) lives in this one function so there is exactly one place that
+// decides "is this origin OK to put on a physical card".
+//
+// New environment variable: VITE_PATIENT_PORTAL_BASE_URL
+//   - Set in Vercel: Project Settings -> Environment Variables, on the
+//     Production environment, to the real deployed origin, e.g.
+//     https://medisens.example.org (no trailing slash, no path).
+//   - Set in local development .env only if intentionally testing
+//     against a real deployed origin; otherwise leave unset -- printing
+//     stays blocked (isSafe: false) and only a labelled preview renders.
+//   - Not required for any other part of the app; Patient Login itself
+//     is unaffected (Step 6 scope).
+const LOCAL_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?$/i;
+
+export interface PatientPortalOrigin {
+    origin: string;
+    /** true only when this origin is safe to bake into a printed,
+     * physical Patient Card QR code. */
+    isSafe: boolean;
+    reason?: string;
+}
+
+/** Resolves the origin to use for a printable Patient Card QR, and
+ * whether it is safe to actually print (never localhost/loopback, and
+ * only "safe" outright when explicitly configured via
+ * VITE_PATIENT_PORTAL_BASE_URL rather than inferred from the current
+ * tab, since an inferred origin could just as easily be an ephemeral
+ * Vercel preview deployment). Never throws; a preview can always be
+ * rendered, but `isSafe` gates the actual print action. */
+export function getCanonicalPatientPortalOrigin(): PatientPortalOrigin {
+    const configured = import.meta.env.VITE_PATIENT_PORTAL_BASE_URL as string | undefined;
+    if (configured && configured.trim()) {
+        const trimmed = configured.trim().replace(/\/+$/, '');
+        if (LOCAL_ORIGIN_PATTERN.test(trimmed)) {
+            return { origin: trimmed, isSafe: false, reason: 'VITE_PATIENT_PORTAL_BASE_URL is set to a localhost address.' };
+        }
+        return { origin: trimmed, isSafe: true };
+    }
+
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    if (!currentOrigin) {
+        return { origin: '', isSafe: false, reason: 'No application origin is available.' };
+    }
+    if (LOCAL_ORIGIN_PATTERN.test(currentOrigin)) {
+        return { origin: currentOrigin, isSafe: false, reason: 'This is a local development address, not a public MediSens URL.' };
+    }
+    return {
+        origin: currentOrigin,
+        isSafe: false,
+        reason: 'VITE_PATIENT_PORTAL_BASE_URL is not configured, so this URL cannot be confirmed as the canonical public MediSens address.',
+    };
+}
+
 /** Builds the canonical Patient Card URL for a MediSens ID. Returns
  * `null` for anything that isn't a valid MediSens ID -- this function
  * will not encode an arbitrary string into a QR code just because it was

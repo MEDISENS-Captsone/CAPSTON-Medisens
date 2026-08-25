@@ -13,6 +13,7 @@ import {
     type PendingActivation,
 } from '../../features/patient-account/staffReads';
 import { ActivatePatientAccountModal } from './ActivatePatientAccountModal';
+import { PrintPatientCardModal } from './PrintPatientCardModal';
 import type { Role } from '../../types/user';
 
 interface PatientAccountSectionProps {
@@ -78,6 +79,7 @@ function PendingActivationNote({ pending }: { pending: PendingActivation }) {
 export function PatientAccountSection({ patientId, patientName, staffRole, sectionClassName, headerClassName }: PatientAccountSectionProps) {
     const [state, setState] = useState<LoadState>({ status: 'loading' });
     const [showActivateModal, setShowActivateModal] = useState(false);
+    const [printCardFor, setPrintCardFor] = useState<{ holderName: string; medisensId: string } | null>(null);
 
     const load = useCallback(async () => {
         setState({ status: 'loading' });
@@ -131,22 +133,37 @@ export function PatientAccountSection({ patientId, patientName, staffRole, secti
                             <PendingActivationNote pending={state.data.pendingSelf} />
                         )}
 
-                        {state.data.selfAccount && (
-                            <div>
-                                <Badge tone={STATE_BADGE[state.data.selfAccount.state].tone}>{STATE_BADGE[state.data.selfAccount.state].label}</Badge>
+                        {state.data.selfAccount && (() => {
+                            const self = state.data.selfAccount;
+                            return (
+                                <div>
+                                    <Badge tone={STATE_BADGE[self.state].tone}>{STATE_BADGE[self.state].label}</Badge>
 
-                                <div className="mt-2">
-                                    <p className="font-semibold text-[var(--text)]">{state.data.selfAccount.holderName}</p>
-                                    <p className="text-sm text-[var(--text-secondary)]">
-                                        {RELATIONSHIP_LABEL.SELF} · {SCOPE_LABEL[state.data.selfAccount.scope]}
-                                    </p>
-                                    <p className="mt-0.5 text-sm text-[var(--text-muted)]">MediSens ID: {state.data.selfAccount.holderMedisensId}</p>
-                                    {accountStatusNote(state.data.selfAccount.holderStatus) && (
-                                        <p className="mt-1 text-sm text-[var(--amber-text)]">{accountStatusNote(state.data.selfAccount.holderStatus)}</p>
-                                    )}
+                                    <div className="mt-2 flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="font-semibold text-[var(--text)]">{self.holderName}</p>
+                                            <p className="text-sm text-[var(--text-secondary)]">
+                                                {RELATIONSHIP_LABEL.SELF} · {SCOPE_LABEL[self.scope]}
+                                            </p>
+                                            <p className="mt-0.5 text-sm text-[var(--text-muted)]">MediSens ID: {self.holderMedisensId}</p>
+                                            {accountStatusNote(self.holderStatus) && (
+                                                <p className="mt-1 text-sm text-[var(--amber-text)]">{accountStatusNote(self.holderStatus)}</p>
+                                            )}
+                                        </div>
+                                        {self.state === 'active' && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setPrintCardFor({ holderName: self.holderName, medisensId: self.holderMedisensId })}
+                                            >
+                                                Print Patient Card
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -156,22 +173,36 @@ export function PatientAccountSection({ patientId, patientName, staffRole, secti
                         <ul className="space-y-2.5">
                             {state.data.otherAccess.map((row) => (
                                 <li key={`${row.holderMedisensId}-${row.relationship}`}>
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-medium text-[var(--text)]">{row.holderName}</p>
-                                        {row.state !== 'active' && (
-                                            <Badge tone={STATE_BADGE[row.state].tone}>{STATE_BADGE[row.state].label}</Badge>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium text-[var(--text)]">{row.holderName}</p>
+                                                {row.state !== 'active' && (
+                                                    <Badge tone={STATE_BADGE[row.state].tone}>{STATE_BADGE[row.state].label}</Badge>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-[var(--text-secondary)]">
+                                                {RELATIONSHIP_LABEL[row.relationship]} · {SCOPE_LABEL[row.scope]}
+                                            </p>
+                                            {row.state === 'setup_pending' ? (
+                                                <p className="text-sm text-[var(--text-muted)]">Waiting for the account holder to finish setup.</p>
+                                            ) : (
+                                                accountStatusNote(row.holderStatus) && (
+                                                    <p className="text-sm text-[var(--amber-text)]">{accountStatusNote(row.holderStatus)}</p>
+                                                )
+                                            )}
+                                        </div>
+                                        {row.state === 'active' && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => setPrintCardFor({ holderName: row.holderName, medisensId: row.holderMedisensId })}
+                                            >
+                                                Print card
+                                            </Button>
                                         )}
                                     </div>
-                                    <p className="text-sm text-[var(--text-secondary)]">
-                                        {RELATIONSHIP_LABEL[row.relationship]} · {SCOPE_LABEL[row.scope]}
-                                    </p>
-                                    {row.state === 'setup_pending' ? (
-                                        <p className="text-sm text-[var(--text-muted)]">Waiting for the account holder to finish setup.</p>
-                                    ) : (
-                                        accountStatusNote(row.holderStatus) && (
-                                            <p className="text-sm text-[var(--amber-text)]">{accountStatusNote(row.holderStatus)}</p>
-                                        )
-                                    )}
                                 </li>
                             ))}
                             {state.data.pendingGuardians.map((pending) => (
@@ -198,6 +229,14 @@ export function PatientAccountSection({ patientId, patientName, staffRole, secti
                     pendingGuardian={state.status === 'ready' ? (state.data.pendingGuardians[0] ?? null) : null}
                     onClose={() => setShowActivateModal(false)}
                     onChanged={() => void load()}
+                />
+            )}
+
+            {printCardFor && (
+                <PrintPatientCardModal
+                    holderName={printCardFor.holderName}
+                    medisensId={printCardFor.medisensId}
+                    onClose={() => setPrintCardFor(null)}
                 />
             )}
         </div>
