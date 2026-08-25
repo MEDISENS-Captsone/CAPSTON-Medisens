@@ -3,11 +3,16 @@ import { createRoot } from 'react-dom/client';
 import { patientSupabase } from '../../lib/supabase/patientClient';
 import { getPatientPortalSession, signOutPatientPortal, type PatientPortalSession } from '../../lib/auth/patientPortal';
 import { fetchPreferences, updatePreferences } from '../../features/patient-portal/api';
+import { callPublicPatientFunction, extractErrorMessage } from '../../features/patient-portal/publicAuth';
 import { PortalShell } from '../../components/patient-portal/PortalShell';
+import { QrScan } from '../../components/patient-portal/QrScan';
+import { ActivationSetup } from '../../components/patient-portal/ActivationSetup';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Icon } from '../../components/shared/Icon';
+import { isValidMedisensId, normalizeMedisensId, parseMedisensIdFromFragment } from '../../lib/utils/qr';
+import { getRememberedMedisensId, setRememberedMedisensId, forgetRememberedMedisensId } from '../../lib/utils/rememberedMedisensId';
 import '../../styles/patient-portal.css';
 
 type ViewState =
@@ -21,6 +26,20 @@ const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
 const TEXT_SIZE_STORAGE_KEY = 'medisens-patient-text-size';
 const CONTRAST_STORAGE_KEY = 'medisens-patient-contrast';
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+
+// The shared GENERIC_AUTH_ERROR wording (supabase/functions/_shared/patientPortal.ts)
+// is written for activation/recovery contexts too ("MediSens ID, code, or
+// PIN"), which reads oddly on a screen that only ever asks for an ID and
+// a PIN. This remaps that one exact string to sign-in-specific copy --
+// patient-login's own soft-lock/hard-lock messages are distinct strings
+// and pass through untouched, so the server's non-disclosure behavior
+// (never revealing which part of the input was wrong) is unaffected.
+const SHARED_GENERIC_AUTH_ERROR = 'That MediSens ID, code, or PIN was not recognized. Please try again.';
+const SIGN_IN_GENERIC_ERROR = 'The MediSens ID or PIN was not recognized. Please try again.';
+
+function toSignInErrorCopy(message: string): string {
+    return message === SHARED_GENERIC_AUTH_ERROR ? SIGN_IN_GENERIC_ERROR : message;
+}
 
 function readStoredTextSize(): 'comfortable' | 'large' {
     try {
@@ -44,7 +63,22 @@ function PatientPortalApp() {
     const [highContrast, setHighContrast] = useState<boolean>(() => readStoredContrast());
     const [signInBusy, setSignInBusy] = useState(false);
     const [signInError, setSignInError] = useState<string | null>(null);
+    const [prefillMedisensId, setPrefillMedisensId] = useState<string | null>(null);
     const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Patient Card QR entry (task §7): a scanned card, or a QR opened
+    // directly, arrives as `#ms=MS-XXXX-XXXX` on this same page. Parsed
+    // and validated with the existing safe parser, used only to prefill
+    // the MediSens ID field -- never to authenticate -- and the fragment
+    // is stripped from the address bar immediately via replaceState so it
+    // never lingers, gets bookmarked, or reappears after a refresh.
+    useEffect(() => {
+        const fromFragment = parseMedisensIdFromFragment(window.location.hash);
+        if (fromFragment) {
+            setPrefillMedisensId(fromFragment);
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    }, []);
 
     const loadSession = useCallback(async () => {
         setView({ status: 'loading' });
@@ -170,42 +204,84 @@ function PatientPortalApp() {
         }
     }, [highContrast, view]);
 
+    // Establishes the Patient Supabase session from a {access_token,
+    // refresh_token} pair already minted server-side by patient-login or
+    // patient-activation-complete -- this function never derives or
+    // guesses a session itself, and never touches the staff Supabase
+    // client (task §2, §10).
+    const establishSession = useCallback(async (accessToken: string, refreshToken: string): Promise<boolean> => {
+        const { error } = await patientSupabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        return !error;
+    }, []);
+
     const handleSignIn = useCallback(async (medisensId: string, pin: string) => {
         setSignInBusy(true);
         setSignInError(null);
         try {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-            const response = await fetch(`${supabaseUrl}/functions/v1/patient-login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', apikey: anonKey },
-                body: JSON.stringify({ medisensId, pin }),
-            });
-            const body = await response.json().catch(() => null);
-            const accessToken = body?.session?.access_token;
-            const refreshToken = body?.session?.refresh_token;
-            if (!response.ok || !accessToken || !refreshToken) {
-                setSignInError('That MediSens ID or PIN was not recognized. Please try again.');
+            // Uses the existing patient-login Edge Function exclusively --
+            // never signInWithPassword() directly, since the D-2 guarantee
+            // depends on patient-login deriving the real Auth password
+            // from the PIN server-side (docs/patientAccount.md §5.4).
+            const result = await callPublicPatientFunction<{ session: { access_token: string; refresh_token: string } }>('patient-login', { medisensId, pin });
+            const accessToken = result.data && 'session' in result.data ? result.data.session?.access_token : undefined;
+            const refreshToken = result.data && 'session' in result.data ? result.data.session?.refresh_token : undefined;
+            if (!result.ok || !accessToken || !refreshToken) {
+                // Surfaces the server's own crafted message verbatim
+                // (generic-invalid, soft-lock, or hard-lock wording) --
+                // never overwritten with a single hardcoded string, and
+                // never a raw Supabase/HTTP error. The one exception is
+                // GENERIC_AUTH_ERROR's exact wording, remapped to
+                // sign-in-specific copy below -- patient-login itself is
+                // untouched, and every distinct message it can return
+                // (soft-lock, hard-lock) still passes through unchanged,
+                // preserving the non-disclosure behavior (this remap
+                // still reveals nothing that the original text didn't).
+                setSignInError(toSignInErrorCopy(extractErrorMessage(result.data)));
                 return;
             }
-            const { error } = await patientSupabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-            if (error) {
+            const ok = await establishSession(accessToken, refreshToken);
+            if (!ok) {
                 setSignInError('Something went wrong signing you in. Please try again.');
                 return;
             }
+            setRememberedMedisensId(medisensId);
             await loadSession();
         } catch {
             setSignInError('Something went wrong signing you in. Please try again.');
         } finally {
             setSignInBusy(false);
         }
-    }, [loadSession]);
+    }, [establishSession, loadSession]);
+
+    // Fired by ActivationSetup once patient-activation-complete succeeds.
+    // If the backend's own post-activation sign-in already returned a
+    // session, that session is used as-is (task §14: "if automatic login
+    // ... is already safely supported, use it" -- never an invented
+    // shortcut). Otherwise the patient lands back on the normal sign-in
+    // screen with their new MediSens ID prefilled and a success banner.
+    const handleActivated = useCallback(async (session: { access_token: string; refresh_token: string } | null, medisensId: string) => {
+        setPrefillMedisensId(medisensId);
+        if (session) {
+            const ok = await establishSession(session.access_token, session.refresh_token);
+            if (ok) {
+                await loadSession();
+                return;
+            }
+        }
+        setView({ status: 'signed-out' });
+    }, [establishSession, loadSession]);
 
     return (
         <div data-portal data-text-size={textSize} data-contrast={highContrast ? 'high' : undefined}>
             {view.status === 'loading' && <LoadingShell />}
             {view.status === 'signed-out' && (
-                <SignInShell busy={signInBusy} error={signInError} onSignIn={handleSignIn} />
+                <PatientFrontDoor
+                    busy={signInBusy}
+                    error={signInError}
+                    prefillMedisensId={prefillMedisensId}
+                    onSignIn={handleSignIn}
+                    onActivated={(session, medisensId) => void handleActivated(session, medisensId)}
+                />
             )}
             {view.status === 'error' && <ErrorShell message={view.message} onRetry={() => void loadSession()} />}
             {view.status === 'empty' && (
@@ -260,63 +336,159 @@ function EmptyAccountShell({ account, onSignOut }: { account: PatientPortalSessi
     );
 }
 
-interface SignInShellProps {
+interface PatientFrontDoorProps {
     busy: boolean;
     error: string | null;
+    /** A MediSens ID to prefill -- from a scanned/opened QR fragment, or
+     * from a just-completed activation. Never a remembered PIN or name. */
+    prefillMedisensId: string | null;
     onSignIn: (medisensId: string, pin: string) => void;
+    onActivated: (session: { access_token: string; refresh_token: string } | null, medisensId: string) => void;
 }
 
-// Minimal sign-in so the authenticated shell above is reachable and
-// testable (§17 Phase 4 gate: "Shell renders for a Phase-3 test account").
-// The full activation / OTP / recovery UX from §5.2-§5.5 is not built in
-// this phase -- only patient-login is wired up here.
-function SignInShell({ busy, error, onSignIn }: SignInShellProps) {
+type FrontDoorView = 'login' | 'scan' | 'activate';
+
+/** Patient Account Phase 9B Step 6 -- the unauthenticated Patient Portal
+ * front door: sign in (manual entry or QR-assisted), or first-time
+ * activation. Every fact this screen shows or accepts comes from the
+ * existing patient-login contract or the caller's own state -- it
+ * performs no account lookup of its own (task §5: format validation
+ * only, never a name/DOB/phone search). */
+function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivated }: PatientFrontDoorProps) {
+    const [view, setView] = useState<FrontDoorView>('login');
     const [medisensId, setMedisensId] = useState('');
     const [pin, setPin] = useState('');
+    const [formatError, setFormatError] = useState<string | null>(null);
+    const [remember, setRemember] = useState(false);
+    const pinInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSubmit = (event: React.FormEvent) => {
+    // Prefill precedence: a freshly scanned/opened QR or a just-completed
+    // activation (both passed down as `prefillMedisensId`) always wins
+    // over a remembered ID from a previous visit -- it reflects the
+    // patient's most recent, explicit action.
+    useEffect(() => {
+        if (prefillMedisensId) {
+            setMedisensId(prefillMedisensId);
+            return;
+        }
+        const remembered = getRememberedMedisensId();
+        if (remembered) {
+            setMedisensId(remembered);
+            setRemember(true);
+        }
+    }, [prefillMedisensId]);
+
+    function handleScanned(scannedMedisensId: string) {
+        setMedisensId(scannedMedisensId);
+        setView('login');
+        setFormatError(null);
+        // The QR only ever supplies the ID -- a PIN is still required
+        // (task §7, §8). Focusing the PIN field makes that requirement
+        // obvious without another screen of explanatory text.
+        requestAnimationFrame(() => pinInputRef.current?.focus());
+    }
+
+    function handleRememberChange(checked: boolean) {
+        setRemember(checked);
+        if (checked && isValidMedisensId(medisensId)) {
+            setRememberedMedisensId(medisensId);
+        } else if (!checked) {
+            forgetRememberedMedisensId();
+        }
+    }
+
+    function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
-        if (!medisensId.trim() || !pin) return;
-        onSignIn(medisensId.trim(), pin);
-    };
+        const normalized = normalizeMedisensId(medisensId);
+        if (!isValidMedisensId(normalized)) {
+            setFormatError('Please enter a valid MediSens ID, e.g. MS-AB23-CD45.');
+            return;
+        }
+        if (!/^\d{6}$/.test(pin)) {
+            setFormatError('Your PIN is 6 digits.');
+            return;
+        }
+        setFormatError(null);
+        if (remember) setRememberedMedisensId(normalized);
+        onSignIn(normalized, pin);
+    }
+
+    if (view === 'activate') {
+        return <ActivationSetup onActivated={onActivated} onCancel={() => setView('login')} />;
+    }
 
     return (
         <div className="flex min-h-[100dvh] items-center justify-center p-6">
-            <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-surface)]">
+            <div className="w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-surface)]">
                 <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">MediSens Patient Portal</h1>
-                <p className="mb-5 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">Sign in with your MediSens ID and PIN.</p>
+                <p className="mb-5 text-base text-[var(--text-secondary)]">View your health information from Malvar RHU.</p>
 
-                <label className="mb-3 block">
-                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">MediSens ID</span>
-                    <Input
-                        value={medisensId}
-                        onChange={(e) => setMedisensId(e.target.value)}
-                        placeholder="MS-XXXX-XXXX"
-                        autoComplete="username"
-                        autoCapitalize="characters"
-                    />
-                </label>
-
-                <label className="mb-4 block">
-                    <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">PIN</span>
-                    <Input
-                        type="password"
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value)}
-                        placeholder="Enter your PIN"
-                        autoComplete="current-password"
-                        inputMode="numeric"
-                    />
-                </label>
-
-                {error && (
-                    <p role="alert" className="mb-4 rounded-[var(--radius-control)] border border-[var(--coral-border)] bg-[var(--coral-tint)] px-3 py-2 text-[length:var(--type-supporting-size)] text-[var(--coral)]">
-                        {error}
-                    </p>
+                {view === 'scan' ? (
+                    <QrScan onDetected={handleScanned} onManualEntry={() => setView('login')} />
+                ) : (
+                    <Button type="button" variant="outline" className="mb-4 w-full min-h-11" onClick={() => setView('scan')}>
+                        Scan Patient Card
+                    </Button>
                 )}
 
-                <Button type="submit" className="w-full" isLoading={busy}>Sign in</Button>
-            </form>
+                {view === 'login' && (
+                    <form onSubmit={handleSubmit}>
+                        <label className="mb-3 block">
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">MediSens ID</span>
+                            <Input
+                                value={medisensId}
+                                onChange={(e) => setMedisensId(e.target.value)}
+                                placeholder="MS-AB23-CD45"
+                                autoComplete="username"
+                                autoCapitalize="characters"
+                            />
+                        </label>
+
+                        <label className="mb-2 block">
+                            <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">6-digit PIN</span>
+                            <Input
+                                ref={pinInputRef}
+                                type="password"
+                                value={pin}
+                                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="Enter your PIN"
+                                autoComplete="current-password"
+                                inputMode="numeric"
+                                maxLength={6}
+                            />
+                        </label>
+
+                        <label className="mb-4 flex min-h-11 items-center gap-2 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
+                            <input
+                                type="checkbox"
+                                checked={remember}
+                                onChange={(e) => handleRememberChange(e.target.checked)}
+                                className="h-5 w-5"
+                            />
+                            <span>Remember my MediSens ID on this device</span>
+                        </label>
+
+                        {(formatError || error) && (
+                            <p role="alert" className="mb-4 rounded-[var(--radius-control)] border border-[var(--coral-border)] bg-[var(--coral-tint)] px-3 py-2 text-[length:var(--type-supporting-size)] text-[var(--coral)]">
+                                {formatError ?? error}
+                            </p>
+                        )}
+
+                        <Button type="submit" className="w-full" isLoading={busy}>Sign in</Button>
+                    </form>
+                )}
+
+                <div className="mt-5 border-t border-[var(--border)] pt-4 text-center">
+                    <button
+                        type="button"
+                        onClick={() => setView('activate')}
+                        className="min-h-11 font-semibold text-[var(--brand-active)] underline"
+                    >
+                        Set up my account
+                    </button>
+                    <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">Use the activation code given to you by Malvar RHU.</p>
+                </div>
+            </div>
         </div>
     );
 }

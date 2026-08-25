@@ -236,6 +236,36 @@
             line-height: 1.55;
         }
 
+        .patient-portal-entry {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: var(--type-supporting-size);
+        }
+
+        .patient-portal-entry .patient-portal-copy {
+            color: var(--text-secondary);
+        }
+
+        .patient-portal-entry .patient-portal-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            font-weight: var(--font-weight-bold);
+            color: var(--brand-active);
+            text-decoration: none;
+        }
+
+        .patient-portal-entry .patient-portal-link:hover,
+        .patient-portal-entry .patient-portal-link:focus-visible {
+            text-decoration: underline;
+        }
+
         .legal-footer {
             margin-top: 14px;
             color: var(--text-muted);
@@ -439,6 +469,10 @@
                 </button>
                 <div class="error-msg" id="errorMsg" role="alert"></div>
             </form>
+            <div class="patient-portal-entry">
+                <span class="patient-portal-copy">Are you a patient?</span>
+                <a class="patient-portal-link" href="./patient.html">Open Patient Portal</a>
+            </div>
             <p class="privacy-notice">By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
             <footer class="legal-footer" aria-label="Legal information">
                 <div class="legal-links">

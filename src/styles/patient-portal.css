@@ -97,7 +97,7 @@
     display: flex;
     min-height: 44px;
     flex: 1 1 auto;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-2);
     min-width: 0;
@@ -122,10 +122,13 @@
     cursor: default;
 }
 
+.portal-context-kicker {
+    font-size: var(--type-caption-size);
+    color: var(--text-secondary);
+}
+
 .portal-context-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     font-weight: var(--font-weight-semibold);
     color: var(--text);
 }
