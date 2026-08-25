@@ -128,6 +128,10 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
 
     // Guardian (new) form state
     const [guardianName, setGuardianName] = useState('');
+    // Optional -- lets the guardian use self-service "Forgot PIN?" later
+    // even if they have no MediSens Patient record of their own (Step 7
+    // recovery-contract correction). Never the patient's number.
+    const [guardianContact, setGuardianContact] = useState('');
 
     // Caregiver (new) form state
     const [caregiverName, setCaregiverName] = useState('');
@@ -187,6 +191,7 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                 relationship: 'GUARDIAN',
                 purpose: 'ACTIVATION',
                 holderName: guardianName.trim(),
+                holderContactNumber: guardianContact.trim() || undefined,
             });
             setStep({
                 name: 'issued',
@@ -404,6 +409,12 @@ export function ActivatePatientAccountModal({ patientId, patientName, hasSelfAcc
                         This matches the patient's name. Confirm that this is the guardian's own legal name.
                     </p>
                 )}
+                <Input
+                    label="Guardian's contact number (optional)"
+                    hint="Lets the guardian recover their own PIN later without visiting the RHU, even if they have no Patient record of their own."
+                    value={guardianContact}
+                    onChange={(e) => setGuardianContact(e.target.value)}
+                />
                 <SummaryBlock
                     rows={[
                         ['Account for', guardianName.trim() || '—'],

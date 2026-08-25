@@ -16,13 +16,15 @@ interface VerifiedContext {
 interface ActivationCompleteResult {
     medisensId: string;
     session: { access_token: string; refresh_token: string } | null;
+    unavailable?: boolean;
+    message?: string;
 }
 
 type Step =
     | { name: 'code' }
     | { name: 'otp'; code: string }
     | { name: 'create-pin'; code: string; context: VerifiedContext }
-    | { name: 'done'; medisensId: string; autoSignedIn: boolean };
+    | { name: 'done'; medisensId: string; autoSignedIn: boolean; unavailableMessage?: string };
 
 const RELATIONSHIP_LABEL: Record<Relationship, string> = {
     SELF: 'Patient',
@@ -145,6 +147,8 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
             setConfirmPin('');
             if (result.data.session) {
                 onActivated(result.data.session, result.data.medisensId);
+            } else if (result.data.unavailable) {
+                moveToStep({ name: 'done', medisensId: result.data.medisensId, autoSignedIn: false, unavailableMessage: result.data.message });
             } else {
                 moveToStep({ name: 'done', medisensId: result.data.medisensId, autoSignedIn: false });
             }
@@ -278,7 +282,9 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                         </span>
                         <h1 className="mb-2 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Your MediSens Patient Account is ready.</h1>
                         <p className="mb-5 text-base text-[var(--text-secondary)]">
-                            You can now sign in with your MediSens ID <span className="font-mono font-semibold text-[var(--text)]">{step.medisensId}</span> and the PIN you just created.
+                            {step.unavailableMessage ?? (
+                                <>You can now sign in with your MediSens ID <span className="font-mono font-semibold text-[var(--text)]">{step.medisensId}</span> and the PIN you just created.</>
+                            )}
                         </p>
                         <Button className="w-full" onClick={onCancel}>Go to sign in</Button>
                     </div>

@@ -122,6 +122,14 @@ Deno.serve(async (req) => {
         identity_verified_at: new Date().toISOString(),
         identity_note: payload.identityNote,
         created_by: staff.userId,
+        // Step 7 correction: this is the caregiver's own verified number,
+        // collected in this same request -- persisted so self-service PIN
+        // recovery has a contact to send an OTP to. An account-only
+        // caregiver has no patient record, so without this the account
+        // would have no recovery path at all (docs/patientAccount.md
+        // Phase 9B Step 7). Still optional: recovery's own request step
+        // stays non-disclosing whether or not this is set.
+        recovery_contact_number: payload.contactNumber ?? null,
       }])
       .select("id")
       .single();

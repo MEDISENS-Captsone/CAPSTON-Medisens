@@ -39,6 +39,13 @@ interface IssuePayload {
   // for an account-only caregiver. Not used for SELF (the patient's own
   // name from `patients` is already the correct, authoritative value).
   holderName?: string;
+  // Step 7 correction: the guardian's own verified contact number,
+  // optionally staff-entered the same way holderName is -- never the
+  // patient's number. Lets a fresh GUARDIAN account use self-service PIN
+  // recovery even when the guardian has no SELF record of their own
+  // (docs/patientAccount.md Phase 9B Step 7). Never required: recovery
+  // simply has no fallback contact for this account if omitted.
+  holderContactNumber?: string;
 }
 
 function errorResponse(status: number, message = "Unable to issue the activation code. Please try again.") {
@@ -53,6 +60,7 @@ function validatePayload(value: unknown): IssuePayload {
   const purpose = body.purpose === "RECOVERY" ? "RECOVERY" : "ACTIVATION";
   const targetAccountId = typeof body.targetAccountId === "string" ? body.targetAccountId : undefined;
   const holderName = typeof body.holderName === "string" ? body.holderName.trim() : undefined;
+  const holderContactNumber = typeof body.holderContactNumber === "string" ? body.holderContactNumber.trim() : undefined;
 
   if (!Number.isFinite(patientId) || patientId <= 0) throw new Error("A valid patientId is required.");
   if (relationship !== "SELF" && relationship !== "GUARDIAN") throw new Error("relationship must be SELF or GUARDIAN.");
@@ -61,7 +69,7 @@ function validatePayload(value: unknown): IssuePayload {
     throw new Error("The guardian's full name is required to issue a guardian activation code.");
   }
 
-  return { patientId, relationship, purpose, targetAccountId, holderName };
+  return { patientId, relationship, purpose, targetAccountId, holderName, holderContactNumber };
 }
 
 Deno.serve(async (req) => {
@@ -152,6 +160,7 @@ Deno.serve(async (req) => {
         expires_at: expiresAt,
         issued_by: staff.userId,
         holder_name: payload.relationship === "GUARDIAN" ? payload.holderName : null,
+        holder_contact_number: payload.relationship === "GUARDIAN" ? (payload.holderContactNumber || null) : null,
       }])
       .select("id")
       .single();

@@ -7,6 +7,7 @@ import { callPublicPatientFunction, extractErrorMessage } from '../../features/p
 import { PortalShell } from '../../components/patient-portal/PortalShell';
 import { QrScan } from '../../components/patient-portal/QrScan';
 import { ActivationSetup } from '../../components/patient-portal/ActivationSetup';
+import { RecoverAccount } from '../../components/patient-portal/RecoverAccount';
 import { PatientFrontDoorShell } from '../../components/patient-portal/PatientFrontDoorShell';
 import { PatientMotionError } from '../../components/patient-portal/patientMotion';
 import { Button } from '../../components/ui/Button';
@@ -273,6 +274,22 @@ function PatientPortalApp() {
         setView({ status: 'signed-out' });
     }, [establishSession, loadSession]);
 
+    // Fired by RecoverAccount once patient-account-recover succeeds. Same
+    // rule as activation: use the backend's own returned session if
+    // present, otherwise fall back to the normal sign-in screen with the
+    // MediSens ID prefilled -- never an invented auto-login.
+    const handleRecovered = useCallback(async (session: { access_token: string; refresh_token: string } | null, medisensId: string) => {
+        setPrefillMedisensId(medisensId);
+        if (session) {
+            const ok = await establishSession(session.access_token, session.refresh_token);
+            if (ok) {
+                await loadSession();
+                return;
+            }
+        }
+        setView({ status: 'signed-out' });
+    }, [establishSession, loadSession]);
+
     return (
         <div data-portal data-text-size={textSize} data-contrast={highContrast ? 'high' : undefined}>
             {view.status === 'loading' && <LoadingShell />}
@@ -283,6 +300,7 @@ function PatientPortalApp() {
                     prefillMedisensId={prefillMedisensId}
                     onSignIn={handleSignIn}
                     onActivated={(session, medisensId) => void handleActivated(session, medisensId)}
+                    onRecovered={(session, medisensId) => void handleRecovered(session, medisensId)}
                 />
             )}
             {view.status === 'error' && <ErrorShell message={view.message} onRetry={() => void loadSession()} />}
@@ -348,9 +366,10 @@ interface PatientFrontDoorProps {
     prefillMedisensId: string | null;
     onSignIn: (medisensId: string, pin: string) => void;
     onActivated: (session: { access_token: string; refresh_token: string } | null, medisensId: string) => void;
+    onRecovered: (session: { access_token: string; refresh_token: string } | null, medisensId: string) => void;
 }
 
-type FrontDoorView = 'login' | 'scan' | 'activate';
+type FrontDoorView = 'login' | 'scan' | 'activate' | 'recover';
 
 /** Patient Account Phase 9B Step 6 -- the unauthenticated Patient Portal
  * front door: sign in (manual entry or QR-assisted), or first-time
@@ -358,7 +377,7 @@ type FrontDoorView = 'login' | 'scan' | 'activate';
  * existing patient-login contract or the caller's own state -- it
  * performs no account lookup of its own (task §5: format validation
  * only, never a name/DOB/phone search). */
-function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivated }: PatientFrontDoorProps) {
+function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivated, onRecovered }: PatientFrontDoorProps) {
     const [view, setView] = useState<FrontDoorView>('login');
     const [medisensId, setMedisensId] = useState('');
     const [pin, setPin] = useState('');
@@ -442,10 +461,12 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
     }
 
     return (
-        <PatientFrontDoorShell showBackToStaffLogin={view !== 'activate'}>
+        <PatientFrontDoorShell showBackToStaffLogin={view !== 'activate' && view !== 'recover'}>
             <div key={view} className={`patient-frontdoor-sheet-content ${hasChangedViewRef.current ? 'patient-state-enter' : 'patient-initial-enter'}`}>
                 {view === 'activate' ? (
                     <ActivationSetup onActivated={onActivated} onCancel={() => moveToView('login')} />
+                ) : view === 'recover' ? (
+                    <RecoverAccount onRecovered={onRecovered} onCancel={() => moveToView('login')} />
                 ) : (
                     <>
                 <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">MediSens Patient Portal</h1>
@@ -476,7 +497,7 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                             />
                         </label>
 
-                        <label className="mb-2 block">
+                        <label className="mb-1.5 block">
                             <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">6-digit PIN</span>
                             <Input
                                 ref={pinInputRef}
@@ -489,6 +510,18 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                                 maxLength={6}
                             />
                         </label>
+
+                        {/* Recovery of an existing account -- deliberately
+                            separate from "Set up my account" below (task
+                            §2): different workflow, different backend
+                            contract, never called "sign up". */}
+                        <button
+                            type="button"
+                            onClick={() => moveToView('recover')}
+                            className="patient-motion-link mb-4 min-h-11 text-[length:var(--type-supporting-size)] font-semibold text-[var(--brand-active)] underline"
+                        >
+                            Forgot PIN?
+                        </button>
 
                         <label className="mb-4 flex min-h-11 items-center gap-2 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
                             <input
