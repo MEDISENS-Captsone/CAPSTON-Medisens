@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { PatientFrontDoorShell } from './PatientFrontDoorShell';
 import { callPublicPatientFunction, extractErrorMessage } from '../../features/patient-portal/publicAuth';
 
 type Relationship = 'SELF' | 'GUARDIAN' | 'AUTHORIZED_CAREGIVER';
@@ -148,8 +149,8 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
     }
 
     return (
-        <div className="flex min-h-[100dvh] items-center justify-center p-6">
-            <div className="w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-surface)]">
+        <PatientFrontDoorShell>
+            <div className="patient-frontdoor-sheet-content">
                 {step.name === 'code' && (
                     <form onSubmit={(e) => void handleCodeSubmit(e)}>
                         <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">Set up my account</h1>
@@ -274,7 +275,7 @@ export function ActivationSetup({ onActivated, onCancel }: ActivationSetupProps)
                     </div>
                 )}
             </div>
-        </div>
+        </PatientFrontDoorShell>
     );
 }
 

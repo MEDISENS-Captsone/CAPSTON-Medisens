@@ -7,11 +7,12 @@ import { callPublicPatientFunction, extractErrorMessage } from '../../features/p
 import { PortalShell } from '../../components/patient-portal/PortalShell';
 import { QrScan } from '../../components/patient-portal/QrScan';
 import { ActivationSetup } from '../../components/patient-portal/ActivationSetup';
+import { PatientFrontDoorShell } from '../../components/patient-portal/PatientFrontDoorShell';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Icon } from '../../components/shared/Icon';
-import { isValidMedisensId, normalizeMedisensId, parseMedisensIdFromFragment } from '../../lib/utils/qr';
+import { formatMedisensIdInput, isValidMedisensId, normalizeMedisensId, parseMedisensIdFromFragment } from '../../lib/utils/qr';
 import { getRememberedMedisensId, setRememberedMedisensId, forgetRememberedMedisensId } from '../../lib/utils/rememberedMedisensId';
 import '../../styles/patient-portal.css';
 
@@ -361,6 +362,7 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
     const [formatError, setFormatError] = useState<string | null>(null);
     const [remember, setRemember] = useState(false);
     const pinInputRef = useRef<HTMLInputElement>(null);
+    const medisensIdInputRef = useRef<HTMLInputElement>(null);
 
     // Prefill precedence: a freshly scanned/opened QR or a just-completed
     // activation (both passed down as `prefillMedisensId`) always wins
@@ -397,6 +399,23 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
         }
     }
 
+    function handleMedisensIdChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const formatted = formatMedisensIdInput(event.target.value);
+        setMedisensId(formatted);
+        // Cursor-safe strategy: hyphens are inserted programmatically as
+        // the user types, so preserving the exact prior caret position
+        // through every possible edit (mid-string insert/delete) is not
+        // worth the complexity for an 8-character code typed mostly
+        // left-to-right. Moving the caret to the end after each change
+        // (the same approach common card/phone-number inputs use) keeps
+        // typing predictable instead of leaving it stranded before a
+        // hyphen that was just inserted ahead of it.
+        requestAnimationFrame(() => {
+            const el = medisensIdInputRef.current;
+            if (el) el.setSelectionRange(formatted.length, formatted.length);
+        });
+    }
+
     function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
         const normalized = normalizeMedisensId(medisensId);
@@ -418,10 +437,10 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
     }
 
     return (
-        <div className="flex min-h-[100dvh] items-center justify-center p-6">
-            <div className="w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-surface)]">
+        <PatientFrontDoorShell showBackToStaffLogin>
+            <div className="patient-frontdoor-sheet-content">
                 <h1 className="mb-1 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">MediSens Patient Portal</h1>
-                <p className="mb-5 text-base text-[var(--text-secondary)]">View your health information from Malvar RHU.</p>
+                <p className="mb-5 text-base text-[var(--text-secondary)]">Access your health information from Malvar RHU.</p>
 
                 {view === 'scan' ? (
                     <QrScan onDetected={handleScanned} onManualEntry={() => setView('login')} />
@@ -436,11 +455,15 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                         <label className="mb-3 block">
                             <span className="mb-1 block text-[length:var(--type-label-size)] font-semibold text-[var(--text)]">MediSens ID</span>
                             <Input
+                                ref={medisensIdInputRef}
                                 value={medisensId}
-                                onChange={(e) => setMedisensId(e.target.value)}
+                                onChange={handleMedisensIdChange}
                                 placeholder="MS-AB23-CD45"
                                 autoComplete="username"
                                 autoCapitalize="characters"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                maxLength={13}
                             />
                         </label>
 
@@ -489,7 +512,7 @@ function PatientFrontDoor({ busy, error, prefillMedisensId, onSignIn, onActivate
                     <p className="mt-1 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">Use the activation code given to you by Malvar RHU.</p>
                 </div>
             </div>
-        </div>
+        </PatientFrontDoorShell>
     );
 }
 

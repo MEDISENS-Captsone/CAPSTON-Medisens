@@ -73,6 +73,363 @@
     }
 }
 
+/* Unauthenticated front door (Step 6 polish, responsive-architecture
+   revision).
+   - Phone (<640px): stacked hero-over-sheet, full-bleed, page scrolls.
+   - Tablet (640-1023px): the same stacked composition, just wider and
+     more generously spaced -- never squeezed, never split.
+   - Desktop (>=1024px): a real two-panel layout -- a navy brand panel
+     (~42%) beside a white interaction panel (~58%), bounded to a sane
+     max-width so it never becomes an empty phone mockup adrift in a
+     huge viewport, and never a stretched full-width form. */
+
+.patient-frontdoor-page {
+    position: relative;
+    display: flex;
+    min-height: 100vh;
+    min-height: 100dvh;
+    justify-content: center;
+    /* flex-start, not the default stretch: the panel's own min-height
+       establishes the initial full-screen size, but on a tall
+       activation flow its content must be free to grow taller than the
+       viewport and let the page scroll -- stretch would instead force
+       the panel to exactly 100dvh and clip that overflow. */
+    align-items: flex-start;
+    overflow-x: hidden;
+    background: var(--bg);
+}
+
+/* Login Page 3.png as the *page* background -- behind the whole Patient
+   Portal container, never inside the hero or the card. Fixed so it
+   doesn't scroll away on a tall activation flow, with a flat (no
+   gradient) tint over it so the margin around the container reads as a
+   calm, institutional blue-gray rather than a loud photo. The container
+   itself (.patient-frontdoor-panel) paints its own solid navy/white
+   surfaces on top and stays fully readable regardless of what is behind it. */
+.patient-frontdoor-page-photo {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center 35%;
+    pointer-events: none;
+}
+
+.patient-frontdoor-page-tint {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: var(--brand-soft-surface);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.patient-frontdoor-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: 100%;
+    max-width: 480px;
+    /* Root cause of the "hospital image as a bottom strip" bug: this had
+       no min-height, so on a short screen (e.g. the activation-code
+       step) the panel became shorter than the viewport and the page's
+       own fixed background photo/tint showed through below it, reading
+       as an unrelated footer section. Restored here -- but unlike two
+       corrections ago, it is the PANEL that gets the min-height, not the
+       sheet, and neither the hero nor the sheet has flex-grow. Any
+       leftover space (short content on a tall viewport) therefore simply
+       renders as the panel's own plain white background *after* the
+       sheet -- visually identical to more sheet, never the image -- while
+       the sheet's actual content stays exactly where normal block flow
+       puts it (no stretching, no distribution, no `justify-content`). */
+    min-height: 100vh;
+    min-height: 100dvh;
+    flex-direction: column;
+    overflow: visible;
+    background: var(--surface);
+}
+
+@media (min-width: 640px) {
+    .patient-frontdoor-panel {
+        max-width: 640px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-page {
+        align-items: center;
+        padding: 2.5rem 1.5rem;
+    }
+
+    .patient-frontdoor-panel {
+        flex-direction: row;
+        max-width: 1080px;
+        min-height: 0;
+        overflow: hidden;
+        border-radius: 28px;
+        box-shadow: var(--shadow-lg);
+    }
+}
+
+/* Hero: navy brand field. Phone/tablet: occupies the upper portion,
+   sized by its own content (logo + back link), not a viewport-height
+   fraction. Desktop: becomes the left ~42% column, stretched to match
+   the interaction panel's height (flex row default align-items:stretch),
+   with its content vertically distributed top (back link) to bottom
+   (system identity). */
+.patient-frontdoor-hero {
+    position: relative;
+    overflow: hidden;
+    background: var(--brand-active);
+    /* Bottom padding controls how much of the hero stays visible before
+       the sheet rises into it -- increased slightly (was 3rem) so the
+       white sheet begins a little lower and the page reads as more
+       vertically balanced, without pinning the hero to a fixed/viewport
+       height (task: "let the page grow and scroll naturally"). */
+    padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-4) 4.25rem;
+}
+
+@media (min-width: 640px) {
+    .patient-frontdoor-hero {
+        padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-6) 4.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-hero {
+        flex: 0 0 42%;
+        display: flex;
+        flex-direction: column;
+        padding: 2.5rem;
+    }
+}
+
+/* Purely decorative, MediSens-mark-derived fragments -- single flat
+   fills (no gradients), cropped by the hero's own overflow:hidden,
+   never exposed to assistive tech, never interactive. Each is one
+   "petal" of the actual MediSens mark (src/assets/MEDISENS Logo.png --
+   four rounded-square arms around a shared center, each arm rounded on
+   three corners and squared on the one facing the center); oversized and
+   cropped at the hero edges for depth, per the brief. */
+.patient-frontdoor-motif {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: 42% 42% 42% 8%;
+}
+
+.patient-frontdoor-motif-a {
+    top: -90px;
+    right: -60px;
+    width: 260px;
+    height: 260px;
+    background: #FFFFFF;
+    opacity: 0.07;
+    transform: rotate(-8deg);
+}
+
+.patient-frontdoor-motif-b {
+    bottom: -120px;
+    left: -70px;
+    width: 300px;
+    height: 300px;
+    background: var(--brand-primary);
+    opacity: 0.55;
+    transform: rotate(164deg);
+}
+
+.patient-frontdoor-motif-c {
+    top: 20%;
+    right: 12%;
+    width: 110px;
+    height: 110px;
+    background: #FFFFFF;
+    opacity: 0.05;
+    transform: rotate(-30deg);
+}
+
+/* Mobile: keep the composition clean rather than forcing every fragment
+   to stay visible. `-b` is anchored to the hero's bottom-left corner --
+   exactly where the white sheet rises into the hero -- and at full size
+   it visually collided with that seam. Hidden on small screens; only the
+   small, subtle top-right fragment remains, safely clear of the sheet
+   transition. */
+@media (max-width: 640px) {
+    .patient-frontdoor-motif-b,
+    .patient-frontdoor-motif-c {
+        display: none;
+    }
+
+    .patient-frontdoor-motif-a {
+        top: -70px;
+        right: -50px;
+        width: 170px;
+        height: 170px;
+        opacity: 0.06;
+    }
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-motif-a {
+        width: 340px;
+        height: 340px;
+    }
+
+    .patient-frontdoor-motif-b {
+        width: 380px;
+        height: 380px;
+    }
+}
+
+.patient-frontdoor-back-link {
+    position: relative;
+    z-index: 3;
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-control);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-medium);
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+}
+
+.patient-frontdoor-back-link:hover,
+.patient-frontdoor-back-link:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+}
+
+.patient-frontdoor-back-link:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
+}
+
+/* Vertical layout inside the hero: back link at top, brand centered in
+   the remaining space, system identity (desktop only) pinned to the
+   bottom -- the flex-grow spacers below do this without magic numbers. */
+.patient-frontdoor-hero-spacer {
+    flex: 1 1 auto;
+}
+
+.patient-frontdoor-hero-brand {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    margin-top: 1.25rem;
+}
+
+.patient-frontdoor-hero-brand img {
+    /* Slightly larger than before (was 40px) so the logo reads more
+       clearly as the Patient Portal's identity mark, without becoming
+       the dominant element in the hero. */
+    height: 48px;
+    width: auto;
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-hero-brand {
+        margin-top: 0;
+        justify-content: flex-start;
+    }
+
+    .patient-frontdoor-hero-brand img {
+        height: 56px;
+    }
+}
+
+/* System identity text -- desktop only (task §3): the phone/tablet hero
+   already implies identity via the sheet's own heading just below it, so
+   repeating it there would be redundant; the desktop hero is a whole
+   separate column with room to state it plainly. */
+.patient-frontdoor-hero-identity {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-hero-identity {
+        position: relative;
+        z-index: 3;
+        display: block;
+        color: #FFFFFF;
+    }
+
+    .patient-frontdoor-hero-identity .brand-name {
+        font-size: var(--type-page-title-size);
+        font-weight: var(--font-weight-bold);
+    }
+
+    .patient-frontdoor-hero-identity .brand-tagline {
+        margin-top: 0.25rem;
+        color: rgba(255, 255, 255, 0.75);
+        font-size: var(--type-supporting-size);
+    }
+}
+
+/* White content sheet -- phone/tablet: rises into the hero via a
+   negative margin and large rounded top corners; this IS the primary
+   content container, never a card floating inside another card. Desktop:
+   becomes the right ~58% column, no rise/overlap needed since the hero
+   is beside it, not above it.
+
+   Mobile/tablet sizing (Step 6 final correction): purely content-driven.
+   No `flex: 1 1 auto` stretch and no `justify-content` distribution --
+   both were tried and both fought the actual goal, forcing the sheet to
+   either fill the leftover viewport (leaving dead space below short
+   content) or collect that leftover space above it (pushing short
+   content down inside an artificially tall box). The sheet is a normal
+   block here: its height is simply its own padding + content, for every
+   screen -- sign in, scan, or any activation step. A short screen is
+   shorter; a tall one (an open camera) grows and the page scrolls to it.
+   Bottom padding alone (not viewport math) is what gives the sheet its
+   "sensible amount of room after the last element" feeling. */
+.patient-frontdoor-sheet {
+    position: relative;
+    z-index: 1;
+    margin-top: -32px;
+    border-radius: 28px 28px 0 0;
+    background: var(--surface);
+    padding: var(--space-6) 1.25rem calc(2.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+    .patient-frontdoor-sheet {
+        padding: 2rem 2rem calc(3rem + env(safe-area-inset-bottom));
+    }
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-sheet {
+        display: flex;
+        flex: 0 0 58%;
+        flex-direction: row;
+        justify-content: flex-start;
+        margin-top: 0;
+        border-radius: 0;
+        align-items: center;
+        padding: 3rem 3rem;
+    }
+}
+
+/* Inputs/buttons stay comfortably narrow even when the sheet itself is
+   wider (tablet/desktop) -- the sheet is the container, this is just a
+   reading-width clamp for its form content. */
+.patient-frontdoor-sheet-content {
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+}
+
+@media (min-width: 1024px) {
+    .patient-frontdoor-sheet-content {
+        max-width: 420px;
+        margin-inline: 0;
+    }
+}
+
 /* Record context bar -- sticky, always visible (§6.2) */
 
 .portal-context-bar {
