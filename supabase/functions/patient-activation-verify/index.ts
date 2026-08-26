@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     const { data: activation, error: activationError } = await adminClient
       .from("patient_activation_codes")
-      .select("id, patient_id, relationship, target_account_id, purpose, expires_at, consumed_at")
+      .select("id, patient_id, relationship, target_account_id, purpose, expires_at, consumed_at, holder_name")
       .eq("code_hash", codeHash)
       .maybeSingle();
 
@@ -77,15 +77,48 @@ Deno.serve(async (req) => {
 
     const { data: patient } = await adminClient
       .from("patients")
-      .select("contactNumber")
+      .select("contactNumber, firstName, lastName")
       .eq("id", activation.patient_id)
       .maybeSingle();
+
+    // Step 6 correction: the activation UI needs to show the account
+    // holder's own name separately from whose health record the
+    // activation grants access to (docs/patientAccount.md §17 Phase 9B
+    // Step 6 task §12) -- patient-activation-verify previously returned
+    // only {verified, otpRequired}, with no way for the client to
+    // display this distinction without guessing. This adds three
+    // display-only fields, never a secret/UUID/hash: `relationship`
+    // (already public knowledge to whoever holds the physical code --
+    // it was printed on the Step 5 activation slip), `holderName`
+    // (target_account_id's own display_name when this code updates an
+    // existing account -- account-only caregiver PIN setup or a
+    // recovery code; the GUARDIAN activation code's own holder_name
+    // column for a fresh guardian activation; the patient's own name for
+    // a fresh SELF activation), and `accessPatientName` (the patient
+    // record's display name, so a GUARDIAN/CAREGIVER screen can say
+    // "Access to: <name>'s health record" -- omitted for SELF, where
+    // holder and accessed record are the same person).
+    let holderName: string | null = null;
+    if (activation.target_account_id) {
+      const { data: targetAccount } = await adminClient
+        .from("patient_accounts")
+        .select("display_name")
+        .eq("id", activation.target_account_id)
+        .maybeSingle();
+      holderName = targetAccount?.display_name ?? null;
+    } else if (activation.relationship === "GUARDIAN") {
+      holderName = activation.holder_name ?? null;
+    } else {
+      holderName = patient ? [patient.firstName, patient.lastName].filter(Boolean).join(" ") || null : null;
+    }
+    const accessPatientName = patient ? [patient.firstName, patient.lastName].filter(Boolean).join(" ") || null : null;
+    const verifiedContext = { relationship: activation.relationship, holderName, accessPatientName };
 
     const hasContactNumber = Boolean(patient?.contactNumber);
 
     if (!hasContactNumber) {
       // No number on file: the code alone stands (it was handed over in person).
-      return jsonResponse({ verified: true, otpRequired: false });
+      return jsonResponse({ verified: true, otpRequired: false, ...verifiedContext });
     }
 
     const otpPepper = requireEnv("PATIENT_OTP_PEPPER");
@@ -131,7 +164,7 @@ Deno.serve(async (req) => {
 
     await adminClient.from("patient_otp_challenges").update({ consumed_at: new Date().toISOString() }).eq("id", challenge.id);
 
-    return jsonResponse({ verified: true, otpRequired: false });
+    return jsonResponse({ verified: true, otpRequired: false, ...verifiedContext });
   } catch (err) {
     console.error("[MEDISENS patient-activation-verify] unexpected", { message: err instanceof Error ? err.message : String(err) });
     return errorResponse(500);

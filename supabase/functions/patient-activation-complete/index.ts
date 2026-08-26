@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
     const { data: activation, error: activationError } = await adminClient
       .from("patient_activation_codes")
-      .select("id, patient_id, relationship, target_account_id, purpose, expires_at, consumed_at, holder_name")
+      .select("id, patient_id, relationship, target_account_id, purpose, expires_at, consumed_at, holder_name, holder_contact_number")
       .eq("code_hash", codeHash)
       .maybeSingle();
 
@@ -131,9 +131,25 @@ Deno.serve(async (req) => {
         return errorResponse(500);
       }
 
+      // Step 7 security correction: this branch is also reachable by a
+      // staff-mediated RECOVERY code (target_account_id set via
+      // patient-activation-issue's purpose="RECOVERY") against an account
+      // an RHU staff member had administratively disabled. Unconditionally
+      // setting status: "active" here would let a credential reset silently
+      // undo that disable. An account-only caregiver's first-time PIN setup
+      // (the other caller of this branch) is never disabled at this point
+      // (patient-caregiver-activation-issue always creates it "active"),
+      // so preserving an existing "disabled" status changes nothing for
+      // that legitimate case -- it only closes the recovery-code path.
+      const finalStatus = account.status === "disabled" ? "disabled" : "active";
       const { error: updateAccountError } = await adminClient
         .from("patient_accounts")
-        .update({ pin_updated_at: new Date().toISOString(), failed_attempts: 0, locked_until: null, status: "active" })
+        .update({
+          pin_updated_at: new Date().toISOString(),
+          failed_attempts: 0,
+          locked_until: null,
+          status: finalStatus,
+        })
         .eq("id", account.id);
       if (updateAccountError) {
         // The Auth password has already changed at this point. Leaving
@@ -160,6 +176,24 @@ Deno.serve(async (req) => {
           : "Account-only caregiver PIN setup completed.",
         metadata: { account_id: account.id },
       });
+
+      // Step 7 hardening: a credential reset must never hand back a usable
+      // Patient Portal session for an account whose status remains
+      // "disabled" -- that would let the client establish an
+      // authenticated-but-empty session even though patient_portal_my_
+      // records() would show nothing, which is a confusing/misleading UX
+      // and an unnecessary exposure of internal status semantics. Skip the
+      // sign-in call entirely rather than sign in and then discard the
+      // token, and return a patient-safe, non-internal completion result
+      // the frontend can render directly.
+      if (finalStatus === "disabled") {
+        return jsonResponse({
+          medisensId: account.medisens_id,
+          session: null,
+          unavailable: true,
+          message: "Your PIN has been updated, but this account is currently unavailable. Please contact Malvar RHU for assistance.",
+        });
+      }
 
       const { data: session, error: signInError } = await anonClient.auth.signInWithPassword({
         email: `${account.medisens_id.toLowerCase()}@patient.medisens.local`,
@@ -226,6 +260,11 @@ Deno.serve(async (req) => {
         status: "active",
         pin_updated_at: new Date().toISOString(),
         created_by: issuedBy,
+        // Step 7 correction: the guardian's own contact number, when staff
+        // provided one at issue time -- never the patient's number, and
+        // never set for a fresh SELF account (SELF's recovery contact is
+        // always resolved through its own patient record instead).
+        recovery_contact_number: activation.relationship === "GUARDIAN" ? (activation.holder_contact_number || null) : null,
       }])
       .select("id")
       .single();

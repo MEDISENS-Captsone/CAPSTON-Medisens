@@ -4,6 +4,7 @@ import { SkeletonText } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { fetchLabResultDetail, type PortalLabResultDetail } from '../../features/patient-portal/api';
 import { formatLongDate, labGroupLabel, labTestLabel, labTestValueText } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface LabResultDetailProps {
     patientId: number;
@@ -21,6 +22,7 @@ type LoadState =
  * color-coded verdicts, no arrows -- a reference range is shown only when
  * the RPC itself attached one (an RHU-approved row existed). */
 export function LabResultDetail({ patientId, resultToken, onBack }: LabResultDetailProps) {
+    const { t } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
 
     const load = useCallback(async () => {
@@ -41,13 +43,13 @@ export function LabResultDetail({ patientId, resultToken, onBack }: LabResultDet
         <div>
             <button type="button" onClick={onBack} className="portal-back-link">
                 <Icon name="chevron-right" className="h-4 w-4 rotate-180" />
-                <span>Back to lab results</span>
+                <span>{t('labs.backToResults')}</span>
             </button>
 
             {state.status === 'loading' && <SkeletonText lines={6} className="mt-4" />}
             {state.status === 'error' && (
                 <div className="mt-4">
-                    <SectionError onRetry={() => void load()} message="We could not load this result right now." />
+                    <SectionError onRetry={() => void load()} message={t('labs.loadDetailError')} />
                 </div>
             )}
             {state.status === 'ready' && <LabResultDetailContent detail={state.detail} />}
@@ -56,7 +58,8 @@ export function LabResultDetail({ patientId, resultToken, onBack }: LabResultDet
 }
 
 function LabResultDetailContent({ detail }: { detail: PortalLabResultDetail }) {
-    const date = formatLongDate(detail.testDate);
+    const { t, language } = useT();
+    const date = formatLongDate(detail.testDate, language);
 
     return (
         <div className="mt-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -64,7 +67,7 @@ function LabResultDetailContent({ detail }: { detail: PortalLabResultDetail }) {
             {detail.performedBy && <p className="mt-0.5 text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">{detail.performedBy}</p>}
 
             {detail.groups.length === 0 ? (
-                <p className="mt-4 text-[var(--text)]">Result available — please ask the RHU for a copy.</p>
+                <p className="mt-4 text-[var(--text)]">{t('labs.resultAvailableAskRhu')}</p>
             ) : (
                 <div className="mt-4 space-y-4">
                     {detail.groups.map((group) => (
@@ -79,7 +82,7 @@ function LabResultDetailContent({ detail }: { detail: PortalLabResultDetail }) {
                                             <dt className="text-[var(--text)]">{labTestLabel(test.testKey)}</dt>
                                             <dd className="text-right">
                                                 <span className="font-semibold text-[var(--text)]">{valueText}{test.unit ? ` ${test.unit}` : ''}</span>
-                                                {range && <span className="ml-2 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">Reference range {range}</span>}
+                                                {range && <span className="ml-2 text-[length:var(--type-caption-size)] text-[var(--text-muted)]">{t('labs.referenceRange', { range })}</span>}
                                             </dd>
                                         </div>
                                     );
@@ -91,7 +94,7 @@ function LabResultDetailContent({ detail }: { detail: PortalLabResultDetail }) {
             )}
 
             <p className="mt-4 text-[length:var(--type-caption-size)] text-[var(--text-secondary)]">
-                The healthcare provider can explain what this result means during the next visit.
+                {t('labs.explainAtNextVisit')}
             </p>
         </div>
     );

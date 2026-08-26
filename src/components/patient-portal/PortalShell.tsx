@@ -5,10 +5,12 @@ import { RecordContextBar } from './RecordContextBar';
 import { PersonSwitcher } from './PersonSwitcher';
 import { BottomTabs, PORTAL_TABS } from './BottomTabs';
 import { MoreMenu } from './MoreMenu';
+import { useT } from '../../lib/i18n/patientPortal';
 import { HomeSection } from './HomeSection';
 import { MyHealthSection } from './MyHealthSection';
 import { MedicineList } from './MedicineList';
 import { LabResultsSection } from './LabResultsSection';
+import type { PatientLanguage } from '../../lib/i18n/patientPortal';
 import type { PatientPortalSession } from '../../lib/auth/patientPortal';
 
 const VALID_PAGES = new Set(PORTAL_TABS.map((tab) => tab.id));
@@ -22,14 +24,17 @@ interface PortalShellProps {
     onToggleTextSize: () => void;
     highContrast: boolean;
     onToggleHighContrast: () => void;
+    language: PatientLanguage;
+    onSelectLanguage: (language: PatientLanguage) => void;
     onSignOut: () => void;
 }
 
 /** The authenticated Patient Portal shell (§8, §17). */
-export function PortalShell({ session, textSize, onToggleTextSize, highContrast, onToggleHighContrast, onSignOut }: PortalShellProps) {
+export function PortalShell({ session, textSize, onToggleTextSize, highContrast, onToggleHighContrast, language, onSelectLanguage, onSignOut }: PortalShellProps) {
     const [activePage, setActivePage] = useHashPage('home', normalizePage);
     const [activeGrantId, setActiveGrantId] = useState<string | null>(session.grants[0]?.id ?? null);
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+    const { t } = useT();
 
     const activeGrant = session.grants.find((g) => g.id === activeGrantId) ?? session.grants[0] ?? null;
 
@@ -54,7 +59,7 @@ export function PortalShell({ session, textSize, onToggleTextSize, highContrast,
             <BottomTabs activePage={activePage} onNavigate={setActivePage} />
 
             <main className="portal-main">
-                <h1 className="sr-only">{PORTAL_TABS.find((t) => t.id === activePage)?.label ?? 'Home'}</h1>
+                <h1 className="sr-only">{t(PORTAL_TABS.find((tab) => tab.id === activePage)?.labelKey ?? 'nav.home')}</h1>
 
                 {activePage === 'home' && activeGrant && (
                     <HomeSection
@@ -87,6 +92,8 @@ export function PortalShell({ session, textSize, onToggleTextSize, highContrast,
                         onToggleTextSize={onToggleTextSize}
                         highContrast={highContrast}
                         onToggleHighContrast={onToggleHighContrast}
+                        language={language}
+                        onSelectLanguage={onSelectLanguage}
                         onSignOut={onSignOut}
                     />
                 )}

@@ -64,12 +64,22 @@ Deno.serve(async (req) => {
 
     const { data: account } = await adminClient
       .from("patient_accounts")
-      .select("id, auth_user_id, medisens_id, status")
+      .select("id, auth_user_id, medisens_id, status, recovery_contact_number")
       .eq("medisens_id", medisensId)
       .maybeSingle();
 
-    // The account's own contact number comes from a patient record it
-    // holds a SELF grant on. A caregiver-only account has none.
+    // Step 7 correction: the account's own contact number is resolved two
+    // ways, in order. A SELF account IS the patient, so its own patient
+    // record's contactNumber (via its active SELF grant) remains the
+    // first and preferred source, exactly as before. An account with no
+    // SELF grant -- an account-only AUTHORIZED_CAREGIVER, or a GUARDIAN
+    // account holder who is not separately a MediSens patient -- has no
+    // patient record to resolve a number through at all, so it falls back
+    // to patient_accounts.recovery_contact_number: the account holder's
+    // own verified number, staff-collected at issue time (never a
+    // ward/patient's number -- see the Step 7 migration comment). Both
+    // paths converge on the same variable so every step below this stays
+    // identical regardless of which one supplied it.
     let contactNumber: string | null = null;
     if (account) {
       const { data: selfGrant } = await adminClient
@@ -86,6 +96,9 @@ Deno.serve(async (req) => {
           .eq("id", selfGrant.patient_id)
           .maybeSingle();
         contactNumber = patient?.contactNumber ?? null;
+      }
+      if (!contactNumber) {
+        contactNumber = account.recovery_contact_number ?? null;
       }
     }
 
@@ -167,11 +180,21 @@ Deno.serve(async (req) => {
       return errorResponse(500);
     }
 
+    // Step 7 security correction: successful PIN recovery must clear a
+    // pure authentication lockout (soft-lock locked_until, or the
+    // hard-lock status="locked") and return the account to normal use --
+    // but it must never lift an RHU staff member's administrative
+    // status="disabled". The credential itself is still safely replaced
+    // either way (harmless: patient-login rejects status="disabled"
+    // before it ever checks the password), but the account stays
+    // unusable until staff explicitly re-enable it through their own
+    // workflow, exactly as before this recovery request.
+    const finalStatus = account.status === "disabled" ? "disabled" : "active";
     const { error: updateAccountError } = await adminClient.from("patient_accounts").update({
       pin_updated_at: new Date().toISOString(),
       failed_attempts: 0,
       locked_until: null,
-      status: "active",
+      status: finalStatus,
     }).eq("id", account.id);
     if (updateAccountError) {
       // Same reasoning as patient-activation-complete: the Auth password
@@ -193,6 +216,23 @@ Deno.serve(async (req) => {
       description: "Patient account recovered via SMS OTP.",
       metadata: { account_id: account.id },
     });
+
+    // Step 7 hardening: never establish or return a Patient Portal session
+    // for an account whose status remains "disabled" after this recovery.
+    // The credential replacement above already happened (harmless on its
+    // own -- patient-login still rejects status="disabled" before any
+    // password check), but signing in here would hand the client a live,
+    // if functionally empty, session and require it to unnecessarily learn
+    // an internal status code to know not to trust it. Skip sign-in
+    // entirely and return a patient-safe result instead.
+    if (finalStatus === "disabled") {
+      return jsonResponse({
+        recovered: true,
+        session: null,
+        unavailable: true,
+        message: "Your PIN has been updated, but this account is currently unavailable. Please contact Malvar RHU for assistance.",
+      });
+    }
 
     const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: session, error: signInError } = await anonClient.auth.signInWithPassword({

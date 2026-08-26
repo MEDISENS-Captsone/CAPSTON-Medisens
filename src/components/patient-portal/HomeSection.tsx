@@ -6,6 +6,7 @@ import { SkeletonText } from '../ui/Skeleton';
 import { Icon } from '../shared/Icon';
 import { fetchHome, type PortalHome } from '../../features/patient-portal/api';
 import { formatLongDate, greetingForHour } from '../../features/patient-portal/format';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface HomeSectionProps {
     patientId: number;
@@ -22,6 +23,7 @@ type LoadState =
  * only what patient_portal_home() returned; nothing is inferred or
  * re-derived client-side (§17 Phase 6 "no client-side filtering"). */
 export function HomeSection({ patientId, greetingName, onViewVisits }: HomeSectionProps) {
+    const { t, language } = useT();
     const [state, setState] = useState<LoadState>({ status: 'loading' });
 
     const load = useCallback(async () => {
@@ -41,7 +43,7 @@ export function HomeSection({ patientId, greetingName, onViewVisits }: HomeSecti
     return (
         <div>
             <p className="mb-4 text-[length:var(--type-page-title-size)] font-bold text-[var(--brand-active)]">
-                {greetingForHour()}, {greetingName}.
+                {greetingForHour(new Date(), language)}, {greetingName}.
             </p>
 
             {state.status === 'loading' && (
@@ -51,7 +53,7 @@ export function HomeSection({ patientId, greetingName, onViewVisits }: HomeSecti
                 </div>
             )}
 
-            {state.status === 'error' && <SectionError onRetry={() => void load()} message="We could not load this Home summary right now." />}
+            {state.status === 'error' && <SectionError onRetry={() => void load()} message={t('home.loadError')} />}
 
             {state.status === 'ready' && <HomeContent home={state.home} onViewVisits={onViewVisits} />}
         </div>
@@ -59,10 +61,11 @@ export function HomeSection({ patientId, greetingName, onViewVisits }: HomeSecti
 }
 
 function HomeContent({ home, onViewVisits }: { home: PortalHome; onViewVisits: () => void }) {
-    const nextFollowUp = formatLongDate(home.nextFollowUpDate);
-    const recentLab = formatLongDate(home.recentLabResultDate);
-    const recentMedicine = formatLongDate(home.recentMedicineDate);
-    const lastVisit = formatLongDate(home.lastVisitDate);
+    const { t, language } = useT();
+    const nextFollowUp = formatLongDate(home.nextFollowUpDate, language);
+    const recentLab = formatLongDate(home.recentLabResultDate, language);
+    const recentMedicine = formatLongDate(home.recentMedicineDate, language);
+    const lastVisit = formatLongDate(home.lastVisitDate, language);
 
     const hasAttention = Boolean(nextFollowUp || recentLab || recentMedicine);
 
@@ -70,8 +73,8 @@ function HomeContent({ home, onViewVisits }: { home: PortalHome; onViewVisits: (
         return (
             <EmptyState
                 icon={<Icon name="check" className="h-5 w-5" />}
-                title="Nothing needs your attention right now"
-                description="Visits, medicines, and lab results for this health record will appear here."
+                title={t('home.nothingAttention')}
+                description={t('home.nothingAttentionDescription')}
             />
         );
     }
@@ -81,34 +84,34 @@ function HomeContent({ home, onViewVisits }: { home: PortalHome; onViewVisits: (
             {nextFollowUp && (
                 <AttentionCard
                     icon="calendar"
-                    title={`Recommended return date: ${nextFollowUp}`}
+                    title={t('home.recommendedReturn', { date: nextFollowUp })}
                 />
             )}
             {recentLab && (
                 <AttentionCard
                     icon="flask"
-                    title="A new lab result is available"
-                    description={`Released ${recentLab}`}
+                    title={t('home.newLabResult')}
+                    description={t('home.released', { date: recentLab })}
                 />
             )}
             {recentMedicine && (
                 <AttentionCard
                     icon="pill"
-                    title="A new prescription is available"
-                    description={`Prescribed ${recentMedicine}`}
+                    title={t('home.newPrescription')}
+                    description={t('home.prescribedOn', { date: recentMedicine })}
                 />
             )}
             {lastVisit && (
                 <AttentionCard
                     icon="stethoscope"
-                    title={`Last visit: ${lastVisit}`}
+                    title={t('home.lastVisit', { date: lastVisit })}
                     description={home.lastVisitDiagnosis ?? undefined}
                     onClick={onViewVisits}
                 />
             )}
             {!hasAttention && (
                 <p className="text-[length:var(--type-supporting-size)] text-[var(--text-secondary)]">
-                    Nothing else needs your attention right now.
+                    {t('home.nothingElseAttention')}
                 </p>
             )}
         </div>

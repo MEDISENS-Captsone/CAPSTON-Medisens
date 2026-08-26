@@ -3,6 +3,7 @@ import { VisitList } from './VisitList';
 import { VisitDetail } from './VisitDetail';
 import { VaccinationList } from './VaccinationList';
 import { FollowUpList } from './FollowUpList';
+import { useT } from '../../lib/i18n/patientPortal';
 
 interface MyHealthSectionProps {
     patientId: number;
@@ -12,15 +13,16 @@ interface MyHealthSectionProps {
 
 type SubTab = 'visits' | 'vaccinations' | 'followups';
 
-const SUB_TABS: { id: SubTab; label: string }[] = [
-    { id: 'visits', label: 'Visits' },
-    { id: 'vaccinations', label: 'Vaccinations' },
-    { id: 'followups', label: 'Follow-ups' },
+const SUB_TABS: { id: SubTab; labelKey: 'health.visits' | 'health.vaccinations' | 'health.followups' }[] = [
+    { id: 'visits', labelKey: 'health.visits' },
+    { id: 'vaccinations', labelKey: 'health.vaccinations' },
+    { id: 'followups', labelKey: 'health.followups' },
 ];
 
 /** My Health (§9.2) -- a 3-item, full-width, wrapping segmented tab row
  * over Visits / Vaccinations / Follow-ups, plus the Visit detail drill-in. */
 export function MyHealthSection({ patientId, onNavigateToMedicines, onNavigateToLabs }: MyHealthSectionProps) {
+    const { t } = useT();
     const [subTab, setSubTab] = useState<SubTab>('visits');
     const [selectedVisitToken, setSelectedVisitToken] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function MyHealthSection({ patientId, onNavigateToMedicines, onNavigateTo
 
     return (
         <div>
-            <div role="tablist" aria-label="My Health sections" className="portal-segmented-tabs">
+            <div role="tablist" aria-label={t('health.tabsLabel')} className="portal-segmented-tabs">
                 {SUB_TABS.map((tab) => (
                     <button
                         key={tab.id}
@@ -55,7 +57,7 @@ export function MyHealthSection({ patientId, onNavigateToMedicines, onNavigateTo
                         className="portal-segmented-tab"
                         onClick={() => setSubTab(tab.id)}
                     >
-                        {tab.label}
+                        {t(tab.labelKey)}
                     </button>
                 ))}
             </div>

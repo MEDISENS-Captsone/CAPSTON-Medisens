@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="theme-color" content="#1D3F6E">
     <title>MediSens | Login</title>
@@ -310,6 +311,36 @@
             line-height: 1.55;
         }
 
+        .patient-portal-entry {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: var(--type-supporting-size);
+        }
+
+        .patient-portal-entry .patient-portal-copy {
+            color: var(--text-secondary);
+        }
+
+        .patient-portal-entry .patient-portal-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            font-weight: var(--font-weight-bold);
+            color: var(--brand-active);
+            text-decoration: none;
+        }
+
+        .patient-portal-entry .patient-portal-link:hover,
+        .patient-portal-entry .patient-portal-link:focus-visible {
+            text-decoration: underline;
+        }
+
         .legal-footer {
             margin-top: 14px;
             color: var(--text-muted);
@@ -588,51 +619,28 @@
                         <span class="brand-subtitle">RHU Information System</span>
                     </div>
                 </div>
-            </header>
-
-            <section class="form-sheet" aria-label="Authorized access">
-                <h1 class="card-kicker">Authorized Access</h1>
-                <form id="loginForm" novalidate>
-                    <div class="field">
-                        <label for="emailInput">Email</label>
-                        <input type="email" id="emailInput" name="email" placeholder="Enter your email"
-                            autocomplete="email" required aria-describedby="errorMsg">
-                    </div>
-                    <div class="field">
-                        <label for="passwordInput">Password</label>
-                        <div class="password-control">
-                            <input type="password" id="passwordInput" name="password" placeholder="Enter your password"
-                                autocomplete="current-password" required aria-describedby="errorMsg">
-                            <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password"
-                                aria-pressed="false">
-                                <svg id="passwordVisibilityIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-                                    aria-hidden="true">
-                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
-                                    <circle cx="12" cy="12" r="2.75"></circle>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <button class="login-btn" id="loginBtn" type="submit">
-                        <span id="btnText">Sign In</span>
-                        <span class="spinner" id="spinner" aria-hidden="true"></span>
-                    </button>
-                    <div class="error-msg" id="errorMsg" role="alert"></div>
-                </form>
-                <p class="privacy-notice">By accessing MEDISENS, you acknowledge your responsibility to handle patient
-                    information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
-                <footer class="legal-footer" aria-label="Legal information">
-                    <div class="legal-links">
-                        <a class="legal-link" href="./privacy-policy.html">Privacy Policy</a>
-                        <span class="legal-separator" aria-hidden="true">&middot;</span>
-                        <a class="legal-link" href="./terms-of-service.html">Terms of Service</a>
-                    </div>
-                    <p class="copyright">&copy; <span id="copyrightYear"></span> MEDISENS. All rights reserved.</p>
-                </footer>
-            </section>
-        </article>
-    </main>
+                <button class="login-btn" id="loginBtn" type="submit">
+                    <span id="btnText">Sign In</span>
+                    <span class="spinner" id="spinner" aria-hidden="true"></span>
+                </button>
+                <div class="error-msg" id="errorMsg" role="alert"></div>
+            </form>
+            <div class="patient-portal-entry">
+                <span class="patient-portal-copy">Are you a patient?</span>
+                <a class="patient-portal-link" href="./patient.html">Open Patient Portal</a>
+            </div>
+            <p class="privacy-notice">By accessing MEDISENS, you acknowledge your responsibility to handle patient information in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
+            <footer class="legal-footer" aria-label="Legal information">
+                <div class="legal-links">
+                    <a class="legal-link" href="./privacy-policy.html">Privacy Policy</a>
+                    <span class="legal-separator" aria-hidden="true">&middot;</span>
+                    <a class="legal-link" href="./terms-of-service.html">Terms of Service</a>
+                </div>
+                <p class="copyright">&copy; <span id="copyrightYear"></span> MEDISENS. All rights reserved.</p>
+            </footer>
+        </section>
+    </article>
+</main>
 
     <script type="module" src="../src/app/auth/login.ts"></script>
 </body>

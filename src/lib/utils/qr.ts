@@ -33,6 +33,42 @@ export function isValidMedisensId(raw: string): boolean {
     return MEDISENS_ID_PATTERN.test(normalizeMedisensId(raw));
 }
 
+// Patient Account Phase 9B Step 6 -- input-time formatting for the manual
+// MediSens ID field. This is a usability convenience only: it inserts the
+// two hyphens the canonical format requires, uppercases as the user
+// types, and recognizes/discards a manually-typed "MS" prefix so it is
+// never duplicated. It never validates or repairs content -- an
+// ambiguous/disallowed character (0, 1, O, I, L) is left exactly where
+// the user typed it, so MEDISENS_ID_PATTERN still rejects it downstream
+// exactly as it always has. Only separators (hyphens, spaces) and
+// letter-casing are ever touched here.
+export function formatMedisensIdInput(raw: string): string {
+    const upper = raw.toUpperCase();
+    // Strip everything that isn't a letter or digit -- typed/pasted
+    // hyphens and spaces are separator artifacts this function rebuilds
+    // itself; every alphanumeric character (valid or not) is preserved
+    // untouched and in order.
+    const alnum = upper.replace(/[^A-Z0-9]/g, '');
+
+    // A bare "M" or "MS" in progress: shown as-is rather than jumping
+    // straight to "MS-M" -- matches how someone typing the prefix
+    // themselves expects to see exactly what they've typed so far.
+    if (alnum.length <= 2 && 'MS'.startsWith(alnum)) {
+        return alnum;
+    }
+
+    // A recognized "MS" prefix is consumed once, never duplicated. Input
+    // with no such prefix (e.g. pasting or typing the 8-character body
+    // directly) is treated as the body outright -- "MS-" is added for it.
+    const body = alnum.startsWith('MS') ? alnum.slice(2) : alnum;
+    const truncated = body.slice(0, 8);
+
+    let result = 'MS';
+    if (truncated.length > 0) result += `-${truncated.slice(0, 4)}`;
+    if (truncated.length > 4) result += `-${truncated.slice(4, 8)}`;
+    return result;
+}
+
 // Patient Account Phase 9B Step 5 -- there is no existing canonical
 // public-URL config anywhere in the repo (grepped vite.config.ts,
 // README.md, vercel.json: none exists). Printing a permanent Patient

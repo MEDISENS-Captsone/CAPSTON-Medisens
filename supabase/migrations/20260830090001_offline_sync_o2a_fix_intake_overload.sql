@@ -1,0 +1,12 @@
+-- Corrective follow-up to 20260830090000: that migration's
+-- `create or replace function record_initial_intake(p_initial jsonb, p_vitals jsonb, p_operation_id uuid default null)`
+-- did not replace the original 2-argument function -- Postgres treats
+-- differing argument lists as distinct overloads, so both versions
+-- ended up coexisting, which broke PostgREST RPC dispatch for any
+-- 2-argument call (the existing, currently-shipped nurse-intake UI
+-- calls it with exactly 2 arguments). Caught live during O2A runtime
+-- verification before this was reported as done. Dropping the stale
+-- 2-argument overload leaves the 3-argument (default-parameter) version
+-- as the only candidate, restoring unambiguous dispatch for both old
+-- and new callers.
+drop function if exists public.record_initial_intake(jsonb, jsonb);
