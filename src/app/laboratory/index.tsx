@@ -7,7 +7,6 @@ import { useToast } from '../../components/feedback/Toast';
 import { requireRole } from '../../lib/auth/roles';
 import { getInitials } from '../../lib/utils/names';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
-import { isBlank } from '../../lib/utils/strings';
 import { upsertCompletedLabResult } from '../../features/laboratory/services';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { Topbar } from '../../components/layout/Topbar';
@@ -253,14 +252,12 @@ function LabRequestDetail({
     currentUserName: string;
     isOnline: boolean;
 }) {
-    const [results, setResults] = useState('');
     const [datePerformed, setDatePerformed] = useState(formatDateTimeLocal());
     const [saving, setSaving] = useState(false);
     // `disabled={saving}` only applies after React re-renders, and a state read inside
     // the handler sees the value from the render the click came from. Two taps in the
     // same frame therefore both wrote the result, so the latch has to be a ref.
     const savingRef = useRef(false);
-    const [loadingLabResult, setLoadingLabResult] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const { showToast, ToastComponent } = useToast();
     const [formData, setFormData] = useState<Record<string, any>>({
@@ -335,13 +332,11 @@ function LabRequestDetail({
     });
 
     useEffect(() => {
-        setResults('');
         setDatePerformed(formatDateTimeLocal());
         loadExistingLabResult();
     }, [request.labrequest_id]);
 
     const loadExistingLabResult = async () => {
-        setLoadingLabResult(true);
         try {
             const { data, error } = await supabase
                 .from('lab_result')
@@ -354,7 +349,6 @@ function LabRequestDetail({
             if (error) throw error;
 
             if (data) {
-                setResults(data.findings ?? '');
                 setDatePerformed(formatDateTimeLocal(data.date_performed));
                 if (data.findings) {
                     try {
@@ -370,8 +364,6 @@ function LabRequestDetail({
             }
         } catch (err) {
             logError('Failed to load laboratory result', err);
-        } finally {
-            setLoadingLabResult(false);
         }
     };
 
@@ -1106,10 +1098,6 @@ const LaboratoryDashboard = () => {
         return 'warning';
     };
 
-    const countTests = (r: LabRequest) =>
-        [r.is_clinical_microscopy, r.is_blood_chemistry, r.is_pregnancy_test, r.is_hbsag_screening, r.is_hiv_screening, r.is_parasitology, r.is_dengue_rdt]
-            .filter(Boolean).length + (r.others ? 1 : 0);
-
     const filtered = requests.filter(r => {
         const name = `${r.patient_firstName ?? ''} ${r.patient_lastName ?? ''}`.toLowerCase();
         const matchSearch =
@@ -1126,6 +1114,220 @@ const LaboratoryDashboard = () => {
         pending: requests.filter(r => !r.status || r.status === 'Pending').length,
         completed: requests.filter(r => r.status === 'Completed').length,
     };
+
+    const QUEUE_PAGE_SIZE = 5;
+    const [queuePage, setQueuePage] = useState(0);
+    const [activityPeriod, setActivityPeriod] = useState<7 | 14 | 30>(7);
+
+    const pagedFiltered = filtered.slice(queuePage * QUEUE_PAGE_SIZE, (queuePage + 1) * QUEUE_PAGE_SIZE);
+    const [showAllRequests, setShowAllRequests] = useState(false);
+
+    // ── Chart data computation ──
+    const barChartRef = useRef<HTMLCanvasElement>(null);
+    const donutChartRef = useRef<HTMLCanvasElement>(null);
+    const barChartInstance = useRef<any>(null);
+    const donutChartInstance = useRef<any>(null);
+
+    const getTestNames = (r: LabRequest): string[] => {
+        const names: string[] = [];
+        if (r.is_clinical_microscopy) names.push('Clinical Microscopy');
+        if (r.is_blood_chemistry) names.push('Blood Chemistry');
+        if (r.is_pregnancy_test) names.push('Pregnancy Test');
+        if (r.is_hbsag_screening) names.push('HBsAg Screening');
+        if (r.is_hiv_screening) names.push('HIV Screening');
+        if (r.is_parasitology) names.push('Parasitology');
+        if (r.is_dengue_rdt) names.push('Dengue RDT');
+        if (r.others) names.push('Others');
+        return names;
+    };
+
+    const getTestSummary = (r: LabRequest): string => {
+        const names = getTestNames(r);
+        return names.length ? names.join(' · ') : 'General';
+    };
+
+    // Bar chart: requests per day for the selected period
+    const barData = (() => {
+        const now = new Date();
+        const days: { label: string; count: number }[] = [];
+        for (let i = activityPeriod - 1; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            const label = d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+            const count = requests.filter(r => {
+                if (!r.request_date) return false;
+                return r.request_date.slice(0, 10) === key;
+            }).length;
+            days.push({ label, count });
+        }
+        return days;
+    })();
+
+    const prevPeriodCount = (() => {
+        const now = new Date();
+        const from = new Date(now);
+        from.setDate(from.getDate() - activityPeriod * 2);
+        const to = new Date(now);
+        to.setDate(to.getDate() - activityPeriod);
+        return requests.filter(r => {
+            if (!r.request_date) return false;
+            const d = new Date(r.request_date);
+            return d >= from && d < to;
+        }).length;
+    })();
+
+    const currentPeriodCount = barData.reduce((sum, d) => sum + d.count, 0);
+    const trendPct = prevPeriodCount > 0
+        ? Math.round(((currentPeriodCount - prevPeriodCount) / prevPeriodCount) * 100)
+        : 0;
+
+    // Donut chart: test distribution
+    const testDistribution = (() => {
+        const counts: Record<string, number> = {};
+        requests.forEach(r => {
+            getTestNames(r).forEach(name => {
+                counts[name] = (counts[name] || 0) + 1;
+            });
+        });
+        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        const total = entries.reduce((s, e) => s + e[1], 0);
+        // Show top 4 + "Other Tests"
+        const top = entries.slice(0, 4);
+        const rest = entries.slice(4);
+        const restCount = rest.reduce((s, e) => s + e[1], 0);
+        const result = top.map(([name, count]) => ({
+            name,
+            count,
+            pct: total > 0 ? Math.round((count / total) * 100) : 0,
+        }));
+        if (restCount > 0) {
+            result.push({
+                name: 'Other Tests',
+                count: restCount,
+                pct: total > 0 ? Math.round((restCount / total) * 100) : 0,
+            });
+        }
+        return { items: result, total };
+    })();
+
+    const DONUT_COLORS = ['#1D4E68', '#286781', '#3B8BA3', '#5BACC5', '#A8B5BC'];
+
+    // Render Chart.js charts
+    useEffect(() => {
+        let barDestroyed = false;
+        let donutDestroyed = false;
+
+        const renderCharts = async () => {
+            const ChartModule = await import('chart.js/auto');
+            const Chart = ChartModule.default;
+
+            // Bar chart
+            if (barChartRef.current && !barDestroyed) {
+                if (barChartInstance.current) barChartInstance.current.destroy();
+                const ctx = barChartRef.current.getContext('2d');
+                if (ctx) {
+                    barChartInstance.current = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: barData.map(d => d.label),
+                            datasets: [{
+                                data: barData.map(d => d.count),
+                                backgroundColor: '#1D4E68',
+                                borderRadius: 4,
+                                maxBarThickness: 32,
+                            }],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: '#102E40',
+                                    titleFont: { family: 'Inter, sans-serif', size: 12 },
+                                    bodyFont: { family: 'Inter, sans-serif', size: 12 },
+                                    cornerRadius: 6,
+                                    padding: 8,
+                                },
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: {
+                                        font: { family: 'Inter, sans-serif', size: 11 },
+                                        color: '#687781',
+                                    },
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 5,
+                                        font: { family: 'Inter, sans-serif', size: 11 },
+                                        color: '#687781',
+                                    },
+                                    grid: { color: '#E8ECEE' },
+                                },
+                            },
+                        },
+                    });
+                }
+            }
+
+            // Donut chart
+            if (donutChartRef.current && !donutDestroyed) {
+                if (donutChartInstance.current) donutChartInstance.current.destroy();
+                const ctx = donutChartRef.current.getContext('2d');
+                if (ctx) {
+                    donutChartInstance.current = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: testDistribution.items.map(i => i.name),
+                            datasets: [{
+                                data: testDistribution.items.map(i => i.count),
+                                backgroundColor: DONUT_COLORS.slice(0, testDistribution.items.length),
+                                borderWidth: 0,
+                            }],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '62%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: '#102E40',
+                                    titleFont: { family: 'Inter, sans-serif', size: 12 },
+                                    bodyFont: { family: 'Inter, sans-serif', size: 12 },
+                                    cornerRadius: 6,
+                                    padding: 8,
+                                },
+                            },
+                        },
+                    });
+                }
+            }
+        };
+
+        if (!loading && requests.length > 0) {
+            renderCharts();
+        }
+
+        return () => {
+            barDestroyed = true;
+            donutDestroyed = true;
+            if (barChartInstance.current) barChartInstance.current.destroy();
+            if (donutChartInstance.current) donutChartInstance.current.destroy();
+        };
+    }, [loading, requests, activityPeriod]);
+
+    // Completed today count
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const completedToday = requests.filter(r => {
+        if (r.status !== 'Completed') return false;
+        // We don't have a result date in the request, so approximate with request_date
+        return r.request_date?.slice(0, 10) === todayStr;
+    }).length;
 
     return (
         <div className="laboratory-dashboard-workspace flex h-screen bg-[var(--bg)] overflow-hidden w-full">
@@ -1159,152 +1361,292 @@ const LaboratoryDashboard = () => {
                 <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
                     <div className="role-workspace-canvas w-full">
                         <PageHeader
-                            title="Laboratory Work Queue"
-                            subtitle="Encode pending results and review completed requests."
+                            title="Laboratory Dashboard"
+                            subtitle="Manage laboratory requests and results."
                         />
 
+                        {/* ── Summary KPI Cards ── */}
                         <div className="pwa-page-pad pb-0">
                             <div className="ops-summary-grid">
-                                {[
-                                    ['clock', 'Pending Requests', stats.pending, 'Awaiting result encoding'],
-                                    ['check', 'Completed Results', stats.completed, 'Already encoded'],
-                                    ['flask', 'Total Requests', stats.total, 'Current worklist'],
-                                ].map(([icon, label, value, note]) => (
-                                    <div key={label} className="ops-summary-card role-summary-card">
-                                        <div className="role-summary-card-topline">
-                                            <div className="ops-summary-label">{label}</div>
-                                            <span className="role-summary-icon"><Icon name={icon as 'clock' | 'check' | 'flask'} className="h-4 w-4" /></span>
-                                        </div>
-                                        <div className="ops-summary-value tabular-nums">{value}</div>
-                                        <div className="ops-summary-note">{note}</div>
+                                <div className="lab-kpi-card">
+                                    <div className="lab-kpi-icon pending">
+                                        <Icon name="clock" className="h-5 w-5" />
                                     </div>
-                                ))}
+                                    <div className="lab-kpi-body">
+                                        <div className="lab-kpi-value">{stats.pending}</div>
+                                        <div className="lab-kpi-label">Pending Results</div>
+                                        <div className="lab-kpi-note pending">
+                                            <span className="lab-kpi-note-dot pending" />
+                                            Needs attention
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lab-kpi-card">
+                                    <div className="lab-kpi-icon completed">
+                                        <Icon name="check" className="h-5 w-5" />
+                                    </div>
+                                    <div className="lab-kpi-body">
+                                        <div className="lab-kpi-value">{completedToday}</div>
+                                        <div className="lab-kpi-label">Completed Today</div>
+                                        <div className="lab-kpi-note completed">
+                                            <span className="lab-kpi-note-dot completed" />
+                                            Processed
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lab-kpi-card">
+                                    <div className="lab-kpi-icon total">
+                                        <Icon name="flask" className="h-5 w-5" />
+                                    </div>
+                                    <div className="lab-kpi-body">
+                                        <div className="lab-kpi-value">{stats.total}</div>
+                                        <div className="lab-kpi-label">Total Requests</div>
+                                        <div className="lab-kpi-note total">
+                                            Current total
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="role-queue-panel ops-panel overflow-hidden mb-6">
-                            <div className="role-queue-header">
-                                <div>
-                                    <h2 className="text-base font-semibold text-[var(--text)]">Lab Requests</h2>
-                                    <p className="text-xs text-[var(--text-secondary)]">Select a request to review details and record laboratory results.</p>
+                        {/* ── Work Queue ── */}
+                        <div className="pwa-page-pad pt-3">
+                            <div className="lab-queue-section">
+                                <div className="lab-queue-header">
+                                    <div className="lab-queue-header-left">
+                                        <h2>
+                                            <Icon name="flask" className="h-4 w-4" />
+                                            Work Queue
+                                        </h2>
+                                        <p>Pending laboratory requests that need your attention.</p>
+                                    </div>
+                                    <div className="lab-view-select">
+                                        <span>View:</span>
+                                        <select
+                                            value={statusFilter}
+                                            onChange={e => { setStatusFilter(e.target.value as any); setQueuePage(0); }}
+                                            aria-label="Filter laboratory requests by status"
+                                        >
+                                            <option value="All">All</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div className="clinical-filter-group" aria-label="Filter laboratory requests by status">
-                                    {(['All', 'Pending',  'Completed'] as const).map(s => (
+
+                                <div className="lab-queue-filter-row">
+                                    <label className="lab-queue-search">
+                                        <Icon name="search" className="h-4 w-4 text-[var(--text-muted)]" />
+                                        <input
+                                            type="text"
+                                            aria-label="Search patient or laboratory request"
+                                            placeholder="Search patient or laboratory request..."
+                                            value={searchQuery}
+                                            onChange={e => { setSearchQuery(e.target.value); setQueuePage(0); }}
+                                        />
+                                    </label>
+                                </div>
+
+                                {loading ? (
+                                    <div className="p-6">
+                                        <SkeletonTable rows={5} columns={5} />
+                                    </div>
+                                ) : loadError && requests.length === 0 ? (
+                                    <div className="p-8 text-center" role="alert">
+                                        <Icon name="alert-triangle" className="h-6 w-6 mx-auto mb-2 text-[var(--text-muted)]" />
+                                        <div className="font-semibold text-[var(--text)] text-sm">Unable to load laboratory requests</div>
+                                        <div className="text-xs text-[var(--text-muted)] mt-1">Check the connection and try again.</div>
                                         <button
                                             type="button"
-                                            key={s}
-                                            onClick={() => setStatusFilter(s)}
-                                            className={`clinical-filter-button ${statusFilter === s ? 'is-active' : ''}`}
-                                            aria-pressed={statusFilter === s}
+                                            onClick={() => void loadRequests(true)}
+                                            className="clinical-link-action mt-2"
                                         >
-                                            {s}
+                                            Try again
                                         </button>
-                                    ))}
-                                </div>
-                            </div>
+                                    </div>
+                                ) : (showAllRequests ? filtered : pagedFiltered).length === 0 ? (
+                                    <div className="p-8">
+                                        <EmptyState
+                                            title={(searchQuery || statusFilter !== 'All') ? 'No requests match these filters' : 'No laboratory requests yet'}
+                                            description={(searchQuery || statusFilter !== 'All') ? 'Adjust the status filter or search terms.' : 'New lab requests from doctors will appear here.'}
+                                        />
+                                    </div>
+                                ) : (
+                                    <ul className="lab-queue-list">
+                                        {(showAllRequests ? filtered : pagedFiltered).map(r => {
+                                            const name = r.patient_firstName
+                                                ? `${r.patient_firstName} ${r.patient_lastName}`
+                                                : `Patient #${r.patient_id ?? '—'}`;
+                                            const isPending = !r.status || r.status === 'Pending';
+                                            const testSummary = getTestSummary(r);
+                                            return (
+                                                <li
+                                                    key={r.labrequest_id}
+                                                    className={`lab-queue-item ${isPending ? 'is-pending' : ''}`}
+                                                    onClick={() => setSelectedRequest(r)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedRequest(r); } }}
+                                                    tabIndex={0}
+                                                    role="button"
+                                                    aria-label={`Review laboratory request for ${name}`}
+                                                >
+                                                    <div className="lab-queue-avatar">
+                                                        {r.patient_firstName?.[0]?.toUpperCase() ?? '?'}
+                                                    </div>
 
-                            <div className="role-queue-toolbar">
-                                <label className="role-search-field">
-                                    <Icon name="search" className="h-4 w-4 text-[var(--text-muted)]" />
-                                    <input
-                                        type="text"
-                                        aria-label="Search lab requests by patient, lab number, or complaint"
-                                        placeholder="Search patient, lab number, or complaint"
-                                        className="bg-transparent border-none outline-none text-sm text-[var(--text-2)] w-full"
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                    />
-                                </label>
-                                <span className="role-result-count" aria-live="polite">{filtered.length} result{filtered.length === 1 ? '' : 's'}</span>
-                            </div>
+                                                    <div className="lab-queue-patient">
+                                                        <div className="lab-queue-patient-name">{name}</div>
+                                                        <div className="lab-queue-patient-meta">
+                                                            {r.patient_sex ?? ''}{r.patient_age != null ? ` · ${r.patient_age} y/o` : ''}
+                                                        </div>
+                                                    </div>
 
-                            <div className="clinical-table-scroll">
-                                <table className="clinical-table min-w-[980px]">
-                                    <thead>
-                                        <tr>
-                                            <th>Patient</th>
-                                            <th>Date</th>
-                                            <th>Tests</th>
-                                            <th>Chief Complaint</th>
-                                            <th>Requested By</th>
-                                            <th>Status</th>
-                                            <th className="text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {loading ? (
-                                            <tr>
-                                                <td colSpan={7} className="px-6 py-12 text-center">
-                                                    <SkeletonTable rows={6} columns={7} />
-                                                </td>
-                                            </tr>
-                                        ) : loadError && requests.length === 0 ? (
-                                            <tr><td colSpan={7} className="px-6 py-12"><div className="role-queue-state" role="alert"><Icon name="alert-triangle" className="h-6 w-6" /><strong>Unable to load laboratory requests</strong><span>Check the connection and try again.</span><button type="button" onClick={() => void loadRequests(true)} className="clinical-link-action">Try again</button></div></td></tr>
-                                        ) : filtered.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="px-6 py-12 text-center">
-                                                    <EmptyState title={(searchQuery || statusFilter !== 'All') ? 'No requests match these filters' : 'No laboratory requests yet'} description={(searchQuery || statusFilter !== 'All') ? 'Adjust the status filter or search terms.' : 'New lab requests from doctors will appear here.'} />
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filtered.map(r => {
-                                                const name = r.patient_firstName
-                                                    ? `${r.patient_firstName} ${r.patient_lastName}`
-                                                    : `Patient #${r.patient_id ?? '—'}`;
-                                                const testCount = countTests(r);
-                                                return (
-                                                    <tr
-                                                        key={r.labrequest_id}
-                                                        onClick={() => setSelectedRequest(r)}
-                                                        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedRequest(r); } }}
-                                                        tabIndex={0}
-                                                        aria-label={`Review laboratory request for ${name}`}
-                                                        className="cursor-pointer group role-action-row"
-                                                    >
-                                                        <td className="px-6 py-3">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                                                                    {r.patient_firstName?.[0]?.toUpperCase() ?? '?'}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-semibold text-[var(--text)]">{name}</div>
-                                                                    {r.patient_sex && (
-                                                                        <div className="text-xs text-[var(--text-muted)]">
-                                                                            {r.patient_sex}{r.patient_age != null ? ` · ${r.patient_age} y/o` : ''}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-3 text-[var(--text-2)]">{formatDisplayDate(r.request_date)}</td>
-                                                        <td className="px-6 py-3">
-                                                            <span className="clinical-neutral-badge">
-                                                                {testCount} test{testCount !== 1 ? 's' : ''}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-3 text-[var(--text-2)] max-w-[180px] truncate">{r.chief_complaint || '—'}</td>
-                                                        <td className="px-6 py-3 text-[var(--text-2)]">{r.requested_by || '—'}</td>
-                                                        <td className="px-6 py-3">
-                                                            <span className={`clinical-status-badge ${statusBadge(r.status)}`}>
-                                                                {r.status || 'Pending'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-3 text-right">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); }}
-                                                                aria-label={`Review lab request for ${name}`}
-                                                                className="clinical-link-action"
-                                                            >
-                                                                Review
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
+                                                    <div className="lab-queue-detail">
+                                                        <div className="lab-queue-detail-label">
+                                                            <Icon name="calendar" className="h-3 w-3" />
+                                                            Requested {formatDisplayDate(r.request_date)}
+                                                        </div>
+                                                        <div className="lab-queue-detail-value">{testSummary}</div>
+                                                    </div>
+
+                                                    <div className="lab-queue-requested-by">
+                                                        <div className="lab-queue-detail-label">
+                                                            Requested by
+                                                        </div>
+                                                        <div className="lab-queue-detail-value">{r.requested_by || '—'}</div>
+                                                    </div>
+
+                                                    <div className="lab-queue-status">
+                                                        <span className={`clinical-status-badge ${statusBadge(r.status)}`}>
+                                                            {r.status || 'Pending'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="lab-queue-action">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); }}
+                                                            className={`lab-queue-action-btn ${isPending ? 'encode' : 'view'}`}
+                                                            aria-label={isPending ? `Encode result for ${name}` : `View result for ${name}`}
+                                                        >
+                                                            {isPending ? 'Encode Result' : 'View Result'}
+                                                            <span aria-hidden="true">→</span>
+                                                        </button>
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+
+                                {!loading && filtered.length > 0 && (
+                                    <div className="lab-queue-footer">
+                                        <span className="lab-queue-count">
+                                            {showAllRequests
+                                                ? `Showing all ${filtered.length} request${filtered.length !== 1 ? 's' : ''}`
+                                                : `Showing ${Math.min(queuePage * QUEUE_PAGE_SIZE + 1, filtered.length)} to ${Math.min((queuePage + 1) * QUEUE_PAGE_SIZE, filtered.length)} of ${filtered.length} requests`
+                                            }
+                                        </span>
+                                        {!showAllRequests && filtered.length > QUEUE_PAGE_SIZE && (
+                                            <button
+                                                type="button"
+                                                className="lab-queue-view-all"
+                                                onClick={() => setShowAllRequests(true)}
+                                            >
+                                                View all requests <span aria-hidden="true">→</span>
+                                            </button>
                                         )}
-                                    </tbody>
-                                </table>
+                                        {showAllRequests && (
+                                            <button
+                                                type="button"
+                                                className="lab-queue-view-all"
+                                                onClick={() => { setShowAllRequests(false); setQueuePage(0); }}
+                                            >
+                                                Show less
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ── Laboratory Activity ── */}
+                        <div className="pwa-page-pad pt-3 pb-6">
+                            <div className="lab-activity-section">
+                                <div className="lab-activity-header">
+                                    <div>
+                                        <h2>
+                                            <Icon name="chart" className="h-4 w-4" />
+                                            Laboratory Activity
+                                        </h2>
+                                        <p>Overview of laboratory requests and test statistics.</p>
+                                    </div>
+                                    <div className="lab-activity-period">
+                                        <Icon name="calendar" className="h-3.5 w-3.5" />
+                                        <select
+                                            value={activityPeriod}
+                                            onChange={e => setActivityPeriod(Number(e.target.value) as 7 | 14 | 30)}
+                                            aria-label="Select activity period"
+                                        >
+                                            <option value={7}>Last 7 Days</option>
+                                            <option value={14}>Last 14 Days</option>
+                                            <option value={30}>Last 30 Days</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="lab-activity-grid">
+                                    {/* Bar chart: Request Volume */}
+                                    <div className="lab-activity-card">
+                                        <div>
+                                            <h3>Request Volume</h3>
+                                            <p className="lab-chart-subtitle">Number of laboratory requests per day</p>
+                                            <div className="lab-chart-container">
+                                                <canvas ref={barChartRef} />
+                                            </div>
+                                        </div>
+                                        {prevPeriodCount > 0 && (
+                                            <div className="lab-chart-trend">
+                                                <span className={trendPct >= 0 ? 'trend-up' : 'trend-down'}>
+                                                    {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}%
+                                                </span>
+                                                {' '}from previous {activityPeriod} days
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Donut chart: Test Distribution */}
+                                    <div className="lab-activity-card">
+                                        <div>
+                                            <h3>Test Distribution</h3>
+                                            <p className="lab-chart-subtitle">Breakdown of most requested laboratory tests</p>
+                                            <div className="lab-donut-layout">
+                                                <div className="lab-donut-canvas-wrap">
+                                                    <canvas ref={donutChartRef} />
+                                                    <div className="lab-donut-center">
+                                                        <span className="lab-donut-center-label">Total</span>
+                                                        <span className="lab-donut-center-value">{testDistribution.total}</span>
+                                                        <span className="lab-donut-center-sub">Requests</span>
+                                                    </div>
+                                                </div>
+                                                <ul className="lab-donut-legend">
+                                                    {testDistribution.items.map((item, i) => (
+                                                        <li key={item.name}>
+                                                            <span
+                                                                className="lab-donut-legend-dot"
+                                                                style={{ background: DONUT_COLORS[i] || DONUT_COLORS[DONUT_COLORS.length - 1] }}
+                                                            />
+                                                            <span className="lab-donut-legend-name">{item.name}</span>
+                                                            <span className="lab-donut-legend-pct">{item.pct}%</span>
+                                                            <span className="lab-donut-legend-count">{item.count}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
