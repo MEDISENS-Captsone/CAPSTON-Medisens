@@ -75,11 +75,11 @@ if (session) redirectByRole(session.user.id);
 
 // ─── Handle Login ─────────────────────────────────────────────────────────────
 window.handleLogin = async function (): Promise<void> {
-    const email = safeTrim((document.getElementById('emailInput') as HTMLInputElement).value);
+    const email    = safeTrim((document.getElementById('emailInput') as HTMLInputElement).value);
     const password = (document.getElementById('passwordInput') as HTMLInputElement).value;
-    const btn = document.getElementById('loginBtn')!;
-    const spinner = document.getElementById('spinner')!;
-    const btnText = document.getElementById('btnText')!;
+    const btn      = document.getElementById('loginBtn')!;
+    const spinner  = document.getElementById('spinner')!;
+    const btnText  = document.getElementById('btnText')!;
     const errorMsg = document.getElementById('errorMsg')!;
 
     errorMsg.style.display = 'none';
