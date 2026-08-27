@@ -61,17 +61,37 @@ export async function listFhsisReportHistory(): Promise<readonly FhsisReport[]> 
     return (data as DatabaseReport[] | null ?? []).map(mapReport);
 }
 
+// PostgREST caps unbounded selects at its configured max row count (1000 by
+// default). An M1 BRGY report can hold well over 1000 values, so this reads
+// fhsis_report_values in successive .range() pages rather than one select.
+const REPORT_VALUES_PAGE_SIZE = 1000;
+
+async function fetchAllFhsisReportValues(reportId: string): Promise<DatabaseValue[]> {
+    const rows: DatabaseValue[] = [];
+    for (let from = 0; ; from += REPORT_VALUES_PAGE_SIZE) {
+        const { data, error } = await supabase
+            .from('fhsis_report_values')
+            .select('id, report_id, indicator_key, dimension_key, value, remarks, updated_by, created_at, updated_at')
+            .eq('report_id', reportId)
+            .order('created_at')
+            .range(from, from + REPORT_VALUES_PAGE_SIZE - 1);
+        if (error) throw error;
+        rows.push(...((data as DatabaseValue[] | null) ?? []));
+        if (!data || data.length < REPORT_VALUES_PAGE_SIZE) break;
+    }
+    return rows;
+}
+
 export async function loadFhsisReport(reportId: string): Promise<FhsisReportDetail | null> {
-    const [reportResult, valuesResult, reviewsResult] = await Promise.all([
+    const [reportResult, values, reviewsResult] = await Promise.all([
         supabase.from('fhsis_reports').select(reportColumns).eq('id', reportId).maybeSingle(),
-        supabase.from('fhsis_report_values').select('id, report_id, indicator_key, dimension_key, value, remarks, updated_by, created_at, updated_at').eq('report_id', reportId).order('created_at'),
+        fetchAllFhsisReportValues(reportId),
         supabase.from('fhsis_report_reviews').select('id, report_id, reviewer_id, action, reason, notes, created_at').eq('report_id', reportId).order('created_at'),
     ]);
     if (reportResult.error) throw reportResult.error;
-    if (valuesResult.error) throw valuesResult.error;
     if (reviewsResult.error) throw reviewsResult.error;
     if (!reportResult.data) return null;
-    return { report: mapReport(reportResult.data as DatabaseReport), values: (valuesResult.data as DatabaseValue[] | null ?? []).map(mapValue), reviews: (reviewsResult.data as DatabaseReview[] | null ?? []).map(mapReview) };
+    return { report: mapReport(reportResult.data as DatabaseReport), values: values.map(mapValue), reviews: (reviewsResult.data as DatabaseReview[] | null ?? []).map(mapReview) };
 }
 
 export async function saveFhsisReportValue(input: SaveFhsisReportValueInput): Promise<void> {
