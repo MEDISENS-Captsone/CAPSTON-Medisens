@@ -1388,7 +1388,13 @@ button.clinical-worklist-row {
 }
 
 .laboratory-dashboard-workspace .ops-summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1279px) and (min-width: 768px) {
+    .laboratory-dashboard-workspace .ops-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1862,6 +1868,20 @@ button.clinical-worklist-row {
     margin: 0 0 0.125rem;
 }
 
+/* Empty-state cards (Phase L7): the shared EmptyState component's default padding
+   and its <h3> both inherited the chart-card's uppercase title treatment above, which
+   read oddly for a full sentence and left the card looking taller than its content. */
+.lab-activity-card .lab-analytics-empty {
+    padding: 1.25rem 1rem;
+    min-height: 10rem;
+}
+
+.lab-activity-card .lab-analytics-empty h3 {
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: var(--font-weight-semibold);
+}
+
 .lab-activity-card .lab-chart-subtitle {
     font-size: var(--type-caption-size);
     color: var(--text-muted);
@@ -1883,9 +1903,6 @@ button.clinical-worklist-row {
     font-weight: var(--font-weight-medium);
     color: var(--text-muted);
 }
-
-.lab-chart-trend .trend-up { color: var(--green-text); }
-.lab-chart-trend .trend-down { color: var(--coral); }
 
 .lab-donut-layout {
     display: flex;
@@ -1964,19 +1981,21 @@ button.clinical-worklist-row {
     font-weight: var(--font-weight-medium);
 }
 
-.lab-donut-legend-pct {
+/* Counts are the primary figure and percentages are secondary context (L6) — swapped
+   from the original weighting, which emphasized the percentage over the test count. */
+.lab-donut-legend-count {
     color: var(--text-secondary);
     font-weight: var(--font-weight-semibold);
     font-variant-numeric: tabular-nums;
-    min-width: 2.25rem;
+    min-width: 3.25rem;
     text-align: right;
 }
 
-.lab-donut-legend-count {
+.lab-donut-legend-pct {
     color: var(--text-muted);
     font-weight: var(--font-weight-medium);
     font-variant-numeric: tabular-nums;
-    min-width: 1.5rem;
+    min-width: 2.25rem;
     text-align: right;
 }
 
@@ -4884,6 +4903,502 @@ button.clinical-worklist-row {
 .audit-filter-drawer .clinical-drawer-header button[aria-label^="Close"] {
     width: 2.75rem;
     height: 2.75rem;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LABORATORY ENCODE RESULT — task-focused slide-over.
+   Desktop ~55-65% viewport, tablet ~75-90%, mobile full-screen
+   via the shared .lab-drawer mobile rule at 640px.
+   ══════════════════════════════════════════════════════════════ */
+.clinical-drawer.lab-encode-drawer {
+    width: clamp(45rem, 60vw, 60rem);
+    max-width: clamp(45rem, 60vw, 60rem);
+}
+
+@media (max-width: 1279px) {
+    .clinical-drawer.lab-encode-drawer {
+        width: clamp(30rem, 85vw, 48rem);
+        max-width: clamp(30rem, 85vw, 48rem);
+    }
+}
+
+@media (max-width: 640px) {
+    .clinical-drawer.lab-encode-drawer {
+        width: 100vw;
+        max-width: 100vw;
+        border-left: 0;
+    }
+}
+
+.lab-encode-pending-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid var(--amber-border);
+    background: var(--amber-tint);
+    color: var(--amber-text);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
+}
+
+.lab-view-completed-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid var(--green-border);
+    background: var(--green-tint-strong);
+    color: var(--green-dark);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
+}
+
+/* View Result slide-over — same responsive sizing as the Encode panel. */
+.clinical-drawer.lab-view-drawer {
+    width: clamp(45rem, 60vw, 60rem);
+    max-width: clamp(45rem, 60vw, 60rem);
+}
+
+@media (max-width: 1279px) {
+    .clinical-drawer.lab-view-drawer {
+        width: clamp(30rem, 85vw, 48rem);
+        max-width: clamp(30rem, 85vw, 48rem);
+    }
+}
+
+@media (max-width: 640px) {
+    .clinical-drawer.lab-view-drawer {
+        width: 100vw;
+        max-width: 100vw;
+        border-left: 0;
+    }
+}
+
+/* Clean read-only label/value rows for View Result — clinical information, not
+   disabled form controls. Minimal borders, compact spacing. */
+.lab-view-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.lab-view-row:last-child {
+    border-bottom: 0;
+}
+
+.lab-view-row-label {
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-muted);
+    flex: 0 0 auto;
+}
+
+.lab-view-row-value {
+    font-size: var(--type-body-size);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text);
+    text-align: right;
+    word-break: break-word;
+}
+
+/* Date Performed/Released kept out of the finding rows above — a quiet, compact
+   footer strip, not another card. */
+.lab-view-date-footer {
+    margin: 0.5rem 0 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-soft);
+    font-size: var(--type-caption-size);
+    color: var(--text-muted);
+}
+
+.lab-view-tabs-subtext {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-muted);
+}
+
+/* Grouped result sections (Phase: View Result readability polish) — one subtle
+   container per test-specific group (Macroscopic/Chemical/Microscopic, etc.)
+   instead of a bordered card per field. */
+.lab-view-section {
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+    padding: 0.75rem 1rem;
+}
+
+.lab-view-section-title {
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.375rem;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+/* Two related groups (e.g. Macroscopic + Microscopic) sit side by side on wide
+   screens and stack on mobile/tablet. */
+.lab-view-groups {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+@media (min-width: 900px) {
+    .lab-view-groups {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* A single dense group (e.g. Chemical Examination) balances into two label/value
+   columns on wider screens instead of one long list. */
+.lab-view-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .lab-view-fields-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.lab-encode-context {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface-subtle);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.lab-encode-context-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.lab-encode-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-weight: var(--font-weight-bold);
+    color: var(--surface);
+    background: var(--brand-active);
+}
+
+.lab-encode-history-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--green-border-soft);
+    background: var(--green-surface);
+    color: var(--green-ink-strong);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.lab-encode-history-btn:hover {
+    background: color-mix(in srgb, var(--green-surface) 70%, white);
+}
+
+.lab-encode-context-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin-top: 0.625rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--border-soft);
+    font-size: var(--type-caption-size);
+    color: var(--text-secondary);
+}
+
+.lab-encode-tabs-label {
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.lab-encode-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.lab-encode-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.lab-encode-tab:hover {
+    background: var(--surface-subtle);
+}
+
+.lab-encode-tab.is-active {
+    background: var(--brand-active);
+    border-color: var(--brand-active);
+    color: var(--surface);
+}
+
+.lab-encode-tab:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
+.lab-encode-test-panel {
+    padding-bottom: 0.5rem;
+}
+
+.lab-encode-section-title {
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-category);
+    color: var(--brand-active);
+    background: var(--surface-subtle);
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.625rem;
+}
+
+.lab-field-label {
+    display: block;
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.lab-field-input {
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    padding: 0.5rem 0.75rem;
+    color: var(--text);
+    font-size: var(--type-body-size);
+    font-family: inherit;
+}
+
+.lab-field-input:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 1px;
+    border-color: var(--focus-color);
+}
+
+textarea.lab-field-input {
+    min-height: 4.5rem;
+    resize: vertical;
+}
+
+.lab-encode-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--type-supporting-size);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.lab-encode-table thead {
+    background: var(--brand-active);
+    color: var(--surface);
+}
+
+.lab-encode-table th {
+    padding: 0.5rem 0.625rem;
+    font-weight: var(--font-weight-bold);
+    text-align: center;
+}
+
+.lab-encode-table th:first-child {
+    text-align: left;
+}
+
+.lab-encode-table td {
+    padding: 0.375rem 0.5rem;
+    border-top: 1px solid var(--border-soft);
+    vertical-align: middle;
+}
+
+.lab-encode-table-label {
+    font-weight: var(--font-weight-bold);
+    color: var(--text);
+    white-space: nowrap;
+}
+
+/* Quick-select / tally controls: deliberate tap targets replacing repetitive typing
+   for findings that already have a known finite result set. Nothing is preselected —
+   fields start with no option active unless a saved value already exists. */
+.lab-quickselect {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.lab-quickselect-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.lab-quickselect-btn:hover:not(:disabled) {
+    background: var(--surface-subtle);
+    border-color: var(--brand-accent-surface);
+}
+
+.lab-quickselect-btn.is-selected {
+    background: var(--brand-active);
+    border-color: var(--brand-active);
+    color: var(--surface);
+}
+
+.lab-quickselect-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.lab-quickselect-btn:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+}
+
+.lab-quickselect-other-input {
+    margin-top: 0.5rem;
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    padding: 0 0.75rem;
+    font-size: var(--type-body-size);
+    color: var(--text);
+    background: var(--surface);
+}
+
+.lab-encode-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-card);
+    color: var(--text-secondary);
+}
+
+/* Legacy-only requested tests are real, just unsupported by structured encoding —
+   visually distinct from the neutral "nothing requested" empty state above. */
+.lab-encode-legacy-notice {
+    border-style: solid;
+    border-color: var(--amber-border);
+    background: var(--amber-tint);
+}
+
+.lab-encode-discard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.lab-encode-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--radius-control);
+    background: var(--green-accent-strong);
+    color: var(--surface);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--type-body-size);
+    cursor: pointer;
+    transition: background-color var(--motion-fast);
+}
+
+.lab-encode-btn-primary:hover:not(:disabled) {
+    background: var(--green-dark);
+}
+
+.lab-encode-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.lab-encode-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+}
+
+.lab-encode-btn-destructive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-control);
+    background: var(--coral);
+    color: var(--surface);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+}
+
+.lab-encode-btn-destructive:hover {
+    background: var(--coral-hover);
 }
 
 .patient-chart-modal {

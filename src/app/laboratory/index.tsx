@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '../../components/shared/Icon';
 import { createRoot } from 'react-dom/client';
 import { supabase } from '../../lib/supabase/client';
@@ -7,954 +7,36 @@ import { useToast } from '../../components/feedback/Toast';
 import { requireRole } from '../../lib/auth/roles';
 import { getInitials } from '../../lib/utils/names';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
-import { upsertCompletedLabResult } from '../../features/laboratory/services';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useHashPage } from '../../hooks/useHashPage';
 import { Topbar } from '../../components/layout/Topbar';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { EmptyState } from '../../components/shared/EmptyState';
-import { Modal } from '../../components/ui/Modal';
-import { SkeletonTable } from '../../components/ui/Skeleton';
-import { LabResultDetailModal, type LabResultData } from '../../components/shared/LabResultDetailModal';
+import { LabRequestDetail } from './LabRequestDetail';
+import { LabEncodePanel } from './LabEncodePanel';
+import { LabRequestsPage } from './LabRequestsPage';
+import { LabResultsPage } from './LabResultsPage';
+import { LabAnalyticsPage } from './LabAnalyticsPage';
+import {
+    type LabRequest,
+    type PatientRow,
+    LAB_REQUEST_QUEUE_LIMIT,
+    LAB_REQUEST_COLUMNS,
+    formatDisplayDate,
+    getTestSummary,
+} from './types';
 
+const LAB_PAGES = ['dashboard', 'lab-requests', 'results', 'analytics'] as const;
+type LabPage = typeof LAB_PAGES[number];
 
-interface LabRequest {
-    labrequest_id: number;
-    consultation_id: number | null;
-    patient_id: number | null;
-    request_date: string | null;
-    lab_no: string | null;
-    chief_complaint: string | null;
-    is_clinical_microscopy: boolean;
-    is_blood_chemistry: boolean;
-    is_pregnancy_test: boolean;
-    is_hbsag_screening: boolean;
-    is_hiv_screening: boolean;
-    is_parasitology: boolean;
-    is_dengue_rdt: boolean;
-    others: string | null;
-    requested_by: string | null;
-    status: string | null;
-    patient_firstName?: string;
-    patient_lastName?: string;
-    patient_age?: number | null;
-    patient_sex?: string;
+function normalizeLabPage(page: string): LabPage {
+    return (LAB_PAGES as readonly string[]).includes(page) ? (page as LabPage) : 'dashboard';
 }
 
-interface PatientRow {
-    id: number;
-    firstName: string;
-    lastName: string;
-    age: number | null;
-    sex: string;
-}
-
-const LAB_REQUEST_QUEUE_LIMIT = 200;
-const LAB_REQUEST_COLUMNS = 'labrequest_id, consultation_id, patient_id, request_date, lab_no, chief_complaint, is_clinical_microscopy, is_blood_chemistry, is_pregnancy_test, is_hbsag_screening, is_hiv_screening, is_parasitology, is_dengue_rdt, others, requested_by, status';
-
-function formatDateTimeLocal(value?: string | null) {
-    const date = value ? new Date(value) : new Date();
-    if (isNaN(date.getTime())) {
-        const now = new Date();
-        const pad = (n: number) => String(n).padStart(2, '0');
-        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    }
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function formatDisplayDate(str?: string | null) {
-    if (!str) return '—';
-    const d = new Date(str);
-    return isNaN(d.getTime())
-        ? str
-        : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PatientLabHistory: shows all past lab results for a patient in a slide-over
-// ─────────────────────────────────────────────────────────────────────────────
-function PatientLabHistory({
-    patientId,
-    patientName,
-    onClose,
-}: {
-    patientId: number;
-    patientName: string;
-    onClose: () => void;
-}) {
-    const [historyItems, setHistoryItems] = useState<(LabResultData & { id: number; testSummary: string })[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedResult, setSelectedResult] = useState<LabResultData | null>(null);
-
-    useEffect(() => {
-        const fetchHistory = async () => {
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('lab_result')
-                    .select(`
-                        labresult_id, patient_id, consultation_id,
-                        labrequest_id, date_performed, findings,
-                        performed_by, status,
-                        lab_request(lab_no, is_clinical_microscopy, is_blood_chemistry,
-                            is_pregnancy_test, is_hbsag_screening, is_hiv_screening,
-                            is_parasitology, is_dengue_rdt, others, request_date)
-                    `)
-                    .eq('patient_id', patientId)
-                    .eq('status', 'Completed')
-                    .order('labresult_id', { ascending: false })
-                    .limit(100);
-
-                if (error) throw error;
-
-                const items = (data || []).map((row: any) => {
-                    const req = row.lab_request ?? {};
-                    const tests: string[] = [];
-                    if (req.is_clinical_microscopy) tests.push('Clinical Microscopy');
-                    if (req.is_blood_chemistry) tests.push('Blood Chemistry');
-                    if (req.is_pregnancy_test) tests.push('Pregnancy Test');
-                    if (req.is_hbsag_screening) tests.push('HBsAg');
-                    if (req.is_hiv_screening) tests.push('HIV Screening');
-                    if (req.is_parasitology) tests.push('Parasitology');
-                    if (req.is_dengue_rdt) tests.push('Dengue RDT');
-                    if (req.others) tests.push('Others');
-                    return {
-                        id: row.labresult_id,
-                        labresult_id: row.labresult_id,
-                        findings: row.findings,
-                        performed_by: row.performed_by,
-                        date_performed: row.date_performed,
-                        status: row.status,
-                        patientName,
-                        labNo: req.lab_no,
-                        requestDate: req.request_date,
-                        testSummary: tests.length ? tests.join(', ') : 'General / Other',
-                    };
-                });
-
-                setHistoryItems(items);
-            } catch (err) {
-                logError('Failed to load patient lab history', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchHistory();
-    }, [patientId]);
-
-    return (
-        <>
-            {selectedResult && (
-                <LabResultDetailModal
-                    result={selectedResult}
-                    onClose={() => setSelectedResult(null)}
-                />
-            )}
-            {/* Backdrop */}
-            <div
-                className="fixed inset-0 bg-[#102E40]/50 backdrop-blur-sm z-[210]"
-                onClick={onClose}
-                aria-hidden="true"
-            />
-            {/* Slide-over panel */}
-            <div className="fixed inset-0 z-[211] flex items-center justify-end p-3 sm:p-6 pointer-events-none">
-                <div className="pointer-events-auto w-full max-w-lg h-full max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-[var(--border)] flex flex-col overflow-hidden animate-slide-in-right">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] bg-gradient-to-r from-[#102E40] to-[#1a4a62] shrink-0">
-                        <div>
-                            <div className="font-bold text-white text-sm flex items-center gap-2">
-                                <Icon name="clock" className="h-4 w-4 text-emerald-300" />
-                                Lab Result History
-                            </div>
-                            <div className="text-xs text-white/70 mt-0.5">{patientName} · All completed results</div>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            aria-label="Close lab history"
-                            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
-                        >
-                            <Icon name="close" className="h-4 w-4" label="Close" />
-                        </button>
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {loading ? (
-                            <div className="flex flex-col gap-3">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-20 bg-[var(--surface-subtle)] rounded-xl animate-pulse" />
-                                ))}
-                            </div>
-                        ) : historyItems.length === 0 ? (
-                            <EmptyState
-                                title="No completed lab results"
-                                description="Completed results for this patient will appear here."
-                            />
-                        ) : (
-                            historyItems.map(item => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => setSelectedResult(item)}
-                                    className="w-full text-left rounded-xl border border-[var(--border)] bg-white hover:border-emerald-300 hover:bg-[var(--green-surface)] hover:shadow-md transition-all p-4 group cursor-pointer"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="inline-flex items-center justify-center h-6 min-w-6 rounded-md px-1.5 text-[0.65rem] font-semibold bg-[var(--green-surface)] text-[var(--green-ink-strong)] ring-1 ring-[var(--green-border-soft)]">
-                                                    RES
-                                                </span>
-                                                <span className="text-xs font-bold text-[var(--text)]">Result #{item.id}</span>
-                                                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                                    Completed
-                                                </span>
-                                            </div>
-                                            <div className="text-xs text-[var(--text-2)] font-medium line-clamp-1">
-                                                {item.testSummary}
-                                            </div>
-                                            <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                                                {formatDisplayDate(item.date_performed)}
-                                                {item.performed_by && ` · By: ${item.performed_by}`}
-                                            </div>
-                                        </div>
-                                        <span className="shrink-0 flex items-center gap-1 text-xs font-bold text-[var(--green-ink-strong)] group-hover:text-[var(--green-dark)] transition-colors">
-                                            <Icon name="flask" className="h-3.5 w-3.5" />
-                                            View
-                                        </span>
-                                    </div>
-                                </button>
-                            ))
-                        )}
-                    </div>
-
-                    {/* Footer count */}
-                    {!loading && historyItems.length > 0 && (
-                        <div className="px-5 py-3 border-t border-[var(--border-soft)] bg-[var(--surface-subtle)] text-xs text-[var(--text-muted)] shrink-0">
-                            {historyItems.length} completed result{historyItems.length !== 1 ? 's' : ''} on record
-                        </div>
-                    )}
-                </div>
-            </div>
-        </>
-    );
-}
-function LabRequestDetail({
-    request,
-    onClose,
-    onStatusUpdate,
-    currentUserName,
-    isOnline,
-}: {
-    request: LabRequest;
-    onClose: () => void;
-    onStatusUpdate: (id: number, status: string) => void;
-    currentUserName: string;
-    isOnline: boolean;
-}) {
-    const [datePerformed, setDatePerformed] = useState(formatDateTimeLocal());
-    const [saving, setSaving] = useState(false);
-    // `disabled={saving}` only applies after React re-renders, and a state read inside
-    // the handler sees the value from the render the click came from. Two taps in the
-    // same frame therefore both wrote the result, so the latch has to be a ref.
-    const savingRef = useRef(false);
-    const [showHistory, setShowHistory] = useState(false);
-    const { showToast, ToastComponent } = useToast();
-    const [formData, setFormData] = useState<Record<string, any>>({
-        // Clinical Microscopy
-        clinicalMicroscopy: {
-            color: 'Yellow', transparency: 'Clear',
-            spGravity: '1.010', pH: '6.0', protein: 'Negative', sugar: 'Negative',
-            ketones: 'Negative', bilirubin: 'Negative', blood: 'Negative', leukocytes: 'Negative', nitrite: 'Negative', urobilinogen: 'Normal',
-            wbc: '', rbc: '', bacteria: 'Few', epithelialCells: 'Few', amorphousSediments: 'Few', mucusThreads: 'Few', yeastCells: 'None', crystals: 'None', others: ''
-        },
-        // Blood Chemistry
-        bloodChemistry: {
-            fbs: { result: '', unit: 'mg/dL', ref: '70–104', flag: '' },
-            cholesterol: { result: '', unit: 'mg/dL', ref: 'Below 200', flag: '' },
-            uricAcid: { result: '', unit: 'mg/dL', ref: 'Male: 3–7.2 / Female: 2–6', flag: '' },
-            remarks: ''
-        },
-        // Pregnancy Test
-        pregnancyTest: {
-            methodKit: 'HCG / Sure-Guard',
-            result: 'NEGATIVE',
-            datePerformed: new Date().toLocaleDateString('en-PH'),
-            dateReleased: new Date().toLocaleDateString('en-PH'),
-            serialNo: ''
-        },
-        // HBsAg Screening
-        hbsagScreening: {
-            methodUsed: 'HBsAg Rapid Test',
-            kitReagent: 'Biotest RightSign HBsAg Rapid Test Strip',
-            lotNo: '',
-            result: 'NONREACTIVE',
-            datePerformed: new Date().toLocaleDateString('en-PH'),
-            dateReleased: new Date().toLocaleDateString('en-PH'),
-            serialNo: ''
-        },
-        // HIV Screening
-        hivScreening: {
-            methodUsed: 'Rapid Diagnostic Test / HPLC',
-            kitReagent: 'ABBOTT BIOLINE HIV 1/2 3.0',
-            lotNo: '',
-            result: 'NONREACTIVE',
-            datePerformed: new Date().toLocaleDateString('en-PH'),
-            dateReleased: new Date().toLocaleDateString('en-PH'),
-            receivedBy: '',
-            serialNo: ''
-        },
-        // Parasitology
-        parasitology: {
-            color: 'Dark brown',
-            consistency: 'Semi-formed',
-            occultBlood: 'Negative',
-            macroOthers: '',
-            ascaris: 'Negative',
-            trichuris: 'Negative',
-            hookworm: 'Negative',
-            amoeba: 'Negative',
-            microOthers: 'No Ova or Parasite Seen',
-            wbc: '0-1',
-            rbc: '0-2',
-            bacteria: 'Many',
-            yeastCells: 'None',
-            fatGlobules: 'None'
-        },
-        // Dengue RDT
-        dengueRdt: {
-            ns1Ag: 'POSITIVE',
-            caseNo: '',
-            datePerformed: new Date().toLocaleDateString('en-PH'),
-            dateReleased: new Date().toLocaleDateString('en-PH')
-        },
-        generalNotes: ''
-    });
-
-    useEffect(() => {
-        setDatePerformed(formatDateTimeLocal());
-        loadExistingLabResult();
-    }, [request.labrequest_id]);
-
-    const loadExistingLabResult = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('lab_result')
-                .select('labresult_id, labrequest_id, patient_id, date_performed, findings, performed_by')
-                .eq('labrequest_id', request.labrequest_id)
-                .order('labresult_id', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (error) throw error;
-
-            if (data) {
-                setDatePerformed(formatDateTimeLocal(data.date_performed));
-                if (data.findings) {
-                    try {
-                        const parsed = JSON.parse(data.findings);
-                        if (typeof parsed === 'object' && parsed !== null) {
-                            setFormData(prev => ({ ...prev, ...parsed }));
-                        }
-                    } catch {
-                        // Plain text fallback
-                        setFormData(prev => ({ ...prev, generalNotes: data.findings }));
-                    }
-                }
-            }
-        } catch (err) {
-            logError('Failed to load laboratory result', err);
-        }
-    };
-
-    const patientName = request.patient_firstName
-        ? `${request.patient_firstName} ${request.patient_lastName}`
-        : (request.patient_id ? `Patient #${request.patient_id}` : '—');
-
-    const statusColor = (s: string | null) => {
-        if (s === 'Completed') return 'bg-[var(--green-tint-strong)] text-[var(--green-dark)] border-[var(--green-border)]';
-        return 'bg-[var(--amber-tint)] text-[var(--amber-text)] border-[var(--amber-border)]';
-    };
-
-    const tests: { key: string; label: string; value: boolean }[] = [
-        { key: 'clinicalMicroscopy', label: 'Clinical Microscopy', value: Boolean(request.is_clinical_microscopy) },
-        { key: 'bloodChemistry', label: 'Blood Chemistry', value: Boolean(request.is_blood_chemistry) },
-        { key: 'pregnancyTest', label: 'Pregnancy Test', value: Boolean(request.is_pregnancy_test) },
-        { key: 'hbsagScreening', label: 'HBsAg Screening', value: Boolean(request.is_hbsag_screening) },
-        { key: 'hivScreening', label: 'HIV Screening', value: Boolean(request.is_hiv_screening) },
-        { key: 'parasitology', label: 'Parasitology', value: Boolean(request.is_parasitology) },
-        { key: 'dengueRdt', label: 'Dengue RDT', value: Boolean(request.is_dengue_rdt) },
-    ];
-    const activeTests = tests.filter(t => t.value);
-    const [selectedTab, setSelectedTab] = useState<string>('');
-
-    useEffect(() => {
-        if (activeTests.length > 0) {
-            setSelectedTab(activeTests[0].key);
-        } else if (request.others) {
-            setSelectedTab('others');
-        } else {
-            setSelectedTab('clinicalMicroscopy');
-        }
-    }, [request.labrequest_id]);
-
-    const handleFieldChange = (section: string, field: string, val: any) => {
-        setFormData(prev => ({
-            ...prev,
-            [section]: typeof prev[section] === 'object'
-                ? { ...prev[section], [field]: val }
-                : val
-        }));
-    };
-
-    const handleMarkCompleted = async () => {
-        if (savingRef.current) return;
-        if (!isOnline) {
-            showToast('You are offline. Lab results cannot be submitted until the connection is restored.', true);
-            return;
-        }
-
-        if (!datePerformed) {
-            showToast('Please select the date performed.', true);
-            return;
-        }
-
-        savingRef.current = true;
-        setSaving(true);
-        try {
-            const performedBy =
-                currentUserName && currentUserName !== 'Loading...'
-                    ? currentUserName
-                    : 'Medical Technologist';
-
-            const payloadFindings = JSON.stringify(formData, null, 2);
-
-            await upsertCompletedLabResult({
-                labrequest_id: request.labrequest_id,
-                patient_id: request.patient_id,
-                consultation_id: request.consultation_id,
-                findings: payloadFindings,
-                performed_by: performedBy,
-                date_performed: datePerformed,
-                status: 'Completed',
-            });
-
-            onStatusUpdate(request.labrequest_id, 'Completed');
-            showToast('Lab results recorded successfully!', false);
-        } catch (err) {
-            logError('Failed to submit laboratory results', err);
-            showToast(healthcareErrorMessage("submit the lab results"), true);
-        } finally {
-            savingRef.current = false;
-            setSaving(false);
-        }
-    };
-
-    const isCompleted = request.status === 'Completed';
-    const formInputCls = "w-full bg-white border border-[var(--border-strong)] rounded px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--focus-color)] outline-none disabled:bg-[var(--surface-subtle)] disabled:text-[var(--text-2)]";
-
-    const renderHeader = (title: string) => (
-        <div className="border-b-2 border-[#102E40] pb-2 mb-3 text-center">
-            <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">Republic of the Philippines · Province of Batangas</div>
-            <div className="text-xs font-bold text-[var(--brand-active)] uppercase tracking-wide">Municipality of Malvar · Office of the Municipal Health</div>
-            <div className="text-sm font-extrabold text-[var(--brand-primary)] uppercase tracking-wider mt-1">{title}</div>
-        </div>
-    );
-
-    const renderPatientLockup = () => (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-[var(--surface-subtle)] p-2.5 rounded border border-[var(--border)] mb-4">
-            <div><span className="font-semibold text-[var(--text-muted)]">Patient:</span> <span className="font-bold text-[var(--text)]">{patientName}</span></div>
-            <div><span className="font-semibold text-[var(--text-muted)]">Age/Sex:</span> <span className="font-bold text-[var(--text)]">{request.patient_age ?? '—'} / {request.patient_sex ?? '—'}</span></div>
-            <div><span className="font-semibold text-[var(--text-muted)]">Date:</span> <span className="font-bold text-[var(--text)]">{formatDisplayDate(request.request_date)}</span></div>
-            <div><span className="font-semibold text-[var(--text-muted)]">Lab No:</span> <span className="font-bold text-[var(--text)]">{request.lab_no || `#${request.labrequest_id}`}</span></div>
-        </div>
-    );
-
-    return (
-        <>
-            <ToastComponent />
-            {/* Patient Lab History slide-over */}
-            {showHistory && request.patient_id != null && (
-                <PatientLabHistory
-                    patientId={request.patient_id}
-                    patientName={patientName}
-                    onClose={() => setShowHistory(false)}
-                />
-            )}
-            {/* Backdrop */}
-            <div
-                className="fixed inset-0 bg-[#102E40]/60 backdrop-blur-sm z-[200] transition-opacity"
-                onClick={onClose}
-                aria-hidden="true"
-            />
-
-            {/* Centered Modal Popup */}
-            <div className="fixed inset-0 z-[201] flex items-center justify-center p-3 sm:p-6 overflow-y-auto pointer-events-none">
-                <Modal
-                    labelledBy="lab-request-dialog-title"
-                    onClose={onClose}
-                    className="pointer-events-auto w-full max-w-4xl h-[85vh] max-h-[820px] min-h-[580px] bg-white rounded-2xl shadow-2xl border border-[var(--border)] flex flex-col overflow-hidden"
-                >
-                    {/* Modal Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] shrink-0">
-                        <div className="min-w-0">
-                            <div id="lab-request-dialog-title" className="font-bold text-[var(--brand-primary)] text-base flex items-center gap-2">
-                                <span>Lab Request #{request.labrequest_id}</span>
-                            </div>
-                            <div className="text-xs text-[var(--text-secondary)] mt-0.5 font-medium">{patientName} · {formatDisplayDate(request.request_date)}</div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor(request.status)}`}>
-                                {request.status || 'Pending'}
-                            </span>
-                            {request.patient_id != null && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowHistory(true)}
-                                    aria-label="View patient lab history"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--green-surface)] text-[var(--green-ink-strong)] hover:bg-emerald-100 border border-[var(--green-border-soft)] transition-all cursor-pointer"
-                                >
-                                    <Icon name="clock" className="h-3.5 w-3.5" />
-                                    History
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                aria-label="Close laboratory request"
-                                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-200/60 text-[var(--text-muted)] hover:text-[var(--text)] font-bold text-lg transition-colors cursor-pointer"
-                            >
-                                <Icon name="close" className="h-4 w-4" label="Close laboratory request" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Modal Scrollable Body */}
-                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-                    {/* Header Info */}
-                    <div className="bg-[var(--surface-subtle)] rounded-xl border border-[var(--border)] p-4 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-[var(--brand-active)] text-white flex items-center justify-center font-bold text-lg shrink-0 shadow">
-                            {request.patient_firstName?.[0]?.toUpperCase() ?? '?'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="font-bold text-[var(--text)] text-base">{patientName}</div>
-                            <div className="text-xs text-[var(--text-secondary)] mt-0.5 flex gap-3 flex-wrap">
-                                {request.patient_age != null && <span>{request.patient_age} yrs old</span>}
-                                {request.patient_sex && <span>{request.patient_sex}</span>}
-                                {request.requested_by && <span>Req. by: <span className="font-semibold text-[var(--text-2)]">{request.requested_by}</span></span>}
-                            </div>
-                        </div>
-                    </div>
-
-                    {request.chief_complaint && (
-                        <div>
-                            <div className="clinical-field-label">Chief Complaint</div>
-                            <div className="text-sm text-[var(--text-2)] bg-[var(--surface-subtle)] rounded-lg px-4 py-2 border border-[var(--border)]">{request.chief_complaint}</div>
-                        </div>
-                    )}
-
-                    {/* Performed By & Date */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[var(--surface-subtle)]/40 p-3 rounded-lg border border-[var(--border-soft)]">
-                        <div>
-                            <label className="clinical-field-label">Medical Technologist</label>
-                            <input
-                                type="text"
-                                value={currentUserName}
-                                disabled
-                                className="w-full bg-[var(--surface-subtle)] border border-[var(--border)] rounded-lg p-2 text-xs font-semibold text-[var(--text-2)] cursor-not-allowed"
-                            />
-                        </div>
-                        <div>
-                            <label className="clinical-field-label">Date Performed</label>
-                            <input
-                                type="datetime-local"
-                                value={datePerformed}
-                                onChange={e => setDatePerformed(e.target.value)}
-                                disabled={isCompleted}
-                                className="w-full bg-white border border-[var(--border)] rounded-lg p-2 text-xs text-[var(--text)] focus:border-[var(--focus-color)] outline-none disabled:bg-[var(--surface-subtle)] disabled:text-[var(--text-2)]"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Tab Navigation for Requested Tests */}
-                    <div>
-                        <div className="clinical-field-label mb-2">Requested Laboratory Tests ({activeTests.length}) · Select a test to encode/review</div>
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[var(--border)]">
-                            {activeTests.map(t => {
-                                const isSelected = selectedTab === t.key;
-                                return (
-                                    <button
-                                        key={t.key}
-                                        type="button"
-                                        onClick={() => setSelectedTab(t.key)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                                            isSelected
-                                                ? 'bg-[#102E40] text-white shadow-sm ring-2 ring-[#102E40]/20'
-                                                : 'bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)] border border-[var(--border)]'
-                                        }`}
-                                    >
-                                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-emerald-400' : 'bg-[var(--brand-primary)]'}`} />
-                                        <span>{t.label}</span>
-                                    </button>
-                                );
-                            })}
-                            {request.others && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedTab('others')}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                                        selectedTab === 'others'
-                                            ? 'bg-[#102E40] text-white shadow-sm ring-2 ring-[#102E40]/20'
-                                            : 'bg-white text-[var(--text-2)] hover:bg-[var(--surface-subtle)] border border-[var(--border)]'
-                                    }`}
-                                >
-                                    <span className={`w-2 h-2 rounded-full ${selectedTab === 'others' ? 'bg-emerald-400' : 'bg-slate-400'}`} />
-                                    <span>Others</span>
-                                </button>
-                            )}
-                            {activeTests.length === 0 && !request.others && (
-                                <span className="text-xs text-[var(--text-muted)] italic">No specific tests selected.</span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ══════════════════════════════════════════════════════════════════
-                        TAB CONTENT: ONE STRUCTURED REPORT DISPLAYED AT A TIME
-                       ══════════════════════════════════════════════════════════════════ */}
-
-                    {/* 1. CLINICAL MICROSCOPY REPORT */}
-                    {selectedTab === 'clinicalMicroscopy' && (request.is_clinical_microscopy || activeTests.length === 0) && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('Clinical Microscopy Report')}
-                            {renderPatientLockup()}
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Left: Macroscopic & Chemical */}
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="text-xs font-bold uppercase tracking-wider text-[var(--brand-active)] bg-[var(--surface-subtle)] px-2 py-1 rounded mb-2 border border-[var(--border-soft)]">Macroscopic Examination</div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs">
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Color</label><input type="text" value={formData.clinicalMicroscopy?.color ?? 'Yellow'} onChange={e => handleFieldChange('clinicalMicroscopy', 'color', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Transparency</label><input type="text" value={formData.clinicalMicroscopy?.transparency ?? 'Clear'} onChange={e => handleFieldChange('clinicalMicroscopy', 'transparency', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="text-xs font-bold uppercase tracking-wider text-[var(--brand-active)] bg-[var(--surface-subtle)] px-2 py-1 rounded mb-2 border border-[var(--border-soft)]">Chemical Examination</div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs">
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Specific gravity</label><input type="text" value={formData.clinicalMicroscopy?.spGravity ?? '1.010'} onChange={e => handleFieldChange('clinicalMicroscopy', 'spGravity', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">pH</label><input type="text" value={formData.clinicalMicroscopy?.pH ?? '6.0'} onChange={e => handleFieldChange('clinicalMicroscopy', 'pH', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Protein</label><input type="text" value={formData.clinicalMicroscopy?.protein ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'protein', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Sugar</label><input type="text" value={formData.clinicalMicroscopy?.sugar ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'sugar', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Ketones</label><input type="text" value={formData.clinicalMicroscopy?.ketones ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'ketones', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Bilirubin</label><input type="text" value={formData.clinicalMicroscopy?.bilirubin ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'bilirubin', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Blood</label><input type="text" value={formData.clinicalMicroscopy?.blood ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'blood', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Leukocytes</label><input type="text" value={formData.clinicalMicroscopy?.leukocytes ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'leukocytes', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Nitrite</label><input type="text" value={formData.clinicalMicroscopy?.nitrite ?? 'Negative'} onChange={e => handleFieldChange('clinicalMicroscopy', 'nitrite', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                            <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Urobilinogen</label><input type="text" value={formData.clinicalMicroscopy?.urobilinogen ?? 'Normal'} onChange={e => handleFieldChange('clinicalMicroscopy', 'urobilinogen', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right: Microscopic Examination */}
-                                <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--brand-active)] bg-[var(--surface-subtle)] px-2 py-1 rounded mb-2 border border-[var(--border-soft)]">Microscopic Examination</div>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">WBC (/hpf)</label><input type="text" placeholder="e.g. 0-2 or 50-100" value={formData.clinicalMicroscopy?.wbc ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'wbc', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">RBC (/hpf)</label><input type="text" placeholder="e.g. 0-2" value={formData.clinicalMicroscopy?.rbc ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'rbc', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Bacteria</label><input type="text" placeholder="e.g. Few / Moderate / Many" value={formData.clinicalMicroscopy?.bacteria ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'bacteria', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Epithelial cells</label><input type="text" placeholder="e.g. Few / Moderate / Many" value={formData.clinicalMicroscopy?.epithelialCells ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'epithelialCells', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Amorphous sediments</label><input type="text" placeholder="e.g. Few / Moderate" value={formData.clinicalMicroscopy?.amorphousSediments ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'amorphousSediments', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Mucus threads</label><input type="text" placeholder="e.g. Few / Moderate" value={formData.clinicalMicroscopy?.mucusThreads ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'mucusThreads', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Yeast cells</label><input type="text" placeholder="e.g. None / Few" value={formData.clinicalMicroscopy?.yeastCells ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'yeastCells', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Crystals</label><input type="text" placeholder="e.g. Calcium oxalate: Moderate" value={formData.clinicalMicroscopy?.crystals ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'crystals', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div className="col-span-2"><label className="text-[11px] font-semibold text-[var(--text-muted)]">OTHERS</label><input type="text" placeholder="e.g. Pus in clumps: 1-2/HPO" value={formData.clinicalMicroscopy?.others ?? ''} onChange={e => handleFieldChange('clinicalMicroscopy', 'others', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 2. BLOOD CHEMISTRY REPORT */}
-                    {selectedTab === 'bloodChemistry' && request.is_blood_chemistry && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('Blood Chemistry Report')}
-                            {renderPatientLockup()}
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-xs border border-[var(--border-strong)]">
-                                    <thead className="bg-[#102E40] text-white">
-                                        <tr>
-                                            <th className="p-2 text-left font-bold">TEST</th>
-                                            <th className="p-2 text-center font-bold">RESULT</th>
-                                            <th className="p-2 text-center font-bold">UNIT</th>
-                                            <th className="p-2 text-center font-bold">REFERENCE VALUE</th>
-                                            <th className="p-2 text-center font-bold">FLAG</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[var(--border)]">
-                                        <tr className="hover:bg-[var(--surface-subtle)]">
-                                            <td className="p-2 font-bold text-[var(--text)]">FASTING BLOOD SUGAR</td>
-                                            <td className="p-1"><input type="text" placeholder="e.g. 95" value={formData.bloodChemistry?.fbs?.result ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'fbs', { ...formData.bloodChemistry?.fbs, result: e.target.value })} disabled={isCompleted} className={`${formInputCls} text-center font-bold`} /></td>
-                                            <td className="p-2 text-center text-[var(--text-2)] font-semibold">mg/dL</td>
-                                            <td className="p-2 text-center text-[var(--text-2)]">70–104</td>
-                                            <td className="p-1"><input type="text" placeholder="e.g. Normal" value={formData.bloodChemistry?.fbs?.flag ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'fbs', { ...formData.bloodChemistry?.fbs, flag: e.target.value })} disabled={isCompleted} className={`${formInputCls} text-center`} /></td>
-                                        </tr>
-                                        <tr className="hover:bg-[var(--surface-subtle)]">
-                                            <td className="p-2 font-bold text-[var(--text)]">CHOLESTEROL</td>
-                                            <td className="p-1"><input type="text" placeholder="e.g. 180" value={formData.bloodChemistry?.cholesterol?.result ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'cholesterol', { ...formData.bloodChemistry?.cholesterol, result: e.target.value })} disabled={isCompleted} className={`${formInputCls} text-center font-bold`} /></td>
-                                            <td className="p-2 text-center text-[var(--text-2)] font-semibold">mg/dL</td>
-                                            <td className="p-2 text-center text-[var(--text-2)]">Below 200</td>
-                                            <td className="p-1"><input type="text" placeholder="e.g. Normal" value={formData.bloodChemistry?.cholesterol?.flag ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'cholesterol', { ...formData.bloodChemistry?.cholesterol, flag: e.target.value })} disabled={isCompleted} className={`${formInputCls} text-center`} /></td>
-                                        </tr>
-                                        <tr className="hover:bg-[var(--surface-subtle)]">
-                                            <td className="p-2 font-bold text-[var(--text)]">URIC ACID</td>
-                                            <td className="p-1"><input type="text" placeholder="e.g. 4.5" value={formData.bloodChemistry?.uricAcid?.result ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'uricAcid', { ...formData.bloodChemistry?.uricAcid, result: e.target.value })} disabled={isCompleted} className={`${formInputCls} text-center font-bold`} /></td>
-                                            <td className="p-2 text-center text-[var(--text-2)] font-semibold">mg/dL</td>
-                                            <td className="p-2 text-center text-[var(--text-2)]">Male: 3 – 7.2 mg/dL<br/>Female: 2 – 6 mg/dL</td>
-                                            <td className="p-1"><input type="text" placeholder="e.g. Normal" value={formData.bloodChemistry?.uricAcid?.flag ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'uricAcid', { ...formData.bloodChemistry?.uricAcid, flag: e.target.value })} disabled={isCompleted} className={`${formInputCls} text-center`} /></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-semibold text-[var(--text-muted)]">Remarks</label>
-                                <textarea rows={2} placeholder="Interpretation or clinical notes..." value={formData.bloodChemistry?.remarks ?? ''} onChange={e => handleFieldChange('bloodChemistry', 'remarks', e.target.value)} disabled={isCompleted} className={formInputCls} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 3. PREGNANCY TEST REPORT */}
-                    {selectedTab === 'pregnancyTest' && request.is_pregnancy_test && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('Pregnancy Test Report')}
-                            {renderPatientLockup()}
-
-                            <div className="border border-[var(--border-strong)] rounded overflow-hidden">
-                                <table className="w-full text-xs">
-                                    <thead className="bg-[#102E40] text-white">
-                                        <tr>
-                                            <th className="p-2 text-center font-bold w-1/2">METHOD / KIT</th>
-                                            <th className="p-2 text-center font-bold w-1/2">RESULT</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td className="p-3"><input type="text" value={formData.pregnancyTest?.methodKit ?? 'HCG / Sure-Guard'} onChange={e => handleFieldChange('pregnancyTest', 'methodKit', e.target.value)} disabled={isCompleted} className={`${formInputCls} text-center font-semibold`} /></td>
-                                            <td className="p-3">
-                                                <select value={formData.pregnancyTest?.result ?? 'NEGATIVE'} onChange={e => handleFieldChange('pregnancyTest', 'result', e.target.value)} disabled={isCompleted} className={`${formInputCls} text-center font-bold text-sm text-[var(--brand-active)]`}>
-                                                    <option value="POSITIVE">POSITIVE</option>
-                                                    <option value="NEGATIVE">NEGATIVE</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Performed</label><input type="text" value={formData.pregnancyTest?.datePerformed ?? ''} onChange={e => handleFieldChange('pregnancyTest', 'datePerformed', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Released</label><input type="text" value={formData.pregnancyTest?.dateReleased ?? ''} onChange={e => handleFieldChange('pregnancyTest', 'dateReleased', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 4. HBSAG SCREENING REPORT */}
-                    {selectedTab === 'hbsagScreening' && request.is_hbsag_screening && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('HBsAg Screening Report')}
-                            {renderPatientLockup()}
-
-                            <div className="border border-[var(--border-strong)] rounded overflow-hidden">
-                                <table className="w-full text-xs">
-                                    <thead className="bg-[#102E40] text-white">
-                                        <tr>
-                                            <th className="p-2 text-center font-bold">Method Used</th>
-                                            <th className="p-2 text-center font-bold">Kit / Reagent Used</th>
-                                            <th className="p-2 text-center font-bold">Lot No.</th>
-                                            <th className="p-2 text-center font-bold">Result</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td className="p-2"><input type="text" value={formData.hbsagScreening?.methodUsed ?? 'HBsAg Rapid Test'} onChange={e => handleFieldChange('hbsagScreening', 'methodUsed', e.target.value)} disabled={isCompleted} className={formInputCls} /></td>
-                                            <td className="p-2"><input type="text" value={formData.hbsagScreening?.kitReagent ?? 'Biotest RightSign HBsAg Rapid Test Strip'} onChange={e => handleFieldChange('hbsagScreening', 'kitReagent', e.target.value)} disabled={isCompleted} className={formInputCls} /></td>
-                                            <td className="p-2"><input type="text" placeholder="e.g. HBSG25050013" value={formData.hbsagScreening?.lotNo ?? ''} onChange={e => handleFieldChange('hbsagScreening', 'lotNo', e.target.value)} disabled={isCompleted} className={formInputCls} /></td>
-                                            <td className="p-2">
-                                                <select value={formData.hbsagScreening?.result ?? 'NONREACTIVE'} onChange={e => handleFieldChange('hbsagScreening', 'result', e.target.value)} disabled={isCompleted} className={`${formInputCls} font-bold text-center`}>
-                                                    <option value="NONREACTIVE">NONREACTIVE</option>
-                                                    <option value="REACTIVE">REACTIVE</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Performed</label><input type="text" value={formData.hbsagScreening?.datePerformed ?? ''} onChange={e => handleFieldChange('hbsagScreening', 'datePerformed', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Released</label><input type="text" value={formData.hbsagScreening?.dateReleased ?? ''} onChange={e => handleFieldChange('hbsagScreening', 'dateReleased', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 5. HIV SCREENING RESULT */}
-                    {selectedTab === 'hivScreening' && request.is_hiv_screening && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('HIV Screening Result')}
-                            {renderPatientLockup()}
-
-                            <div className="border border-[var(--border-strong)] rounded overflow-hidden">
-                                <table className="w-full text-xs">
-                                    <thead className="bg-[#102E40] text-white">
-                                        <tr>
-                                            <th className="p-2 text-center font-bold">Method Used</th>
-                                            <th className="p-2 text-center font-bold">Kit / Reagent Used</th>
-                                            <th className="p-2 text-center font-bold">Lot No.</th>
-                                            <th className="p-2 text-center font-bold">Result</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td className="p-2"><input type="text" value={formData.hivScreening?.methodUsed ?? 'HPLC / Rapid Test'} onChange={e => handleFieldChange('hivScreening', 'methodUsed', e.target.value)} disabled={isCompleted} className={formInputCls} /></td>
-                                            <td className="p-2"><input type="text" value={formData.hivScreening?.kitReagent ?? 'ABBOTT BIOLINE HIV 1/2 3.0'} onChange={e => handleFieldChange('hivScreening', 'kitReagent', e.target.value)} disabled={isCompleted} className={formInputCls} /></td>
-                                            <td className="p-2"><input type="text" placeholder="e.g. 03ADJ018B" value={formData.hivScreening?.lotNo ?? ''} onChange={e => handleFieldChange('hivScreening', 'lotNo', e.target.value)} disabled={isCompleted} className={formInputCls} /></td>
-                                            <td className="p-2">
-                                                <select value={formData.hivScreening?.result ?? 'NONREACTIVE'} onChange={e => handleFieldChange('hivScreening', 'result', e.target.value)} disabled={isCompleted} className={`${formInputCls} font-bold text-center`}>
-                                                    <option value="NONREACTIVE">NONREACTIVE</option>
-                                                    <option value="REACTIVE">REACTIVE</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3 text-xs">
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Performed</label><input type="text" value={formData.hivScreening?.datePerformed ?? ''} onChange={e => handleFieldChange('hivScreening', 'datePerformed', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Released</label><input type="text" value={formData.hivScreening?.dateReleased ?? ''} onChange={e => handleFieldChange('hivScreening', 'dateReleased', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Received By</label><input type="text" placeholder="Signature / Name" value={formData.hivScreening?.receivedBy ?? ''} onChange={e => handleFieldChange('hivScreening', 'receivedBy', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 6. PARASITOLOGY REPORT */}
-                    {selectedTab === 'parasitology' && request.is_parasitology && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('Parasitology Report')}
-                            {renderPatientLockup()}
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Left: Macroscopic */}
-                                <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--brand-active)] bg-[var(--surface-subtle)] px-2 py-1 rounded mb-3 border border-[var(--border-soft)]">Macroscopic Examination</div>
-                                    <div className="space-y-2 text-xs">
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Color</label><input type="text" value={formData.parasitology?.color ?? 'Dark brown'} onChange={e => handleFieldChange('parasitology', 'color', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Consistency</label><input type="text" value={formData.parasitology?.consistency ?? 'Semi-formed'} onChange={e => handleFieldChange('parasitology', 'consistency', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Occult blood</label><input type="text" value={formData.parasitology?.occultBlood ?? 'Negative'} onChange={e => handleFieldChange('parasitology', 'occultBlood', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">OTHERS</label><input type="text" value={formData.parasitology?.macroOthers ?? ''} onChange={e => handleFieldChange('parasitology', 'macroOthers', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                    </div>
-                                </div>
-
-                                {/* Right: Microscopic */}
-                                <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--brand-active)] bg-[var(--surface-subtle)] px-2 py-1 rounded mb-3 border border-[var(--border-soft)]">Microscopic Examination</div>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Ascaris lumbricoides ova</label><input type="text" value={formData.parasitology?.ascaris ?? 'Negative'} onChange={e => handleFieldChange('parasitology', 'ascaris', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Trichuris trichiura ova</label><input type="text" value={formData.parasitology?.trichuris ?? 'Negative'} onChange={e => handleFieldChange('parasitology', 'trichuris', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Hookworm ova</label><input type="text" value={formData.parasitology?.hookworm ?? 'Negative'} onChange={e => handleFieldChange('parasitology', 'hookworm', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Amoeba</label><input type="text" value={formData.parasitology?.amoeba ?? 'Negative'} onChange={e => handleFieldChange('parasitology', 'amoeba', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div className="col-span-2"><label className="text-[11px] font-semibold text-[var(--text-muted)]">OTHERS</label><input type="text" value={formData.parasitology?.microOthers ?? 'No Ova or Parasite Seen'} onChange={e => handleFieldChange('parasitology', 'microOthers', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">WBC (/hpf)</label><input type="text" value={formData.parasitology?.wbc ?? '0-1'} onChange={e => handleFieldChange('parasitology', 'wbc', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">RBC (/hpf)</label><input type="text" value={formData.parasitology?.rbc ?? '0-2'} onChange={e => handleFieldChange('parasitology', 'rbc', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Bacteria</label><input type="text" value={formData.parasitology?.bacteria ?? 'Many'} onChange={e => handleFieldChange('parasitology', 'bacteria', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Yeast cells</label><input type="text" value={formData.parasitology?.yeastCells ?? 'None'} onChange={e => handleFieldChange('parasitology', 'yeastCells', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                        <div className="col-span-2"><label className="text-[11px] font-semibold text-[var(--text-muted)]">Fat globules</label><input type="text" value={formData.parasitology?.fatGlobules ?? 'None'} onChange={e => handleFieldChange('parasitology', 'fatGlobules', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 7. DENGUE RDT RESULT */}
-                    {selectedTab === 'dengueRdt' && request.is_dengue_rdt && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('Dengue RDT Result')}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-[var(--surface-subtle)] p-2.5 rounded border border-[var(--border)] mb-4">
-                                <div><span className="font-semibold text-[var(--text-muted)]">Name:</span> <span className="font-bold text-[var(--text)]">{patientName}</span></div>
-                                <div><span className="font-semibold text-[var(--text-muted)]">Age/Sex:</span> <span className="font-bold text-[var(--text)]">{request.patient_age ?? '—'}/{request.patient_sex?.[0] ?? '—'}</span></div>
-                                <div><span className="font-semibold text-[var(--text-muted)]">Date:</span> <span className="font-bold text-[var(--text)]">{formatDisplayDate(request.request_date)}</span></div>
-                                <div className="flex items-center gap-1"><label className="font-semibold text-[var(--text-muted)] whitespace-nowrap">Case No.:</label> <input type="text" placeholder="e.g. 26-021" value={formData.dengueRdt?.caseNo ?? ''} onChange={e => handleFieldChange('dengueRdt', 'caseNo', e.target.value)} disabled={isCompleted} className="bg-transparent border-b border-[var(--border-strong)] outline-none text-xs font-bold text-[var(--text)] w-24 px-1" /></div>
-                            </div>
-
-                            <div className="border border-[var(--border-strong)] rounded overflow-hidden">
-                                <table className="w-full text-xs">
-                                    <thead className="bg-[#102E40] text-white">
-                                        <tr>
-                                            <th className="p-2.5 text-center font-bold w-1/2">DENGUE RDT RESULT</th>
-                                            <th className="p-2.5 text-center font-bold w-1/2">RESULT</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td className="p-3 text-center font-bold text-[var(--text)] bg-[var(--surface-subtle)]">Dengue NS1 Ag =</td>
-                                            <td className="p-3">
-                                                <select value={formData.dengueRdt?.ns1Ag ?? 'POSITIVE'} onChange={e => handleFieldChange('dengueRdt', 'ns1Ag', e.target.value)} disabled={isCompleted} className={`${formInputCls} text-center font-bold text-sm text-[var(--brand-active)]`}>
-                                                    <option value="POSITIVE">POSITIVE</option>
-                                                    <option value="NEGATIVE">NEGATIVE</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Performed</label><input type="text" value={formData.dengueRdt?.datePerformed ?? ''} onChange={e => handleFieldChange('dengueRdt', 'datePerformed', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                                <div><label className="text-[11px] font-semibold text-[var(--text-muted)]">Date Released</label><input type="text" value={formData.dengueRdt?.dateReleased ?? ''} onChange={e => handleFieldChange('dengueRdt', 'dateReleased', e.target.value)} disabled={isCompleted} className={formInputCls} /></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 8. OTHERS TAB */}
-                    {selectedTab === 'others' && request.others && (
-                        <div className="bg-white border-2 border-[var(--border)] rounded-xl p-5 shadow-sm space-y-4">
-                            {renderHeader('Other Requested Examination')}
-                            {renderPatientLockup()}
-                            <div className="p-3 bg-[var(--surface-subtle)] rounded border border-[var(--border)] text-xs text-[var(--text)]">
-                                <span className="font-semibold text-[var(--text-muted)] block mb-1">Doctor's Specification:</span>
-                                <p className="font-bold text-sm">{request.others}</p>
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-semibold text-[var(--text-muted)]">Laboratory Findings & Notes</label>
-                                <textarea rows={5} placeholder="Enter findings for other tests..." value={formData.generalNotes ?? ''} onChange={e => setFormData(prev => ({ ...prev, generalNotes: e.target.value }))} disabled={isCompleted} className={formInputCls} />
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                    {request.status !== 'Completed' && (
-                        <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-subtle)] shrink-0 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleMarkCompleted}
-                                disabled={saving}
-                                className="w-full sm:w-auto min-w-[260px] font-semibold py-2.5 px-6 rounded-lg bg-[var(--green-accent-strong)] hover:bg-[var(--green-dark)] text-white shadow-sm transition-all disabled:opacity-50 text-sm cursor-pointer"
-                            >
-                                {saving ? 'Recording Results...' : <span className="inline-flex items-center justify-center gap-1.5"><Icon name="check" className="h-4 w-4" /> Save and Record Laboratory Results</span>}
-                            </button>
-                        </div>
-                    )}
-                </Modal>
-            </div>
-        </>
-    );
-}
+const DASHBOARD_PREVIEW_LIMIT = 5;
 
 const LaboratoryDashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    // Single-workspace dashboard: the page is read from the hash on mount and never changes.
-    const [activePage] = useState(() => window.location.hash.replace('#', '') || 'lab');
-
-    useEffect(() => {
-        window.location.hash = activePage;
-    }, [activePage]);
+    const [activePage, setActivePage] = useHashPage('dashboard', normalizeLabPage);
 
     const isOnline = useOnlineStatus();
     const [userName, setUserName] = useState('Loading...');
@@ -963,13 +45,14 @@ const LaboratoryDashboard = () => {
     const [requests, setRequests] = useState<LabRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'All' | 'Pending' | 'Completed'>('All');
     const [selectedRequest, setSelectedRequest] = useState<LabRequest | null>(null);
     const { showToast, ToastComponent } = useToast();
 
     const navItems = [
-        { id: 'lab', label: 'Dashboard', icon: 'flask', group: 'Diagnostics' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'flask', group: 'Diagnostics' },
+        { id: 'lab-requests', label: 'Lab Requests', icon: 'clipboard', group: 'Diagnostics' },
+        { id: 'results', label: 'Results', icon: 'check', group: 'Diagnostics' },
+        { id: 'analytics', label: 'Analytics', icon: 'chart', group: 'Insights' },
     ];
 
     useEffect(() => {
@@ -1044,25 +127,35 @@ const LaboratoryDashboard = () => {
                 const labrequestIds = typedLabData.map(r => r.labrequest_id);
                 const { data: labResultData } = await supabase
                     .from('lab_result')
-                    .select('labrequest_id, status')
+                    .select('labresult_id, labrequest_id, status, date_performed')
                     .in('labrequest_id', labrequestIds);
 
-                const completedSet = new Set<number>(
-                    ((labResultData || []) as { labrequest_id: number; status: string | null }[])
-                        .filter(lr => lr.status === 'Completed')
-                        .map(lr => lr.labrequest_id)
-                );
+                // A request can only have one current result (services.ts upserts rather
+                // than appends), but if more than one row is ever present, keep the latest
+                // by labresult_id so "Completed Today" reflects the current result's date.
+                const completedDateByRequest = new Map<number, string | null>();
+                const latestResultIdByRequest = new Map<number, number>();
+                ((labResultData || []) as { labresult_id: number; labrequest_id: number; status: string | null; date_performed: string | null }[])
+                    .filter(lr => lr.status === 'Completed')
+                    .forEach(lr => {
+                        const currentLatest = latestResultIdByRequest.get(lr.labrequest_id) ?? -1;
+                        if (lr.labresult_id >= currentLatest) {
+                            latestResultIdByRequest.set(lr.labrequest_id, lr.labresult_id);
+                            completedDateByRequest.set(lr.labrequest_id, lr.date_performed);
+                        }
+                    });
 
                 const enriched: LabRequest[] = typedLabData.map(r => {
                     const p = r.patient_id != null ? patientMap[r.patient_id] : null;
 
-                    const resolvedStatus = completedSet.has(r.labrequest_id)
+                    const resolvedStatus = completedDateByRequest.has(r.labrequest_id)
                         ? 'Completed'
                         : (r.status ?? null);
 
                     return {
                         ...r,
                         status: resolvedStatus,
+                        completed_date: completedDateByRequest.get(r.labrequest_id) ?? null,
                         patient_firstName: p?.firstName ?? undefined,
                         patient_lastName: p?.lastName ?? undefined,
                         patient_age: p?.age ?? null,
@@ -1093,254 +186,40 @@ const LaboratoryDashboard = () => {
         }
     };
 
-    const statusBadge = (s: string | null) => {
-        if (s === 'Completed') return 'success';
-        return 'warning';
-    };
-
-    const filtered = requests.filter(r => {
-        const name = `${r.patient_firstName ?? ''} ${r.patient_lastName ?? ''}`.toLowerCase();
-        const matchSearch =
-            name.includes(searchQuery.toLowerCase()) ||
-            (r.lab_no ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (r.chief_complaint ?? '').toLowerCase().includes(searchQuery.toLowerCase());
-        const effectiveStatus = r.status || 'Pending';
-        const matchStatus = statusFilter === 'All' || effectiveStatus === statusFilter;
-        return matchSearch && matchStatus;
-    });
+    const todayStr = new Date().toISOString().slice(0, 10);
 
     const stats = {
         total: requests.length,
         pending: requests.filter(r => !r.status || r.status === 'Pending').length,
-        completed: requests.filter(r => r.status === 'Completed').length,
+        completedToday: requests.filter(r => r.status === 'Completed' && r.completed_date?.slice(0, 10) === todayStr).length,
+        requestsToday: requests.filter(r => r.request_date?.slice(0, 10) === todayStr).length,
     };
 
-    const QUEUE_PAGE_SIZE = 5;
-    const [queuePage, setQueuePage] = useState(0);
-    const [activityPeriod, setActivityPeriod] = useState<7 | 14 | 30>(7);
+    // Oldest-first: requests waiting longest surface first in the preview.
+    const pendingPreview = requests
+        .filter(r => !r.status || r.status === 'Pending')
+        .slice()
+        .sort((a, b) => (a.request_date ?? '').localeCompare(b.request_date ?? ''))
+        .slice(0, DASHBOARD_PREVIEW_LIMIT);
 
-    const pagedFiltered = filtered.slice(queuePage * QUEUE_PAGE_SIZE, (queuePage + 1) * QUEUE_PAGE_SIZE);
-    const [showAllRequests, setShowAllRequests] = useState(false);
-
-    // ── Chart data computation ──
-    const barChartRef = useRef<HTMLCanvasElement>(null);
-    const donutChartRef = useRef<HTMLCanvasElement>(null);
-    const barChartInstance = useRef<any>(null);
-    const donutChartInstance = useRef<any>(null);
-
-    const getTestNames = (r: LabRequest): string[] => {
-        const names: string[] = [];
-        if (r.is_clinical_microscopy) names.push('Clinical Microscopy');
-        if (r.is_blood_chemistry) names.push('Blood Chemistry');
-        if (r.is_pregnancy_test) names.push('Pregnancy Test');
-        if (r.is_hbsag_screening) names.push('HBsAg Screening');
-        if (r.is_hiv_screening) names.push('HIV Screening');
-        if (r.is_parasitology) names.push('Parasitology');
-        if (r.is_dengue_rdt) names.push('Dengue RDT');
-        if (r.others) names.push('Others');
-        return names;
-    };
-
-    const getTestSummary = (r: LabRequest): string => {
-        const names = getTestNames(r);
-        return names.length ? names.join(' · ') : 'General';
-    };
-
-    // Bar chart: requests per day for the selected period
-    const barData = (() => {
-        const now = new Date();
-        const days: { label: string; count: number }[] = [];
-        for (let i = activityPeriod - 1; i >= 0; i--) {
-            const d = new Date(now);
-            d.setDate(d.getDate() - i);
-            const key = d.toISOString().slice(0, 10);
-            const label = d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
-            const count = requests.filter(r => {
-                if (!r.request_date) return false;
-                return r.request_date.slice(0, 10) === key;
-            }).length;
-            days.push({ label, count });
-        }
-        return days;
-    })();
-
-    const prevPeriodCount = (() => {
-        const now = new Date();
-        const from = new Date(now);
-        from.setDate(from.getDate() - activityPeriod * 2);
-        const to = new Date(now);
-        to.setDate(to.getDate() - activityPeriod);
-        return requests.filter(r => {
-            if (!r.request_date) return false;
-            const d = new Date(r.request_date);
-            return d >= from && d < to;
-        }).length;
-    })();
-
-    const currentPeriodCount = barData.reduce((sum, d) => sum + d.count, 0);
-    const trendPct = prevPeriodCount > 0
-        ? Math.round(((currentPeriodCount - prevPeriodCount) / prevPeriodCount) * 100)
-        : 0;
-
-    // Donut chart: test distribution
-    const testDistribution = (() => {
-        const counts: Record<string, number> = {};
-        requests.forEach(r => {
-            getTestNames(r).forEach(name => {
-                counts[name] = (counts[name] || 0) + 1;
-            });
-        });
-        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-        const total = entries.reduce((s, e) => s + e[1], 0);
-        // Show top 4 + "Other Tests"
-        const top = entries.slice(0, 4);
-        const rest = entries.slice(4);
-        const restCount = rest.reduce((s, e) => s + e[1], 0);
-        const result = top.map(([name, count]) => ({
-            name,
-            count,
-            pct: total > 0 ? Math.round((count / total) * 100) : 0,
-        }));
-        if (restCount > 0) {
-            result.push({
-                name: 'Other Tests',
-                count: restCount,
-                pct: total > 0 ? Math.round((restCount / total) * 100) : 0,
-            });
-        }
-        return { items: result, total };
-    })();
-
-    const DONUT_COLORS = ['#1D4E68', '#286781', '#3B8BA3', '#5BACC5', '#A8B5BC'];
-
-    // Render Chart.js charts
-    useEffect(() => {
-        let barDestroyed = false;
-        let donutDestroyed = false;
-
-        const renderCharts = async () => {
-            const ChartModule = await import('chart.js/auto');
-            const Chart = ChartModule.default;
-
-            // Bar chart
-            if (barChartRef.current && !barDestroyed) {
-                if (barChartInstance.current) barChartInstance.current.destroy();
-                const ctx = barChartRef.current.getContext('2d');
-                if (ctx) {
-                    barChartInstance.current = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: barData.map(d => d.label),
-                            datasets: [{
-                                data: barData.map(d => d.count),
-                                backgroundColor: '#1D4E68',
-                                borderRadius: 4,
-                                maxBarThickness: 32,
-                            }],
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: '#102E40',
-                                    titleFont: { family: 'Inter, sans-serif', size: 12 },
-                                    bodyFont: { family: 'Inter, sans-serif', size: 12 },
-                                    cornerRadius: 6,
-                                    padding: 8,
-                                },
-                            },
-                            scales: {
-                                x: {
-                                    grid: { display: false },
-                                    ticks: {
-                                        font: { family: 'Inter, sans-serif', size: 11 },
-                                        color: '#687781',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        stepSize: 5,
-                                        font: { family: 'Inter, sans-serif', size: 11 },
-                                        color: '#687781',
-                                    },
-                                    grid: { color: '#E8ECEE' },
-                                },
-                            },
-                        },
-                    });
-                }
-            }
-
-            // Donut chart
-            if (donutChartRef.current && !donutDestroyed) {
-                if (donutChartInstance.current) donutChartInstance.current.destroy();
-                const ctx = donutChartRef.current.getContext('2d');
-                if (ctx) {
-                    donutChartInstance.current = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: testDistribution.items.map(i => i.name),
-                            datasets: [{
-                                data: testDistribution.items.map(i => i.count),
-                                backgroundColor: DONUT_COLORS.slice(0, testDistribution.items.length),
-                                borderWidth: 0,
-                            }],
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '62%',
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: '#102E40',
-                                    titleFont: { family: 'Inter, sans-serif', size: 12 },
-                                    bodyFont: { family: 'Inter, sans-serif', size: 12 },
-                                    cornerRadius: 6,
-                                    padding: 8,
-                                },
-                            },
-                        },
-                    });
-                }
-            }
-        };
-
-        if (!loading && requests.length > 0) {
-            renderCharts();
-        }
-
-        return () => {
-            barDestroyed = true;
-            donutDestroyed = true;
-            if (barChartInstance.current) barChartInstance.current.destroy();
-            if (donutChartInstance.current) donutChartInstance.current.destroy();
-        };
-    }, [loading, requests, activityPeriod]);
-
-    // Completed today count
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const completedToday = requests.filter(r => {
-        if (r.status !== 'Completed') return false;
-        // We don't have a result date in the request, so approximate with request_date
-        return r.request_date?.slice(0, 10) === todayStr;
+    const last7DaysCount = requests.filter(r => {
+        if (!r.request_date) return false;
+        const d = new Date(r.request_date);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        return d >= cutoff;
     }).length;
 
     return (
         <div className="laboratory-dashboard-workspace flex h-screen bg-[var(--bg)] overflow-hidden w-full">
             <ToastComponent />
             <Sidebar
-                activePage="lab"
+                activePage={activePage}
                 userName={userName}
                 userInitials={userInitials}
                 userRole="Laboratory"
                 navItems={navItems}
-                onNavigate={(id) => {
-                    if (id === 'dashboard') window.location.href = '/pages/laboratory.html';
-                }}
+                onNavigate={(id) => setActivePage(id)}
                 isMobileMenuOpen={isMobileMenuOpen}
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
                 isOnline={isOnline}
@@ -1348,8 +227,8 @@ const LaboratoryDashboard = () => {
 
             <main className="app-shell-main flex-1 flex flex-col min-w-0 overflow-hidden md:ml-[240px] w-full">
                 <Topbar
-                    title="Laboratory Dashboard"
-                    sectionLabel="Diagnostic Laboratory"
+                    title="Diagnostic Laboratory"
+                    sectionLabel=""
                     userName={userName}
                     userInitials={userInitials}
                     userRole="Laboratory Staff"
@@ -1359,10 +238,30 @@ const LaboratoryDashboard = () => {
                 />
 
                 <div className="app-content-canvas flex-1 overflow-x-hidden overflow-y-auto w-full bg-[var(--bg)]">
+                    {activePage === 'lab-requests' && (
+                        <LabRequestsPage
+                            requests={requests}
+                            loading={loading}
+                            loadError={loadError}
+                            onRetry={() => void loadRequests(true)}
+                            onSelectRequest={setSelectedRequest}
+                        />
+                    )}
+                    {activePage === 'results' && (
+                        <LabResultsPage
+                            requests={requests}
+                            loading={loading}
+                            loadError={loadError}
+                            onRetry={() => void loadRequests(true)}
+                            onSelectRequest={setSelectedRequest}
+                        />
+                    )}
+                    {activePage === 'analytics' && <LabAnalyticsPage requests={requests} />}
+                    {activePage === 'dashboard' && (
                     <div className="role-workspace-canvas w-full">
                         <PageHeader
-                            title="Laboratory Dashboard"
-                            subtitle="Manage laboratory requests and results."
+                            title="Dashboard"
+                            subtitle="Overview of laboratory workload and recent activity."
                         />
 
                         {/* ── Summary KPI Cards ── */}
@@ -1374,7 +273,7 @@ const LaboratoryDashboard = () => {
                                     </div>
                                     <div className="lab-kpi-body">
                                         <div className="lab-kpi-value">{stats.pending}</div>
-                                        <div className="lab-kpi-label">Pending Results</div>
+                                        <div className="lab-kpi-label">Pending Requests</div>
                                         <div className="lab-kpi-note pending">
                                             <span className="lab-kpi-note-dot pending" />
                                             Needs attention
@@ -1387,11 +286,11 @@ const LaboratoryDashboard = () => {
                                         <Icon name="check" className="h-5 w-5" />
                                     </div>
                                     <div className="lab-kpi-body">
-                                        <div className="lab-kpi-value">{completedToday}</div>
+                                        <div className="lab-kpi-value">{stats.completedToday}</div>
                                         <div className="lab-kpi-label">Completed Today</div>
                                         <div className="lab-kpi-note completed">
                                             <span className="lab-kpi-note-dot completed" />
-                                            Processed
+                                            Processed today
                                         </div>
                                     </div>
                                 </div>
@@ -1401,58 +300,44 @@ const LaboratoryDashboard = () => {
                                         <Icon name="flask" className="h-5 w-5" />
                                     </div>
                                     <div className="lab-kpi-body">
-                                        <div className="lab-kpi-value">{stats.total}</div>
-                                        <div className="lab-kpi-label">Total Requests</div>
+                                        <div className="lab-kpi-value">{stats.requestsToday}</div>
+                                        <div className="lab-kpi-label">Requests Today</div>
                                         <div className="lab-kpi-note total">
-                                            Current total
+                                            Received today
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lab-kpi-card">
+                                    <div className="lab-kpi-icon total">
+                                        <Icon name="clipboard" className="h-5 w-5" />
+                                    </div>
+                                    <div className="lab-kpi-body">
+                                        <div className="lab-kpi-value">{stats.total}</div>
+                                        <div className="lab-kpi-label">Total Recorded Requests</div>
+                                        <div className="lab-kpi-note total">
+                                            All-time on record
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* ── Work Queue ── */}
+                        {/* ── Pending Attention Preview ── */}
                         <div className="pwa-page-pad pt-3">
                             <div className="lab-queue-section">
                                 <div className="lab-queue-header">
                                     <div className="lab-queue-header-left">
                                         <h2>
                                             <Icon name="flask" className="h-4 w-4" />
-                                            Work Queue
+                                            Needs Attention
                                         </h2>
-                                        <p>Pending laboratory requests that need your attention.</p>
+                                        <p>Requests awaiting laboratory result encoding.</p>
                                     </div>
-                                    <div className="lab-view-select">
-                                        <span>View:</span>
-                                        <select
-                                            value={statusFilter}
-                                            onChange={e => { setStatusFilter(e.target.value as any); setQueuePage(0); }}
-                                            aria-label="Filter laboratory requests by status"
-                                        >
-                                            <option value="All">All</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Completed">Completed</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="lab-queue-filter-row">
-                                    <label className="lab-queue-search">
-                                        <Icon name="search" className="h-4 w-4 text-[var(--text-muted)]" />
-                                        <input
-                                            type="text"
-                                            aria-label="Search patient or laboratory request"
-                                            placeholder="Search patient or laboratory request..."
-                                            value={searchQuery}
-                                            onChange={e => { setSearchQuery(e.target.value); setQueuePage(0); }}
-                                        />
-                                    </label>
                                 </div>
 
                                 {loading ? (
-                                    <div className="p-6">
-                                        <SkeletonTable rows={5} columns={5} />
-                                    </div>
+                                    <div className="p-6 text-sm text-[var(--text-muted)]">Loading pending requests…</div>
                                 ) : loadError && requests.length === 0 ? (
                                     <div className="p-8 text-center" role="alert">
                                         <Icon name="alert-triangle" className="h-6 w-6 mx-auto mb-2 text-[var(--text-muted)]" />
@@ -1466,25 +351,21 @@ const LaboratoryDashboard = () => {
                                             Try again
                                         </button>
                                     </div>
-                                ) : (showAllRequests ? filtered : pagedFiltered).length === 0 ? (
-                                    <div className="p-8">
-                                        <EmptyState
-                                            title={(searchQuery || statusFilter !== 'All') ? 'No requests match these filters' : 'No laboratory requests yet'}
-                                            description={(searchQuery || statusFilter !== 'All') ? 'Adjust the status filter or search terms.' : 'New lab requests from doctors will appear here.'}
-                                        />
+                                ) : pendingPreview.length === 0 ? (
+                                    <div className="p-8 text-center text-sm text-[var(--text-muted)]">
+                                        No laboratory requests are awaiting results.
                                     </div>
                                 ) : (
                                     <ul className="lab-queue-list">
-                                        {(showAllRequests ? filtered : pagedFiltered).map(r => {
+                                        {pendingPreview.map(r => {
                                             const name = r.patient_firstName
                                                 ? `${r.patient_firstName} ${r.patient_lastName}`
                                                 : `Patient #${r.patient_id ?? '—'}`;
-                                            const isPending = !r.status || r.status === 'Pending';
                                             const testSummary = getTestSummary(r);
                                             return (
                                                 <li
                                                     key={r.labrequest_id}
-                                                    className={`lab-queue-item ${isPending ? 'is-pending' : ''}`}
+                                                    className="lab-queue-item is-pending"
                                                     onClick={() => setSelectedRequest(r)}
                                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedRequest(r); } }}
                                                     tabIndex={0}
@@ -1510,27 +391,14 @@ const LaboratoryDashboard = () => {
                                                         <div className="lab-queue-detail-value">{testSummary}</div>
                                                     </div>
 
-                                                    <div className="lab-queue-requested-by">
-                                                        <div className="lab-queue-detail-label">
-                                                            Requested by
-                                                        </div>
-                                                        <div className="lab-queue-detail-value">{r.requested_by || '—'}</div>
-                                                    </div>
-
-                                                    <div className="lab-queue-status">
-                                                        <span className={`clinical-status-badge ${statusBadge(r.status)}`}>
-                                                            {r.status || 'Pending'}
-                                                        </span>
-                                                    </div>
-
                                                     <div className="lab-queue-action">
                                                         <button
                                                             type="button"
                                                             onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); }}
-                                                            className={`lab-queue-action-btn ${isPending ? 'encode' : 'view'}`}
-                                                            aria-label={isPending ? `Encode result for ${name}` : `View result for ${name}`}
+                                                            className="lab-queue-action-btn encode"
+                                                            aria-label={`Encode result for ${name}`}
                                                         >
-                                                            {isPending ? 'Encode Result' : 'View Result'}
+                                                            Encode Result
                                                             <span aria-hidden="true">→</span>
                                                         </button>
                                                     </div>
@@ -1540,127 +408,66 @@ const LaboratoryDashboard = () => {
                                     </ul>
                                 )}
 
-                                {!loading && filtered.length > 0 && (
+                                {!loading && stats.pending > 0 && (
                                     <div className="lab-queue-footer">
                                         <span className="lab-queue-count">
-                                            {showAllRequests
-                                                ? `Showing all ${filtered.length} request${filtered.length !== 1 ? 's' : ''}`
-                                                : `Showing ${Math.min(queuePage * QUEUE_PAGE_SIZE + 1, filtered.length)} to ${Math.min((queuePage + 1) * QUEUE_PAGE_SIZE, filtered.length)} of ${filtered.length} requests`
-                                            }
+                                            {stats.pending} pending request{stats.pending !== 1 ? 's' : ''} in total
                                         </span>
-                                        {!showAllRequests && filtered.length > QUEUE_PAGE_SIZE && (
-                                            <button
-                                                type="button"
-                                                className="lab-queue-view-all"
-                                                onClick={() => setShowAllRequests(true)}
-                                            >
-                                                View all requests <span aria-hidden="true">→</span>
-                                            </button>
-                                        )}
-                                        {showAllRequests && (
-                                            <button
-                                                type="button"
-                                                className="lab-queue-view-all"
-                                                onClick={() => { setShowAllRequests(false); setQueuePage(0); }}
-                                            >
-                                                Show less
-                                            </button>
-                                        )}
+                                        <button
+                                            type="button"
+                                            className="lab-queue-view-all"
+                                            onClick={() => setActivePage('lab-requests')}
+                                        >
+                                            View all pending requests <span aria-hidden="true">→</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* ── Laboratory Activity ── */}
+                        {/* ── Compact Activity Snapshot ── */}
                         <div className="pwa-page-pad pt-3 pb-6">
-                            <div className="lab-activity-section">
-                                <div className="lab-activity-header">
-                                    <div>
+                            <div className="lab-queue-section">
+                                <div className="lab-queue-header">
+                                    <div className="lab-queue-header-left">
                                         <h2>
                                             <Icon name="chart" className="h-4 w-4" />
-                                            Laboratory Activity
+                                            Recent Activity
                                         </h2>
-                                        <p>Overview of laboratory requests and test statistics.</p>
+                                        <p>
+                                            {last7DaysCount} laboratory request{last7DaysCount !== 1 ? 's' : ''} logged in the last 7 days.
+                                        </p>
                                     </div>
-                                    <div className="lab-activity-period">
-                                        <Icon name="calendar" className="h-3.5 w-3.5" />
-                                        <select
-                                            value={activityPeriod}
-                                            onChange={e => setActivityPeriod(Number(e.target.value) as 7 | 14 | 30)}
-                                            aria-label="Select activity period"
-                                        >
-                                            <option value={7}>Last 7 Days</option>
-                                            <option value={14}>Last 14 Days</option>
-                                            <option value={30}>Last 30 Days</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="lab-activity-grid">
-                                    {/* Bar chart: Request Volume */}
-                                    <div className="lab-activity-card">
-                                        <div>
-                                            <h3>Request Volume</h3>
-                                            <p className="lab-chart-subtitle">Number of laboratory requests per day</p>
-                                            <div className="lab-chart-container">
-                                                <canvas ref={barChartRef} />
-                                            </div>
-                                        </div>
-                                        {prevPeriodCount > 0 && (
-                                            <div className="lab-chart-trend">
-                                                <span className={trendPct >= 0 ? 'trend-up' : 'trend-down'}>
-                                                    {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}%
-                                                </span>
-                                                {' '}from previous {activityPeriod} days
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Donut chart: Test Distribution */}
-                                    <div className="lab-activity-card">
-                                        <div>
-                                            <h3>Test Distribution</h3>
-                                            <p className="lab-chart-subtitle">Breakdown of most requested laboratory tests</p>
-                                            <div className="lab-donut-layout">
-                                                <div className="lab-donut-canvas-wrap">
-                                                    <canvas ref={donutChartRef} />
-                                                    <div className="lab-donut-center">
-                                                        <span className="lab-donut-center-label">Total</span>
-                                                        <span className="lab-donut-center-value">{testDistribution.total}</span>
-                                                        <span className="lab-donut-center-sub">Requests</span>
-                                                    </div>
-                                                </div>
-                                                <ul className="lab-donut-legend">
-                                                    {testDistribution.items.map((item, i) => (
-                                                        <li key={item.name}>
-                                                            <span
-                                                                className="lab-donut-legend-dot"
-                                                                style={{ background: DONUT_COLORS[i] || DONUT_COLORS[DONUT_COLORS.length - 1] }}
-                                                            />
-                                                            <span className="lab-donut-legend-name">{item.name}</span>
-                                                            <span className="lab-donut-legend-pct">{item.pct}%</span>
-                                                            <span className="lab-donut-legend-count">{item.count}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        className="lab-queue-view-all"
+                                        onClick={() => setActivePage('analytics')}
+                                    >
+                                        View Analytics <span aria-hidden="true">→</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    )}
                 </div>
             </main>
 
             {selectedRequest && (
-                <LabRequestDetail
-                    request={selectedRequest}
-                    onClose={() => setSelectedRequest(null)}
-                    onStatusUpdate={handleStatusUpdate}
-                    currentUserName={userName}
-                    isOnline={isOnline}
-                />
+                selectedRequest.status === 'Completed' ? (
+                    <LabRequestDetail
+                        request={selectedRequest}
+                        onClose={() => setSelectedRequest(null)}
+                    />
+                ) : (
+                    <LabEncodePanel
+                        request={selectedRequest}
+                        onClose={() => setSelectedRequest(null)}
+                        onStatusUpdate={handleStatusUpdate}
+                        currentUserName={userName}
+                        isOnline={isOnline}
+                    />
+                )
             )}
         </div>
     );

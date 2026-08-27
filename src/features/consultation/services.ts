@@ -67,6 +67,41 @@ export async function upsertConsultation(payload: WorkflowPayload, consultationI
     return newId;
 }
 
+// Finalizes a consultation and (optionally) creates/updates its follow-up in
+// a single database transaction via the complete_consultation RPC, so a
+// follow-up write failure can never leave the consultation stuck Completed
+// without it -- see 20260830140000_atomic_complete_consultation.sql.
+export async function completeConsultationAtomic(
+    consultationId: number | null,
+    consultationPayload: WorkflowPayload,
+    followUpPayload: WorkflowPayload | null,
+): Promise<number> {
+    const { data, error } = await supabase.rpc('complete_consultation', {
+        p_consultation_id: consultationId,
+        p_consultation: consultationPayload,
+        p_follow_up: followUpPayload,
+    });
+    if (error) throw error;
+    const resolvedConsultationId = data as number;
+
+    void logAuditEvent({
+        action: 'update',
+        module: 'Consultation',
+        recordId: resolvedConsultationId,
+        recordType: 'consultation',
+        description: followUpPayload
+            ? 'Completed consultation and scheduled follow-up.'
+            : 'Completed consultation.',
+        metadata: {
+            consultation_id: resolvedConsultationId,
+            patient_id: consultationPayload.patient_id as string | number | undefined,
+            follow_up_scheduled: Boolean(followUpPayload),
+        },
+    });
+
+    return resolvedConsultationId;
+}
+
 export async function upsertFollowUpByConsultation(consultationId: number, payload: WorkflowPayload): Promise<void> {
     const { data: existing, error: checkError } = await supabase
         .from('follow_up')

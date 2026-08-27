@@ -3,7 +3,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { supabase } from '../../lib/supabase/client';
 import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useNetworkSync';
 import { useToast } from '../../components/feedback/Toast';
-import { createLabRequest, createPrescription, upsertConsultation, upsertFollowUpByConsultation, upsertLatestFollowUpByPatient } from '../../features/consultation/services';
+import { completeConsultationAtomic, createLabRequest, createPrescription, upsertConsultation, upsertLatestFollowUpByPatient } from '../../features/consultation/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { isBlank, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
 import { printHtmlDocument } from '../../lib/utils/print';
@@ -108,7 +108,7 @@ interface InitialConsultationRecord {
 const toNumberOrNull = (val: unknown): number | null => parseNumberOrNull(val);
 const FOLLOW_UP_LOAD_COLUMNS = 'followup_id, consultation_id, patient_id, visit_date, visit_time, mode_of_transaction, mode_of_transfer, chief_complaint, diagnosis, history_of_present_illness, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, blood_type, general_survey, medication_treatment, follow_up_status';
 const LATEST_VITAL_COLUMNS = 'vitals_id, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, general_survey, initial_consultation_id';
-const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, past_med_surge_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status';
+const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, past_med_surge_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status, status, completed_at';
 
 // --- History Panel Sub-Component ----------------------------------------------
 function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData; patientName: string; onClose: () => void; }) {
@@ -557,7 +557,11 @@ export function ConsultationPage({
         birthControlMethod: '', gravidity: '', parity: '', typeOfDelivery: '', fullTerm: '', premature: '',
         abortion: '', livingChildren: '', preEclampsia: '', medicationAndTreatment: '', managementTreatment: '', assessment: '', plan: '',
 
-        followUpDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }), followUpTime: '', followUpModeOfTx: 'Walk-in',
+        // Explicit choice, not a silent default -- '' means the doctor hasn't
+        // decided yet and is treated as "no follow-up" if Complete Consultation
+        // is clicked without an explicit "Yes."
+        needsFollowUp: '' as '' | 'no' | 'yes',
+        followUpDate: '', followUpTime: '', followUpModeOfTx: 'Walk-in',
         followUpModeOfTransfer: 'Ambulatory', followUpChiefComplaint: '', followUpDiagnosis: '', followUpHpi: '',
         followUpBp: '', followUpHr: '', followUpRr: '', followUpTemp: '', followUpO2: '', followUpWeight: '',
         followUpHeight: '', followUpMuac: '', followUpNutritionalStatus: '', followUpBmi: '', followUpVaL: '',
@@ -609,6 +613,14 @@ export function ConsultationPage({
     const [loading, setLoading] = useState(false);
     const [consultationId, setConsultationId] = useState<number | null>(null);
     const [showHistory, setShowHistory] = useState(false);
+    const [consultationCompleted, setConsultationCompleted] = useState(false);
+    const [followUpDateError, setFollowUpDateError] = useState(false);
+    const [followUpChoiceError, setFollowUpChoiceError] = useState(false);
+    // Duplicate-submit latch: `disabled={loading}` only takes effect after a
+    // re-render, so two rapid clicks in the same frame can both pass the check.
+    const completingRef = useRef(false);
+    const followUpDateFieldRef = useRef<HTMLInputElement | null>(null);
+    const followUpChoiceFieldRef = useRef<HTMLFieldSetElement | null>(null);
 
     const { isOnline } = useNetworkSync();
     const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-[var(--amber-accent)] hover:bg-[var(--amber-accent-strong)] shadow-amber-500/20';
@@ -665,6 +677,9 @@ export function ConsultationPage({
         if (data.follow_up_status === 'done') setFollowUpDone(true);
         setFormData(prev => ({
             ...prev,
+            // Only infer "Yes" from a saved follow-up that actually has a date —
+            // never silently default the doctor into scheduling one otherwise.
+            needsFollowUp: data.visit_date ? 'yes' : prev.needsFollowUp,
             followUpDate: data.visit_date ?? prev.followUpDate,
             followUpTime: data.visit_time ?? '',
             followUpModeOfTx: data.mode_of_transaction ?? prev.followUpModeOfTx,
@@ -760,6 +775,7 @@ export function ConsultationPage({
             if (!data) return;
             setConsultationId(data.consultation_id);
             setConsultationSaved(true);
+            if (data.status === 'Completed') setConsultationCompleted(true);
             if (data.follow_up_status === 'done') setFollowUpDone(true);
             setFormData(prev => ({
                 ...prev,
@@ -966,23 +982,20 @@ export function ConsultationPage({
         }
     };
 
+    // Saves Steps 1-2/4/5 clinical fields only. Does not create/activate a
+    // follow-up and does not navigate away -- the consultation is not finished
+    // yet at this point (Steps 6-7 still remain). See handleCompleteConsultation
+    // for the actual end-of-encounter action.
     const handleSaveConsultation = async () => {
         if (!patient?.id) return;
         setLoading(true);
         try {
             const consultationPayload = buildConsultationPayload();
             if (isOnline) {
-                let resolvedConsultationId = consultationId;
-                resolvedConsultationId = await upsertConsultation(consultationPayload, resolvedConsultationId);
+                const resolvedConsultationId = await upsertConsultation(consultationPayload, consultationId);
                 setConsultationId(resolvedConsultationId);
-                const followUpPayload = buildFollowUpPayload(resolvedConsultationId, 'pending');
-                await upsertFollowUpByConsultation(resolvedConsultationId, followUpPayload);
                 setConsultationSaved(true);
-                showToast('Consultation recorded.', false);
-                // Automatically go back to dashboard after a short delay
-                setTimeout(() => {
-                    goBack();
-                }, 1500);
+                showToast('Diagnosis saved.', false);
             } else {
                 await saveToIndexedDB('MediSensDB', 'offline_patients', { id: Date.now(), type: 'consultation', data: consultationPayload });
                 setConsultationSaved(true);
@@ -992,6 +1005,70 @@ export function ConsultationPage({
             logError('Failed to save consultation', err);
             showToast(healthcareErrorMessage("save the consultation"), true);
         } finally { setLoading(false); }
+    };
+
+    // The single explicit "today's consultation is finished" action (Step 7).
+    // Follow-up activation and SMS eligibility both depend on this succeeding
+    // first: the follow_up row (whose visit_date the reminder edge function
+    // keys on) is only created/updated in the SAME database transaction as
+    // the consultation's Completed status via complete_consultation(), so a
+    // follow-up write failure rolls the consultation status back too -- see
+    // 20260830140000_atomic_complete_consultation.sql.
+    const handleCompleteConsultation = async () => {
+        if (!patient?.id || completingRef.current) return;
+
+        if (formData.needsFollowUp !== 'no' && formData.needsFollowUp !== 'yes') {
+            setFollowUpChoiceError(true);
+            setActiveTab(4);
+            showToast('Select whether this patient needs a follow-up visit.', true);
+            setTimeout(() => {
+                followUpChoiceFieldRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 60);
+            return;
+        }
+        setFollowUpChoiceError(false);
+
+        const wantsFollowUp = formData.needsFollowUp === 'yes';
+        if (wantsFollowUp && !formData.followUpDate) {
+            setFollowUpDateError(true);
+            setActiveTab(4);
+            showToast('Please enter a valid follow-up return date.', true);
+            setTimeout(() => {
+                followUpDateFieldRef.current?.focus();
+                followUpDateFieldRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 60);
+            return;
+        }
+        setFollowUpDateError(false);
+
+        if (!isOnline) {
+            showToast('You are offline. Complete the consultation once your connection is restored.', true);
+            return;
+        }
+
+        completingRef.current = true;
+        setLoading(true);
+        try {
+            const consultationPayload = buildConsultationPayload();
+            const followUpPayload = wantsFollowUp ? buildFollowUpPayload(null, 'pending') : null;
+            const resolvedConsultationId = await completeConsultationAtomic(consultationId, consultationPayload, followUpPayload);
+            setConsultationId(resolvedConsultationId);
+
+            if (wantsFollowUp) {
+                const friendlyDate = new Date(`${formData.followUpDate}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                showToast(`Consultation completed. Follow-up scheduled for ${friendlyDate}.`, false);
+            } else {
+                showToast('Consultation completed successfully.', false);
+            }
+            setConsultationSaved(true);
+            setConsultationCompleted(true);
+        } catch (err) {
+            logError('Failed to complete consultation', err);
+            showToast('Unable to complete the consultation. Please try again.', true);
+        } finally {
+            completingRef.current = false;
+            setLoading(false);
+        }
     };
 
     const handleMarkFollowUpDone = async () => {
@@ -1372,12 +1449,6 @@ export function ConsultationPage({
             <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-3">
                 <h3 className="text-lg font-bold text-[var(--text)]">V. Management and Health Education</h3>
             </div>
-            {!consultationSaved && (
-                <div className="flex items-start gap-3 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]">
-                    <Icon name="file-text" className="h-5 w-5 shrink-0" />
-                    <span>Follow-up details will be recorded when the consultation is finalized.</span>
-                </div>
-            )}
             <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)]/70 p-5">
                 <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Initial consultation management</p>
@@ -1391,28 +1462,78 @@ export function ConsultationPage({
             </div>
             <div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Follow-up Schedule</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div><label className={labelCls} htmlFor="consult-followUpDate">Visit Date</label><input id="consult-followUpDate" type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className={inputCls} /></div>
-                    <div><label className={labelCls} htmlFor="consult-followUpTime">Visit Time</label><input id="consult-followUpTime" type="time" name="followUpTime" value={formData.followUpTime} onChange={handleChange} className={inputCls} /></div>
-                    <div>
-                        <label className={labelCls}>Mode of Transaction</label>
-                        <select name="followUpModeOfTx" value={formData.followUpModeOfTx} onChange={handleChange} className={inputCls}>
-                            <option value="Walk-in">Walk-in</option><option value="Teleconsult">Teleconsult</option><option value="Referral">Referral</option>
-                        </select>
+                <fieldset
+                    ref={followUpChoiceFieldRef}
+                    className="space-y-3"
+                    aria-invalid={followUpChoiceError}
+                    aria-describedby={followUpChoiceError ? 'consult-followUpChoice-error' : undefined}
+                >
+                    <legend className={labelCls}>Does this patient need a follow-up visit?</legend>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <label className={`flex-1 flex items-center gap-2 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${formData.needsFollowUp === 'no' ? 'border-[var(--brand-active)] bg-[var(--surface-subtle)] font-semibold' : followUpChoiceError ? 'border-[var(--coral-accent)]' : 'border-[var(--border-soft)]'}`}>
+                            <input type="radio" name="needsFollowUp" value="no" checked={formData.needsFollowUp === 'no'} onChange={e => { handleRadioChange(e); setFollowUpChoiceError(false); }} className="h-4 w-4" />
+                            No follow-up needed
+                        </label>
+                        <label className={`flex-1 flex items-center gap-2 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${formData.needsFollowUp === 'yes' ? 'border-[var(--brand-active)] bg-[var(--surface-subtle)] font-semibold' : followUpChoiceError ? 'border-[var(--coral-accent)]' : 'border-[var(--border-soft)]'}`}>
+                            <input type="radio" name="needsFollowUp" value="yes" checked={formData.needsFollowUp === 'yes'} onChange={e => { handleRadioChange(e); setFollowUpChoiceError(false); }} className="h-4 w-4" />
+                            Yes, schedule follow-up
+                        </label>
                     </div>
-                    <div>
-                        <label className={labelCls}>Mode of Transfer</label>
-                        <select name="followUpModeOfTransfer" value={formData.followUpModeOfTransfer} onChange={handleChange} className={inputCls}>
-                            <option value="Ambulatory">Ambulatory</option><option value="Wheelchair">Wheelchair</option><option value="Stretcher">Stretcher</option>
-                        </select>
-                    </div>
-                    <div>
-                        <span className={labelCls}>Blood Type</span>
-                        <p className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-2)] font-semibold cursor-default`} aria-readonly="true">
-                            {formData.followUpBloodType || patient?.bloodType || 'Not recorded'}
+                    {followUpChoiceError && (
+                        <p id="consult-followUpChoice-error" role="alert" className="text-xs font-semibold text-[var(--coral-accent)]">
+                            Select whether this patient needs a follow-up visit.
                         </p>
+                    )}
+                </fieldset>
+
+                {formData.needsFollowUp === 'yes' && (
+                    <div className="mt-4 space-y-3">
+                        <div className="flex items-start gap-2 text-xs text-[var(--text-secondary)] bg-[var(--surface-subtle)] border border-[var(--border-soft)] rounded-lg px-3 py-2.5">
+                            <Icon name="file-text" className="h-4 w-4 shrink-0 mt-0.5" />
+                            <span>The follow-up will be scheduled when this consultation is completed.</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className={labelCls} htmlFor="consult-followUpDate">Visit / Return Date <span className="text-[var(--marker-required)]">*</span></label>
+                                <input
+                                    ref={followUpDateFieldRef}
+                                    id="consult-followUpDate"
+                                    type="date"
+                                    name="followUpDate"
+                                    value={formData.followUpDate}
+                                    onChange={e => { handleChange(e); setFollowUpDateError(false); }}
+                                    aria-invalid={followUpDateError}
+                                    aria-describedby={followUpDateError ? 'consult-followUpDate-error' : undefined}
+                                    className={`${inputCls} ${followUpDateError ? 'border-[var(--coral-accent)] focus:border-[var(--coral-accent)]' : ''}`}
+                                />
+                                {followUpDateError && (
+                                    <p id="consult-followUpDate-error" role="alert" className="mt-1.5 text-xs font-semibold text-[var(--coral-accent)]">
+                                        A valid follow-up return date is required to complete this consultation.
+                                    </p>
+                                )}
+                            </div>
+                            <div><label className={labelCls} htmlFor="consult-followUpTime">Visit Time</label><input id="consult-followUpTime" type="time" name="followUpTime" value={formData.followUpTime} onChange={handleChange} className={inputCls} /></div>
+                            <div>
+                                <label className={labelCls}>Mode of Transaction</label>
+                                <select name="followUpModeOfTx" value={formData.followUpModeOfTx} onChange={handleChange} className={inputCls}>
+                                    <option value="Walk-in">Walk-in</option><option value="Teleconsult">Teleconsult</option><option value="Referral">Referral</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className={labelCls}>Mode of Transfer</label>
+                                <select name="followUpModeOfTransfer" value={formData.followUpModeOfTransfer} onChange={handleChange} className={inputCls}>
+                                    <option value="Ambulatory">Ambulatory</option><option value="Wheelchair">Wheelchair</option><option value="Stretcher">Stretcher</option>
+                                </select>
+                            </div>
+                            <div>
+                                <span className={labelCls}>Blood Type</span>
+                                <p className={`${inputCls} bg-[var(--surface-subtle)] text-[var(--text-2)] font-semibold cursor-default`} aria-readonly="true">
+                                    {formData.followUpBloodType || patient?.bloodType || 'Not recorded'}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {isFollowUpVisit && !followUpVisitStarted && (
@@ -1543,7 +1664,7 @@ export function ConsultationPage({
                             aria-busy={loading}
                             className="flex-1 min-h-11 bg-white border-2 border-[var(--border-strong)] text-[var(--text-2)] py-3 px-6 rounded-xl font-bold shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-[var(--surface-subtle)] hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-active)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-60 disabled:shadow-none flex items-center justify-center gap-2"
                         >
-                            {loading ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : <><Icon name="save" className="h-4 w-4" /> Record Consultation</>}
+                            {loading ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : <><Icon name="save" className="h-4 w-4" /> Save Diagnosis</>}
                         </button>
                         <button onClick={() => setActiveTab(4)} className={`flex-1 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Management and Health Education</button>
                     </div>
@@ -1647,6 +1768,35 @@ export function ConsultationPage({
                     <button onClick={handleSavePrescription} disabled={loading || !patient?.id} className={`w-full sm:w-auto text-white py-3.5 px-8 rounded-xl font-bold shadow-md transition-all  flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 ${primaryBtnBg}`}>{loading ? 'Sending...' : <><Icon name="pill" className="h-4 w-4" /> Authorize &amp; Send to Pharmacy</>}</button>
                 </div>
             </div>
+
+            {/* Single explicit end-of-encounter action -- visually and
+                semantically separate from prescription authorization/navigation.
+                Sending a lab request or a prescription never implies this. */}
+            <div className="mt-8 pt-6 border-t-2 border-dashed border-[var(--border)]">
+                <div className="rounded-2xl border-2 border-[var(--green-border-strong)] bg-[var(--green-tint)] p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <p className="text-sm font-bold text-[var(--green-dark)]">Finish this consultation</p>
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                            {consultationCompleted ? "Today's consultation has been completed." : "Once all applicable steps above are done, complete today's consultation."}
+                        </p>
+                    </div>
+                    {consultationCompleted ? (
+                        <div className="shrink-0 w-full sm:w-auto bg-[var(--green-tint-strong)] text-[var(--green-dark)] py-3 px-6 rounded-xl font-bold border border-[var(--green-border-strong)] flex items-center justify-center gap-2 shadow-sm cursor-default">
+                            <Icon name="check" className="h-4 w-4" /> Consultation Completed
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={handleCompleteConsultation}
+                            disabled={loading || !patient?.id}
+                            aria-busy={loading}
+                            className="shrink-0 w-full sm:w-auto bg-[var(--green-accent-strong)] hover:bg-[var(--green-dark)] text-white py-3.5 px-8 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {loading ? 'Completing...' : <><Icon name="check" className="h-4 w-4" /> Complete Consultation</>}
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 
@@ -1680,7 +1830,6 @@ export function ConsultationPage({
                         {/* -- realtime pill in patient header -- */}
                         <button onClick={() => setShowHistory(true)} className="min-h-11 w-full justify-center text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 sm:w-auto"><Icon name="clock" className="h-3.5 w-3.5" /> View Patient History</button>
                         <button onClick={handleReturnToQueue} className="min-h-11 w-full justify-center text-xs font-semibold text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 sm:w-auto"><Icon name="chevron-right" className="h-3.5 w-3.5 rotate-180" /> Back to Patient Queue</button>
-                        <button onClick={goBack} className="min-h-11 w-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)] bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] px-3 py-2 rounded-lg transition-all sm:w-auto">Return to Work Queue</button>
                     </div>
                 </div>
 
