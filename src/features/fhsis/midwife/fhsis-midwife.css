@@ -4,6 +4,21 @@
 .fhsis-queue-card, .fhsis-decision-card { padding: 1.25rem; }.fhsis-queue-toolbar { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }.fhsis-queue-toolbar h2 { margin: 0; font-size: var(--type-card-title-size); }.fhsis-queue-toolbar p { margin: .3rem 0 0; color: var(--text-secondary); font-size: var(--type-caption-size); }.fhsis-queue-toolbar label { display: grid; gap: .35rem; color: var(--text-secondary); font-size: var(--type-caption-size); font-weight: 600; }.fhsis-queue-toolbar select { min-height: var(--control-height-md); border: 1px solid var(--control-border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); padding: 0 .65rem; }
 .fhsis-decision-card { margin-top: 1rem; }.fhsis-review-label { display: block; margin-top: 1rem; color: var(--text-secondary); font-size: var(--type-label-size); font-weight: 600; }.fhsis-review-label span { color: var(--coral); }.fhsis-review-textarea { box-sizing: border-box; width: 100%; margin-top: .4rem; border: 1px solid var(--control-border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); padding: .7rem; font: inherit; resize: vertical; }.fhsis-review-textarea:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; border-color: var(--brand-primary); }
 
+/* Midwife review only: compact validation disclosure that keeps the summary
+   visible without turning the expanded category list into a nested panel. */
+.fhsis-validation-findings-trigger { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .625rem; width: 100%; min-width: 0; min-height: 2.75rem; box-sizing: border-box; padding: .5rem; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; font-size: var(--type-caption-size); text-align: left; cursor: pointer; transition: border-color var(--motion-fast), background-color var(--motion-fast), color var(--motion-fast); }
+.fhsis-validation-findings-trigger:hover, .fhsis-validation-findings-trigger[aria-expanded='true'] { border-color: var(--brand-accent-surface); background: var(--brand-soft-surface); }
+.fhsis-validation-findings-trigger:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }
+.fhsis-validation-findings-trigger > span { min-width: 0; font-weight: 600; }
+.fhsis-validation-findings-trigger > strong { color: var(--brand-active); font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.fhsis-validation-findings-chevron { flex: 0 0 auto; color: var(--brand-active); transform: rotate(90deg); transition: transform var(--motion-fast); }
+.fhsis-validation-findings-trigger[aria-expanded='true'] .fhsis-validation-findings-chevron { transform: rotate(270deg); }
+.fhsis-validation-findings-categories { display: grid; min-width: 0; gap: .35rem; }
+.fhsis-validation-findings-categories .fhsis-section-nav-item { min-width: 0; }
+.fhsis-validation-findings-categories .fhsis-section-nav-item span { min-width: 0; overflow-wrap: anywhere; }
+.fhsis-validation-findings-categories .fhsis-section-nav-item.has-no-issues:not(.is-active) { color: var(--text-muted); }
+.fhsis-validation-findings-categories .fhsis-section-nav-item.has-no-issues:not(.is-active) small { opacity: .75; }
+
 /* Compact, information-dense verification outcome summary — badge + name/role + date on one line, notes and historical findings below. */
 .fhsis-outcome-compact { padding: .85rem 1rem; }
 .fhsis-outcome-head { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; }
@@ -67,6 +82,10 @@
 .fhsis-midwife-shell.is-verified .fhsis-entry-table th, .fhsis-midwife-shell.is-verified .fhsis-entry-table td { line-height: var(--type-caption-line); }
 
 @media (max-width: 640px) { .fhsis-detail-title-row { align-items: flex-start; }.fhsis-detail-toolbar { width: 100%; flex-wrap: wrap; }.fhsis-detail-toolbar .fhsis-export-actions { width: auto; flex: 1 1 auto; }.fhsis-detail-toolbar .fhsis-export-actions > * { flex: 1 1 auto; }.fhsis-detail-meta-row .fhsis-back-link { width: auto; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar { justify-content: flex-start; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-export-actions { flex: 0 1 auto; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-export-actions > * { flex: 0 1 auto; }.fhsis-detail-page-top.is-verified .fhsis-detail-toolbar .fhsis-back-link { flex: 0 1 auto; width: auto; }.fhsis-historical-trigger { width: 100%; }.fhsis-historical-menu { position: fixed; top: auto; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); left: 1rem; width: auto; max-height: min(78vh, 32rem); border-radius: var(--radius-card); }.fhsis-midwife-shell.is-verified .fhsis-subgroup-heading { padding: .875rem 1rem; } }
+
+@media (max-width: 900px) { .fhsis-validation-findings-trigger, .fhsis-validation-findings-categories { grid-column: 1 / -1; }.fhsis-validation-findings-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .fhsis-validation-findings-categories { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .fhsis-validation-findings-chevron { transition: none; } }
 
 /* Mobile FHSIS report grids: reformat the tabular comparison view into stacked
    label:value groups instead of squeezing a desktop table into the viewport.

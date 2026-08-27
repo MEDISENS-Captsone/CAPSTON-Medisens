@@ -172,6 +172,7 @@ export function FhsisMidwifeWorkspace({ mode }: { mode: 'queue' | 'history' }) {
     const [queuePage, setQueuePage] = useState(1);
     const [reviewerName, setReviewerName] = useState<string | null>(null);
     const [reviewerRole, setReviewerRole] = useState<string | null>(null);
+    const [isValidationFindingsExpanded, setIsValidationFindingsExpanded] = useState(false);
 
     const refresh = async () => { setLoading(true); try { setReports(await listFhsisReportHistory()); } catch (error) { setMessage({ text: messageFor(error, 'Unable to load the FHSIS verification queue.'), type: 'error' }); } finally { setLoading(false); } };
     useEffect(() => { void refresh(); }, []);
@@ -184,7 +185,7 @@ export function FhsisMidwifeWorkspace({ mode }: { mode: 'queue' | 'history' }) {
     const pagedQueueReports = visibleReports.slice((queuePageSafe - 1) * QUEUE_PAGE_SIZE, queuePageSafe * QUEUE_PAGE_SIZE);
     const counts = useMemo(() => ({ pending: reports.filter(report => report.status === 'for_verification').length, returned: reports.filter(report => report.status === 'returned').length, verified: reports.filter(report => report.status === 'verified').length }), [reports]);
 
-    const open = async (report: FhsisReport) => { setLoading(true); try { const loaded = await loadFhsisReport(report.id); if (!loaded) throw new Error('Report unavailable'); setDetail(loaded); setActiveSection(getFhsisTemplate(loaded.report.reportType, loaded.report.templateVersion).sections[0]?.key ?? ''); setReason(''); setNotes(''); setReviewerName(null); setReviewerRole(null); } catch (error) { setMessage({ text: messageFor(error, 'Unable to open this FHSIS report.'), type: 'error' }); } finally { setLoading(false); } };
+    const open = async (report: FhsisReport) => { setLoading(true); try { const loaded = await loadFhsisReport(report.id); if (!loaded) throw new Error('Report unavailable'); setDetail(loaded); setActiveSection(getFhsisTemplate(loaded.report.reportType, loaded.report.templateVersion).sections[0]?.key ?? ''); setIsValidationFindingsExpanded(false); setReason(''); setNotes(''); setReviewerName(null); setReviewerRole(null); } catch (error) { setMessage({ text: messageFor(error, 'Unable to open this FHSIS report.'), type: 'error' }); } finally { setLoading(false); } };
     const close = () => setDetail(null);
     const act = async (kind: 'return' | 'verify') => { if (!detail) return; if (kind === 'return' && !reason.trim()) { setMessage({ text: 'A correction reason is required before returning a report.', type: 'error' }); return; } setActionPending(kind); try { if (kind === 'return') await returnFhsisReport(detail.report.id, reason, notes); else await verifyFhsisReport(detail.report.id, notes); await refresh(); close(); setMessage({ text: kind === 'return' ? 'Report returned to the Nurse for correction.' : 'Report verified and finalized.', type: 'success' }); } catch (error) { setMessage({ text: messageFor(error, kind === 'return' ? 'Unable to return this report. Please try again.' : 'Unable to verify this report. Please try again.'), type: 'error' }); } finally { setActionPending(null); } };
 
@@ -231,8 +232,24 @@ export function FhsisMidwifeWorkspace({ mode }: { mode: 'queue' | 'history' }) {
             </header>
             <div className={isVerified ? 'fhsis-midwife-shell is-verified' : 'fhsis-midwife-shell'}>
                 {!isVerified && <aside className="fhsis-section-nav" aria-label="Report review sections">
-                    <div className="fhsis-progress"><span>Validation findings</span><strong>{errorFindings.length}</strong></div>
-                    {template.sections.map(section => <button type="button" key={section.key} onClick={() => setActiveSection(section.key)} className={activeSection === section.key ? 'fhsis-section-nav-item is-active' : 'fhsis-section-nav-item'}><span>{fhsisSectionLabel(section)}</span><small>{findings.filter(item => item.sectionKey === section.key && item.severity === 'error').length} issues</small></button>)}
+                    <button
+                        type="button"
+                        className="fhsis-validation-findings-trigger"
+                        aria-expanded={isValidationFindingsExpanded}
+                        aria-controls="fhsis-validation-findings-categories"
+                        onClick={() => setIsValidationFindingsExpanded(value => !value)}
+                    >
+                        <span>Validation findings</span>
+                        <strong>{errorFindings.length} issues</strong>
+                        <Icon name="chevron-right" className="fhsis-validation-findings-chevron h-5 w-5" />
+                    </button>
+                    {isValidationFindingsExpanded && <div id="fhsis-validation-findings-categories" className="fhsis-validation-findings-categories">
+                        {template.sections.map(section => {
+                            const issueCount = findings.filter(item => item.sectionKey === section.key && item.severity === 'error').length;
+                            const classes = ['fhsis-section-nav-item', activeSection === section.key ? 'is-active' : '', issueCount === 0 ? 'has-no-issues' : ''].filter(Boolean).join(' ');
+                            return <button type="button" key={section.key} onClick={() => setActiveSection(section.key)} className={classes}><span>{fhsisSectionLabel(section)}</span><small>{issueCount} issues</small></button>;
+                        })}
+                    </div>}
                 </aside>}
                 <div className="fhsis-main-panel">
                     {isVerified && errorFindings.length > 0 && <HistoricalNotesPopover groups={historicalGroups} labels={historicalLabels} onSelect={setActiveSection} />}
