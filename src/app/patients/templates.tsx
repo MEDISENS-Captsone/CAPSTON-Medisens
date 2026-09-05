@@ -484,12 +484,30 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
                                     <FieldError message={errors['age']} />
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Sex</label>
-                                    <select id="sex" value={form.sex} onChange={handleChange} className={inputClasses} required>
-                                        <option value="" disabled>Select</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                    </select>
+                                    <fieldset>
+                                        <legend className={labelClasses}>Sex</legend>
+                                        <div className="grid min-h-11 w-full max-w-sm grid-cols-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1" role="radiogroup">
+                                            {['Male', 'Female'].map(value => {
+                                                const checked = form.sex === value;
+                                                return (
+                                                    <label key={value} className="relative min-w-0 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="sex"
+                                                            value={value}
+                                                            checked={checked}
+                                                            onChange={handleRadio}
+                                                            className="peer sr-only"
+                                                            required
+                                                        />
+                                                        <span className={`flex min-h-11 items-center justify-center rounded-[calc(var(--radius-control)-0.25rem)] px-3 text-sm font-semibold transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-color)] ${checked ? 'bg-[var(--surface)] text-[var(--brand-active)] shadow-sm ring-1 ring-[var(--border)]' : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`}>
+                                                            {value}
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </fieldset>
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Civil Status</label>
