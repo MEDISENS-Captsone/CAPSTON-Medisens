@@ -1,11 +1,59 @@
 import { supabase } from '../../lib/supabase/client';
 import { logAuditEvent } from '../audit/services';
+import type { OfflineUuid } from '../../lib/offline';
 
 export type WorkflowPayload = Record<string, unknown>;
+
+export interface NurseIntakeSnapshot {
+    latestIntakeId: number | null;
+    capturedAt: string;
+}
+
+export type NurseIntakeReplayResponse =
+    | { outcome: 'success' | 'already_applied'; serverId: number }
+    | { outcome: 'conflict'; code: 'nurse_intake_stale_snapshot'; expectedLatestIntakeId: number | null; currentLatestIntakeId: number | null }
+    | { outcome: 'unauthorized' | 'validation_failed'; message?: string };
+
+export async function getNurseIntakeSnapshot(patientId: string): Promise<NurseIntakeSnapshot> {
+    const { data, error } = await supabase.rpc('get_nurse_intake_snapshot', { p_patient_id: Number(patientId) });
+    if (error) throw error;
+    const snapshot = data as Partial<NurseIntakeSnapshot> | null;
+    if (!snapshot || !('latestIntakeId' in snapshot) || typeof snapshot.capturedAt !== 'string') {
+        throw new Error('Unable to establish the patient intake snapshot.');
+    }
+    return { latestIntakeId: snapshot.latestIntakeId ?? null, capturedAt: snapshot.capturedAt };
+}
+
+export async function replayNurseInitialIntake(
+    consultationPayload: WorkflowPayload,
+    vitalsPayload: WorkflowPayload,
+    operationId: OfflineUuid,
+    snapshot: NurseIntakeSnapshot,
+): Promise<NurseIntakeReplayResponse> {
+    const { data, error } = await supabase.rpc('replay_nurse_initial_intake', {
+        p_initial: consultationPayload,
+        p_vitals: vitalsPayload,
+        p_operation_id: operationId,
+        p_expected_latest_intake_id: snapshot.latestIntakeId,
+    });
+    if (error) throw error;
+    return data as NurseIntakeReplayResponse;
+}
+
+export async function getNurseIntakeRecord(initialConsultationId: number) {
+    const { data: intake, error: intakeError } = await supabase
+        .from('initial_consultation').select('*').eq('initialconsultation_id', initialConsultationId).single();
+    if (intakeError) throw intakeError;
+    const { data: vitals, error: vitalsError } = await supabase
+        .from('vital_sign').select('*').eq('initial_consultation_id', initialConsultationId).maybeSingle();
+    if (vitalsError) throw vitalsError;
+    return { intake, vitals };
+}
 
 export async function saveInitialConsultationWithVitals(
     consultationPayload: WorkflowPayload,
     vitalsPayload: WorkflowPayload,
+    operationId?: OfflineUuid,
 ): Promise<number> {
     // The RPC inserts both clinical records in one database transaction. This
     // avoids an impossible client-side rollback: intake roles deliberately
@@ -13,12 +61,16 @@ export async function saveInitialConsultationWithVitals(
     const { data: consultationId, error } = await supabase.rpc('record_initial_intake', {
         p_initial: consultationPayload,
         p_vitals: vitalsPayload,
+        ...(operationId ? { p_operation_id: operationId } : {}),
     });
 
     if (error) throw new Error('initial_intake: ' + error.message);
     if (typeof consultationId !== 'number') throw new Error('initial_intake: no consultation ID returned');
 
-    void logAuditEvent({
+    // Idempotent offline operations are attributed by the O2A applied-operation
+    // record. Avoid a second client audit event if an acknowledgement is lost
+    // and the same operation is replayed.
+    if (!operationId) void logAuditEvent({
         action: 'create',
         module: 'Consultation',
         recordId: consultationId,

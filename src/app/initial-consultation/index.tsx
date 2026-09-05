@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { useToast } from '../../components/feedback/Toast';
-import { saveInitialConsultationWithVitals } from '../../features/consultation/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { safeTrim, toNumberOrNull as parseNumberOrNull } from '../../lib/utils/strings';
 import { Icon } from '../../components/shared/Icon';
 import { clinicalInputClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
 import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
+import { createActorOfflineStore, type OfflineDraft, type OfflineUuid } from '../../lib/offline';
+import { getCurrentNurseActorId, NURSE_INTAKE_ENTITY, replayNurseIntakeOutbox, type NurseIntakeOutboxPayload } from '../../features/consultation/nurseIntakeOffline';
+import { useNurseIntakeSync } from '../../hooks/useNurseIntakeSync';
+import { getNurseIntakeRecord, getNurseIntakeSnapshot, type NurseIntakeSnapshot } from '../../features/consultation/services';
+import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 
 // Shared clinical form classes
 const inputClasses = clinicalInputClass;
@@ -25,6 +30,12 @@ interface InitialConsultationData {
     visualAcuityLeft: string; visualAcuityRight: string; bloodType: string;
     generalSurvey: string;
     visitDisposition: 'referred' | 'completed' | '';
+}
+
+interface NurseIntakeDraftPayload {
+    formData: InitialConsultationData;
+    patientName: string;
+    patientInfo: Record<string, unknown> | null;
 }
 
 // ─── Helper: get current date (YYYY-MM-DD) and time (HH:MM) ─────────────────
@@ -107,12 +118,38 @@ export function ConsultationComponent() {
     const [currentPatientId, setCurrentPatientId] = useState<string | null>(null);
     const [patientName, setPatientName] = useState('');
     const [patientInfo, setPatientInfo] = useState<any>(null);
+    const [actorId, setActorId] = useState<string | null>(null);
+    const [pendingDraft, setPendingDraft] = useState<OfflineDraft<NurseIntakeDraftPayload> | null>(null);
+    const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+    const [isDirty, setIsDirty] = useState(false);
+    const [intakeSnapshot, setIntakeSnapshot] = useState<NurseIntakeSnapshot | null>(null);
+    const [review, setReview] = useState<{ title: string; initial: Record<string, unknown>; vitals: Record<string, unknown> | null } | null>(null);
+    const [discardOperationId, setDiscardOperationId] = useState<OfflineUuid | null>(null);
+    const [isLoadingServerReview, setIsLoadingServerReview] = useState(false);
 
     // New states for Patient Search
     const [consentedPatients, setConsentedPatients] = useState<any[]>([]);
 
     const { showToast, ToastComponent } = useToast();
     const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const draftIdRef = useRef<OfflineUuid | null>(null);
+    const { isReachable, isSyncing, queuedCount, blockedCount, blockedOperations, refreshQueue, retryNow } = useNurseIntakeSync(actorId);
+
+    useEffect(() => {
+        let active = true;
+        void getCurrentNurseActorId().then(async id => {
+            if (!active) return;
+            setActorId(id);
+            const patientId = new URLSearchParams(window.location.search).get('id');
+            if (!patientId) return;
+            const drafts = await createActorOfflineStore(id).listDrafts<NurseIntakeDraftPayload>();
+            const draft = drafts
+                .filter(item => item.route === 'nurse-initial-intake' && item.patientContextId === patientId)
+                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+            if (active && draft) setPendingDraft(draft);
+        }).catch(error => logError('Unable to initialize nurse offline storage', error));
+        return () => { active = false; };
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -145,6 +182,7 @@ export function ConsultationComponent() {
 
     const loadPatientDetails = async (id: string) => {
         setCurrentPatientId(id);
+        setIntakeSnapshot(null);
         const { data, error } = await supabase
             .from('patients')
             .select(INITIAL_CONSULT_PATIENT_COLUMNS)
@@ -156,6 +194,11 @@ export function ConsultationComponent() {
             setPatientName(safeTrim(`${data.lastName}, ${data.firstName} ${data.middleName || ''}`));
             setPatientInfo(data);
             setFormData(prev => ({ ...prev, bloodType: data.bloodType || '' }));
+            try {
+                setIntakeSnapshot(await getNurseIntakeSnapshot(id));
+            } catch (snapshotError) {
+                logError('Failed to capture Nurse intake snapshot', snapshotError);
+            }
         } else if (error) {
             logError('Failed to load patient details for initial consultation', error);
             setPatientName('Unable to load patient details');
@@ -181,19 +224,42 @@ export function ConsultationComponent() {
         });
     }, [formData.weight, formData.height]);
 
+    useEffect(() => {
+        if (!actorId || !currentPatientId || !isDirty || pendingDraft) return;
+        const timer = window.setTimeout(() => {
+            const store = createActorOfflineStore(actorId);
+            void store.putDraft<NurseIntakeDraftPayload>({
+                ...(draftIdRef.current ? { draftId: draftIdRef.current } : {}),
+                route: 'nurse-initial-intake',
+                patientContextId: currentPatientId,
+                payload: { formData, patientName, patientInfo },
+            }).then(draft => {
+                draftIdRef.current = draft.draftId;
+                setDraftSavedAt(draft.updatedAt);
+            }).catch(error => logError('Unable to save nurse intake draft', error));
+        }, 1_000);
+        return () => window.clearTimeout(timer);
+    }, [actorId, currentPatientId, formData, isDirty, patientInfo, patientName, pendingDraft]);
+
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        setIsDirty(true);
     };
 
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        setIsDirty(true);
     };
 
     const handleSelectPatient = (id: string) => {
+        draftIdRef.current = null;
+        setPendingDraft(null);
+        setDraftSavedAt(null);
+        setIsDirty(false);
         setPatientQuery(`?id=${id}`);
         loadPatientDetails(id);
     };
@@ -209,12 +275,16 @@ export function ConsultationComponent() {
             showToast('Choose whether to complete this visit or refer the patient to the doctor.', true);
             return;
         }
+        if (!intakeSnapshot) {
+            showToast('Connect to MediSens and reload this patient before saving an offline intake.', true);
+            return;
+        }
 
         setIsSubmitting(true);
         try {
             const resolvedDiagnosis = formData.diagnosis === 'Others' ? (safeTrim(formData.diagnosisOther) || 'Others') : formData.diagnosis;
 
-            await saveInitialConsultationWithVitals({
+            const initialPayload = {
                 patient_id: currentPatientId,
                 consultation_date: formData.dateOfConsultation || null,
                 consultation_time: formData.consultationTime || null,
@@ -224,7 +294,8 @@ export function ConsultationComponent() {
                 chief_complaint: formData.chiefComplaints || null,
                 diagnosis: resolvedDiagnosis || null,
                 visit_disposition: formData.visitDisposition,
-            }, {
+            };
+            const vitalsPayload = {
                 patient_id: currentPatientId,
                 bp: formData.bp || null,
                 heart_rate: toNumberOrNull(formData.hr),
@@ -238,16 +309,40 @@ export function ConsultationComponent() {
                 visual_acuity_left: formData.visualAcuityLeft || null,
                 visual_acuity_right: formData.visualAcuityRight || null,
                 general_survey: formData.generalSurvey || null,
+            };
+
+            if (!actorId) throw new Error('Authenticated nurse actor is unavailable.');
+            const store = createActorOfflineStore(actorId);
+            const operation = await store.putOutboxOperation<NurseIntakeOutboxPayload>({
+                entityType: NURSE_INTAKE_ENTITY,
+                operationType: 'create',
+                payload: { initial: initialPayload, vitals: vitalsPayload, patientName, snapshot: intakeSnapshot },
             });
+            if (draftIdRef.current) await store.deleteDraft(draftIdRef.current);
+
+            const replay = await replayNurseIntakeOutbox(actorId, true);
+            void retryNow();
+            const savedToServer = replay.acknowledged.includes(operation.operationId);
+            const wasBlocked = replay.blocked.includes(operation.operationId);
+
+            if (wasBlocked) {
+                showToast('MediSens could not accept this intake. Your saved copy remains on this device.', true);
+                return;
+            }
 
             showToast(
-                formData.visitDisposition === 'referred'
+                savedToServer && formData.visitDisposition === 'referred'
                     ? 'Initial intake recorded. Patient referred to the doctor queue.'
-                    : 'Initial intake recorded. Visit marked complete.',
+                    : savedToServer
+                        ? 'Initial intake recorded. Visit marked complete.'
+                        : 'Saved on this device. Waiting to sync.',
                 false
             );
             // Reset form but keep blood type and refresh date/time for next entry
             setFormData({ ...makeEmptyForm(), bloodType: formData.bloodType });
+            setIsDirty(false);
+            setDraftSavedAt(null);
+            draftIdRef.current = null;
 
             // Return to the patient-selection view in place (same pattern as the
             // "Change Patient" action below) instead of navigating away, so the
@@ -269,6 +364,89 @@ export function ConsultationComponent() {
     return (
         <div className="relative mx-auto w-full max-w-[72rem] px-3 pb-12 sm:px-5 lg:px-6">
             <ToastComponent />
+
+            {pendingDraft && (
+                <div className="mb-4 flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--amber-border)] bg-[var(--amber-surface)] p-4 text-[var(--amber-ink)] sm:flex-row sm:items-center sm:justify-between" role="status">
+                    <div><p className="text-sm font-semibold">You have an unsaved intake draft from {new Date(pendingDraft.updatedAt).toLocaleString('en-PH')}.</p><p className="mt-1 text-xs">Restore it only for this selected patient.</p></div>
+                    <div className="flex gap-2">
+                        <button type="button" className="min-h-11 rounded-lg border border-[var(--amber-border)] bg-white px-4 text-sm font-semibold" onClick={() => {
+                            setFormData(pendingDraft.payload.formData);
+                            setPatientName(pendingDraft.payload.patientName);
+                            if (pendingDraft.payload.patientInfo) setPatientInfo(pendingDraft.payload.patientInfo);
+                            draftIdRef.current = pendingDraft.draftId;
+                            setDraftSavedAt(pendingDraft.updatedAt);
+                            setIsDirty(true);
+                            setPendingDraft(null);
+                        }}>Restore draft</button>
+                        <button type="button" className="min-h-11 rounded-lg px-4 text-sm font-semibold" onClick={() => {
+                            if (!actorId) return;
+                            void createActorOfflineStore(actorId).deleteDraft(pendingDraft.draftId).then(() => setPendingDraft(null));
+                        }}>Discard draft</button>
+                    </div>
+                </div>
+            )}
+
+            {(draftSavedAt || !isReachable || isSyncing || queuedCount > 0) && (
+                <div className={`mb-4 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${isReachable ? 'border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)] text-[var(--brand-active)]' : 'border-[var(--amber-border)] bg-[var(--amber-surface)] text-[var(--amber-ink)]'}`} role="status" aria-live="polite">
+                    <span>{isSyncing ? 'Synchronizing saved Nurse intakes…' : blockedCount > 0 ? `${blockedCount} saved intake${blockedCount === 1 ? '' : 's'} needs attention.` : !isReachable ? 'Offline — Nurse intake changes stay on this device.' : queuedCount > 0 ? `${queuedCount} saved intake${queuedCount === 1 ? '' : 's'} waiting to sync.` : draftSavedAt ? `Draft saved on this device · ${new Date(draftSavedAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}` : 'Online'}</span>
+                    {(!isReachable || queuedCount > blockedCount) && <button type="button" className="min-h-11 rounded-lg border border-current px-3 font-semibold" onClick={() => { void retryNow(); }}>Retry</button>}
+                </div>
+            )}
+
+            {blockedOperations.map(operation => (
+                <section key={operation.operationId} className="mb-4 rounded-[var(--radius-card)] border border-[var(--amber-border)] bg-[var(--amber-surface)] p-4 text-[var(--amber-ink)]" aria-labelledby={`blocked-${operation.operationId}`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h2 id={`blocked-${operation.operationId}`} className="font-semibold">Saved intake needs review</h2>
+                            <p className="mt-1 text-sm">{operation.payload.patientName || 'Selected patient'} · saved {new Date(operation.createdAt).toLocaleString('en-PH')}</p>
+                            <p className="mt-1 text-sm">{operation.conflict ? 'A newer intake exists in MediSens. Your saved copy was not submitted or changed.' : 'This older saved item cannot be submitted safely because it has no intake snapshot. It remains only on this device.'}</p>
+                        </div>
+                        <span className="w-fit rounded-full border border-[var(--amber-border)] px-2.5 py-1 text-xs font-semibold">Sync blocked</span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => setReview({ title: 'Locally saved intake', initial: operation.payload.initial, vitals: operation.payload.vitals })}>Review saved intake</Button>
+                        <Button variant="outline" disabled={!isReachable || !operation.conflict?.currentLatestIntakeId || isLoadingServerReview} isLoading={isLoadingServerReview} onClick={() => {
+                            const recordId = operation.conflict?.currentLatestIntakeId;
+                            if (!recordId) return;
+                            setIsLoadingServerReview(true);
+                            void getNurseIntakeRecord(recordId).then(record => setReview({ title: 'Current server intake', initial: record.intake, vitals: record.vitals })).catch(error => {
+                                logError('Unable to review current Nurse intake', error);
+                                showToast('Unable to load the current server intake. Please try again.', true);
+                            }).finally(() => setIsLoadingServerReview(false));
+                        }}>Review current server record</Button>
+                        <Button variant="danger" onClick={() => setDiscardOperationId(operation.operationId)}>Discard saved copy</Button>
+                    </div>
+                </section>
+            ))}
+
+            {review && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={event => { if (event.target === event.currentTarget) setReview(null); }}>
+                <Modal labelledBy="nurse-intake-review-title" onClose={() => setReview(null)} className="max-h-[85vh] max-w-2xl overflow-y-auto bg-[var(--surface)] p-5 shadow-2xl">
+                    <h2 id="nurse-intake-review-title" className="text-lg font-semibold text-[var(--text)]">{review.title}</h2>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">Read-only. No local or server data will be overwritten.</p>
+                    {[['Intake', review.initial], ['Vitals', review.vitals]].map(([label, values]) => values && <div key={label as string} className="mt-5">
+                        <h3 className="font-semibold text-[var(--text)]">{label as string}</h3>
+                        <dl className="mt-2 grid gap-x-4 gap-y-2 rounded-lg border border-[var(--border)] p-3 sm:grid-cols-2">
+                            {Object.entries(values as Record<string, unknown>).map(([key, value]) => <div key={key} className="min-w-0"><dt className="text-xs font-medium text-[var(--text-secondary)]">{key.replaceAll('_', ' ')}</dt><dd className="break-words text-sm text-[var(--text)]">{value === null || value === '' ? '—' : String(value)}</dd></div>)}
+                        </dl>
+                    </div>)}
+                    <div className="mt-5 flex justify-end"><Button variant="outline" onClick={() => setReview(null)}>Close</Button></div>
+                </Modal>
+            </div>}
+
+            {discardOperationId && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <Modal labelledBy="discard-intake-title" onClose={() => setDiscardOperationId(null)} className="max-w-md bg-[var(--surface)] p-5 shadow-2xl">
+                    <h2 id="discard-intake-title" className="text-lg font-semibold text-[var(--text)]">Discard locally saved intake?</h2>
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">This removes only the queued copy from this device. The current server record and clinical history will remain unchanged.</p>
+                    <div className="mt-5 flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => setDiscardOperationId(null)}>Cancel</Button><Button variant="danger" onClick={() => {
+                        if (!actorId) return;
+                        void createActorOfflineStore(actorId).deleteOutboxOperation(discardOperationId).then(() => {
+                            setDiscardOperationId(null);
+                            showToast('Locally saved intake discarded.', false);
+                            void refreshQueue();
+                        }).catch(error => { logError('Unable to discard saved Nurse intake', error); showToast('Unable to discard the saved intake. Please try again.', true); });
+                    }}>Discard saved copy</Button></div>
+                </Modal>
+            </div>}
 
             <div className="mb-5 flex flex-col gap-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:p-5 lg:p-6">
                 <div className="min-w-0">
