@@ -91,16 +91,17 @@ Deno.serve(async (req) => {
 
     const { data: callerProfile, error: callerError } = await adminClient
       .from("profiles")
-      .select("id, role, full_name")
+      .select("id, role, full_name, is_active")
       .eq("id", callerUserId)
       .maybeSingle();
 
-    if (callerError || !callerProfile || callerProfile.role !== ADMIN_ROLE) {
+    if (callerError || !callerProfile || callerProfile.role !== ADMIN_ROLE || !callerProfile.is_active) {
       logFailure("authorization", {
         reason: callerError ? "profile_lookup_error" : "admin_required",
         message: callerError?.message ?? null,
         caller_user_id: callerUserId,
         caller_role: callerProfile?.role ?? null,
+        caller_active: callerProfile?.is_active ?? null,
       });
       return errorResponse(403);
     }
@@ -109,11 +110,11 @@ Deno.serve(async (req) => {
 
     const { data: targetProfile, error: targetLookupError } = await adminClient
       .from("profiles")
-      .select("id, full_name, role")
+      .select("id, full_name, role, is_active")
       .eq("id", payload.userId)
       .maybeSingle();
 
-    if (targetLookupError || !targetProfile) {
+    if (targetLookupError || !targetProfile || !targetProfile.is_active) {
       logFailure("target_lookup", {
         target_user_id: payload.userId,
         message: targetLookupError?.message ?? null,
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
       .from("profiles")
       .update({ full_name: payload.fullName, role: payload.role })
       .eq("id", payload.userId)
-      .select("id, full_name, role, email")
+      .select("id, full_name, role, email, is_active, deactivated_at")
       .single();
 
     if (updateError || !updatedProfile) {

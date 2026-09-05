@@ -15,6 +15,8 @@ document.documentElement.style.setProperty('--mobile-login-background', `url("${
 const copyrightYearElement = document.getElementById('copyrightYear');
 if (copyrightYearElement) copyrightYearElement.textContent = String(new Date().getFullYear());
 
+const inactiveReason = new URLSearchParams(window.location.search).get('reason') === 'inactive';
+
 const passwordInput = document.getElementById('passwordInput');
 const passwordToggle = document.getElementById('passwordToggle');
 const passwordVisibilityIcon = document.getElementById('passwordVisibilityIcon');
@@ -69,6 +71,10 @@ window.addEventListener('DOMContentLoaded', clearCredentialFieldsRepeatedly);
 window.addEventListener('load', clearCredentialFieldsRepeatedly);
 window.addEventListener('pageshow', clearCredentialFieldsRepeatedly);
 
+if (inactiveReason) {
+    showError('This account has been deactivated. Contact your administrator if you need access restored.');
+}
+
 // If already logged in, redirect immediately
 const { data: { session } } = await supabase.auth.getSession();
 if (session) redirectByRole(session.user.id);
@@ -109,13 +115,20 @@ window.handleLogin = async function (): Promise<void> {
 async function redirectByRole(userId: string): Promise<void> {
     const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, is_active')
         .eq('id', userId)
         .single();
 
     if (error || !profile) {
         stopLoading();
         showError('Account profile not found. Contact your administrator.');
+        await supabase.auth.signOut();
+        return;
+    }
+
+    if (!profile.is_active) {
+        stopLoading();
+        showError('This account has been deactivated. Contact your administrator if you need access restored.');
         await supabase.auth.signOut();
         return;
     }

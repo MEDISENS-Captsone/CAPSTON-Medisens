@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
     const { data: callerProfile, error: callerError } = await adminClient
       .from("profiles")
-      .select("id, role")
+      .select("id, role, is_active")
       .eq("id", callerUserId)
       .maybeSingle();
 
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       return errorResponse(403);
     }
 
-    if (callerProfile.role !== ADMIN_ROLE) {
+    if (callerProfile.role !== ADMIN_ROLE || !callerProfile.is_active) {
       logFailure("authorization", {
         reason: "role_mismatch",
         expected_role: ADMIN_ROLE,
@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
         email: payload.email,
         full_name: payload.fullName,
         role: payload.role,
+        is_active: true,
       });
 
     if (profileError) {
@@ -177,6 +178,7 @@ Deno.serve(async (req) => {
         email: payload.email,
         full_name: payload.fullName,
         role: payload.role,
+        is_active: true,
       },
     }, 201);
   } catch (err) {

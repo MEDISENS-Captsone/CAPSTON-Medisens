@@ -18,6 +18,9 @@ export interface AuthProfile {
     fullName: string;
 }
 
+const INACTIVE_REDIRECT = '/pages/login.html?reason=inactive';
+let activeSessionGuardStarted = false;
+
 export function isRole(value: unknown): value is Role {
     return typeof value === 'string' && value in ROLE_DASHBOARD;
 }
@@ -36,17 +39,51 @@ async function getAuthProfile(): Promise<AuthProfile> {
 
     const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role, full_name')
+        .select('role, full_name, is_active')
         .eq('id', session.user.id)
         .single();
 
-    if (error || !profile || !isRole(profile.role)) {
+    if (error || !profile || !profile.is_active || !isRole(profile.role)) {
         await supabase.auth.signOut();
-        window.location.href = '/pages/login.html';
-        throw new Error('Profile not found');
+        window.location.href = profile && !profile.is_active ? INACTIVE_REDIRECT : '/pages/login.html';
+        throw new Error(profile && !profile.is_active ? 'Account inactive' : 'Profile not found');
     }
 
+    startActiveSessionGuard(session.user.id);
+
     return { userId: session.user.id, role: profile.role, fullName: profile.full_name || '' };
+}
+
+function startActiveSessionGuard(userId: string): void {
+    if (activeSessionGuardStarted) return;
+    activeSessionGuardStarted = true;
+
+    let checking = false;
+    const checkAccess = async () => {
+        if (checking) return;
+        checking = true;
+        try {
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('is_active')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (!error && (!profile || !profile.is_active)) {
+                await supabase.auth.signOut();
+                window.location.replace(INACTIVE_REDIRECT);
+            }
+        } finally {
+            checking = false;
+        }
+    };
+
+    const intervalId = window.setInterval(() => void checkAccess(), 15_000);
+    window.addEventListener('pagehide', () => window.clearInterval(intervalId), { once: true });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') void checkAccess();
+    });
+    window.addEventListener('focus', () => void checkAccess());
 }
 
 export async function requireRole(expectedRole: Role): Promise<AuthProfile> {
@@ -77,11 +114,14 @@ export async function redirectToDashboard(): Promise<void> {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, is_active')
         .eq('id', session.user.id)
         .single();
 
-    if (isRole(profile?.role)) {
+    if (profile && !profile.is_active) {
+        await supabase.auth.signOut();
+        window.location.href = INACTIVE_REDIRECT;
+    } else if (isRole(profile?.role)) {
         window.location.href = getDashboardPath(profile.role);
     } else {
         window.location.href = '/pages/login.html';

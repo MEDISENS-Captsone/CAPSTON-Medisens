@@ -30,6 +30,14 @@ function errorResponse(status = 400) {
   return jsonResponse({ error: "Unable to delete the user account. Please try again." }, status);
 }
 
+function historicalActivityResponse() {
+  return jsonResponse({
+    error: "This account has historical activity and cannot be permanently deleted.",
+    code: "historical_activity",
+    canDeactivate: true,
+  }, 409);
+}
+
 function validatePayload(value: unknown): DeleteUserPayload {
   if (!value || typeof value !== "object") throw new Error("Invalid request body.");
   const body = value as Record<string, unknown>;
@@ -77,16 +85,17 @@ Deno.serve(async (req) => {
 
     const { data: callerProfile, error: callerError } = await adminClient
       .from("profiles")
-      .select("id, role, full_name")
+      .select("id, role, full_name, is_active")
       .eq("id", callerUserId)
       .maybeSingle();
 
-    if (callerError || !callerProfile || callerProfile.role !== ADMIN_ROLE) {
+    if (callerError || !callerProfile || callerProfile.role !== ADMIN_ROLE || !callerProfile.is_active) {
       logFailure("authorization", {
         reason: callerError ? "profile_lookup_error" : "admin_required",
         message: callerError?.message ?? null,
         caller_user_id: callerUserId,
         caller_role: callerProfile?.role ?? null,
+        caller_active: callerProfile?.is_active ?? null,
       });
       return errorResponse(403);
     }
@@ -103,7 +112,7 @@ Deno.serve(async (req) => {
 
     const { data: targetProfile, error: targetLookupError } = await adminClient
       .from("profiles")
-      .select("id, full_name, role, email")
+      .select("id, full_name, role, email, is_active")
       .eq("id", payload.userId)
       .maybeSingle();
 
@@ -115,26 +124,10 @@ Deno.serve(async (req) => {
       return errorResponse(404);
     }
 
-    if (targetProfile.role === ADMIN_ROLE) {
-      const { count: adminCount, error: adminCountError } = await adminClient
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", ADMIN_ROLE);
-
-      if (adminCountError || (adminCount ?? 0) <= 1) {
-        logFailure("last_admin_check", {
-          target_user_id: payload.userId,
-          admin_count: adminCount ?? null,
-          message: adminCountError?.message ?? null,
-        });
-        return errorResponse(403);
-      }
-    }
-
-    const { error: deleteError } = await adminClient
-      .from("profiles")
-      .delete()
-      .eq("id", payload.userId);
+    const { error: deleteError } = await adminClient.rpc("delete_staff_profile", {
+      p_target_user_id: payload.userId,
+      p_actor_user_id: callerUserId,
+    });
 
     if (deleteError) {
       logFailure("profile_delete", {
@@ -142,6 +135,15 @@ Deno.serve(async (req) => {
         target_role: targetProfile.role,
         message: deleteError.message,
       });
+      if (deleteError.code === "23503") return historicalActivityResponse();
+      if (deleteError.message === "last_active_admin" || deleteError.message === "self_delete_blocked") {
+        return jsonResponse({
+          error: deleteError.message === "last_active_admin"
+            ? "Cannot delete the last active administrator account."
+            : "You cannot delete your own account.",
+          code: deleteError.message,
+        }, 403);
+      }
       return errorResponse(400);
     }
 

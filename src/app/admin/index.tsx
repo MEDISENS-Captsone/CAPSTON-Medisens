@@ -25,7 +25,8 @@ interface UserProfile {
     full_name: string;
     role: Role;
     email?: string;
-    status?: string; // e.g. 'active'
+    is_active: boolean;
+    deactivated_at?: string | null;
 }
 
 const ROLES = ['doctor', 'nurse', 'BHW', 'midwives', 'pharmacist', 'labaratory', 'admin'] as const;
@@ -52,6 +53,16 @@ interface UpdateUserRoleResponse {
 interface DeleteUserResponse {
     ok?: boolean;
     error?: string;
+    code?: string;
+    canDeactivate?: boolean;
+}
+
+interface DeactivateUserResponse {
+    ok?: boolean;
+    status?: 'deactivated';
+    alreadyInactive?: boolean;
+    error?: string;
+    code?: string;
 }
 
 const isAdminRole = (value: string): value is AdminRole => (ROLES as readonly string[]).includes(value);
@@ -78,6 +89,18 @@ async function getFunctionErrorMessage(error: unknown, data?: { error?: string }
     }
 
     return error instanceof Error ? error.message : fallback;
+}
+
+async function getFunctionErrorBody(error: unknown): Promise<{ error?: string; code?: string; canDeactivate?: boolean } | null> {
+    const context = error && typeof error === 'object' && 'context' in error
+        ? (error as { context?: unknown }).context
+        : null;
+    if (!(context instanceof Response)) return null;
+    try {
+        return await context.clone().json() as { error?: string; code?: string; canDeactivate?: boolean };
+    } catch {
+        return null;
+    }
 }
 
 // ─── Utility Components ───────────────────────────────────────────────────────
@@ -148,6 +171,7 @@ const AdminDashboard = () => {
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
 
     // Modal focus targets
     const userDialogRef = useRef<HTMLDivElement>(null);
@@ -171,6 +195,7 @@ const AdminDashboard = () => {
     // Confirm Delete Modal
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<{ id: string, name: string } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<'delete' | 'deactivate'>('delete');
 
     const navItems = [
         { id: 'admin', label: 'User Management', icon: 'users', group: 'Administration' },
@@ -219,7 +244,7 @@ const AdminDashboard = () => {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, full_name, role, email')
+                .select('id, full_name, role, email, is_active, deactivated_at')
                 .order('role', { ascending: true });
 
             if (error) {
@@ -245,9 +270,12 @@ const AdminDashboard = () => {
         return allUsers.filter(u => {
             const matchSearch = `${u.full_name || ''} ${u.email || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
             const matchRole = roleFilter ? u.role === roleFilter : true;
-            return matchSearch && matchRole;
+            const matchStatus = statusFilter === 'all'
+                ? true
+                : statusFilter === 'active' ? u.is_active : !u.is_active;
+            return matchSearch && matchRole && matchStatus;
         });
-    }, [allUsers, searchQuery, roleFilter]);
+    }, [allUsers, searchQuery, roleFilter, statusFilter]);
 
     // ─── Modal Handlers ───────────────────────────────────────────────────────
     const openAddModal = () => {
@@ -354,6 +382,7 @@ const AdminDashboard = () => {
     // ─── Delete Handlers ──────────────────────────────────────────────────────
     const openConfirmDelete = (id: string, name: string) => {
         setUserToDelete({ id, name });
+        setConfirmAction('delete');
         setIsConfirmModalOpen(true);
         document.body.style.overflow = 'hidden';
     };
@@ -361,6 +390,7 @@ const AdminDashboard = () => {
     const closeConfirmModal = useCallback(() => {
         setIsConfirmModalOpen(false);
         setUserToDelete(null);
+        setConfirmAction('delete');
         document.body.style.overflow = '';
     }, []);
 
@@ -387,7 +417,7 @@ const AdminDashboard = () => {
             return;
         }
         const targetUser = allUsers.find(user => user.id === userToDelete.id);
-        if (targetUser?.role === 'admin' && allUsers.filter(user => user.role === 'admin').length <= 1) {
+        if (targetUser?.role === 'admin' && targetUser.is_active && allUsers.filter(user => user.role === 'admin' && user.is_active).length <= 1) {
             showToast('Cannot delete the last administrator account.', true);
             closeConfirmModal();
             return;
@@ -401,6 +431,12 @@ const AdminDashboard = () => {
         setIsSaving(false);
 
         if (error || data?.error || !data?.ok) {
+            const errorBody = data ?? await getFunctionErrorBody(error);
+            if (errorBody?.code === 'historical_activity' && errorBody.canDeactivate && targetUser?.is_active) {
+                setConfirmAction('deactivate');
+                setIsSaving(false);
+                return;
+            }
             const message = await getFunctionErrorMessage(error, data, 'Delete-user function failed.');
             logError('Failed to delete user profile', { error, response: data, message });
             showToast(healthcareErrorMessage('delete the user profile'), true);
@@ -416,6 +452,37 @@ const AdminDashboard = () => {
         closeConfirmModal();
         
         // Then re-fetch to ensure sync with server
+        void loadUsers(true);
+    };
+
+    const handleDeactivateUser = async () => {
+        if (!userToDelete) return;
+        if (!isOnline) {
+            showToast('You are offline. Account deactivation cannot be completed until the connection is restored.', true);
+            return;
+        }
+
+        setIsSaving(true);
+        const { data, error } = await supabase.functions.invoke<DeactivateUserResponse>('deactivate-user', {
+            body: { userId: userToDelete.id },
+        });
+        setIsSaving(false);
+
+        if (error || data?.error || !data?.ok) {
+            const body = data ?? await getFunctionErrorBody(error);
+            const message = await getFunctionErrorMessage(error, data, 'Deactivate-user function failed.');
+            logError('Failed to deactivate user profile', { error, response: body, message });
+            showToast(body?.code === 'last_active_admin'
+                ? 'Cannot deactivate the last active administrator account.'
+                : healthcareErrorMessage('deactivate the user account'), true);
+            return;
+        }
+
+        showToast(`${userToDelete.name} has been deactivated. Historical records were preserved.`);
+        setAllUsers(prev => prev.map(user => user.id === userToDelete.id
+            ? { ...user, is_active: false, deactivated_at: new Date().toISOString() }
+            : user));
+        closeConfirmModal();
         void loadUsers(true);
     };
 
@@ -470,7 +537,7 @@ const AdminDashboard = () => {
                     <div className="ops-summary-grid" aria-label="User management summary">
                         {[
                             ['users', 'Total Users', allUsers.length, 'RHU staff accounts'],
-                            ['shield-plus', 'Active Accounts', allUsers.length, 'Available staff profiles'],
+                            ['shield-plus', 'Active Accounts', allUsers.filter(user => user.is_active).length, 'Available staff profiles'],
                             ['lock', 'Configured Roles', ROLES.length, 'Permission groups'],
                         ].map(([icon, label, value, note]) => (
                             <Card key={label} className="ops-summary-card role-summary-card">
@@ -539,6 +606,19 @@ const AdminDashboard = () => {
                                     <option value="admin">Admin</option>
                                 </select>
                                 </label>
+                                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[150px]">
+                                    <span className="text-[length:var(--type-label-size)] font-medium text-[var(--text-secondary)]">Status</span>
+                                    <select
+                                        aria-label="Filter staff accounts by status"
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value as 'active' | 'inactive' | 'all')}
+                                        className="min-h-[var(--control-height-md)] w-full cursor-pointer rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--text)] outline-none transition-colors focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--focus-ring)]"
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="all">All accounts</option>
+                                    </select>
+                                </label>
                                 <Button type="button" variant="primary" leadingIcon={<Icon name="user-plus" className="h-4 w-4" />} onClick={openAddModal} className="shrink-0 whitespace-nowrap sm:self-end">
                                     Add User
                                 </Button>
@@ -587,7 +667,10 @@ const AdminDashboard = () => {
                                                         {av}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <div className="font-bold text-[var(--text)] truncate">{u.full_name || '—'}</div>
+                                                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                                            <div className="font-bold text-[var(--text)] truncate">{u.full_name || '—'}</div>
+                                                            {!u.is_active && <Badge tone="slate">Inactive</Badge>}
+                                                        </div>
                                                         <div className="text-[11px] text-[var(--text-secondary)] font-medium truncate mt-0.5">{u.email || '—'}</div>
                                                     </div>
                                                 </div>
@@ -599,9 +682,11 @@ const AdminDashboard = () => {
 
                                                 {/* Actions */}
                                                 <div className="flex items-center gap-2 pl-[54px] md:justify-end md:pl-0">
-                                                    <Button type="button" variant="outline" size="sm" leadingIcon={<Icon name="edit" className="h-4 w-4" />} onClick={() => openEditModal(u.id)} className="min-h-11 min-w-[75px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-button-size)]">
-                                                        Edit
-                                                    </Button>
+                                                    {u.is_active && (
+                                                        <Button type="button" variant="outline" size="sm" leadingIcon={<Icon name="edit" className="h-4 w-4" />} onClick={() => openEditModal(u.id)} className="min-h-11 min-w-[75px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--type-button-size)]">
+                                                            Edit
+                                                        </Button>
+                                                    )}
                                                     <Button type="button" variant="outline" size="sm" leadingIcon={<Icon name="trash" className="h-4 w-4" />} onClick={() => openConfirmDelete(u.id, u.full_name || 'User')} className="min-h-11 min-w-[75px] flex-row gap-2 whitespace-nowrap rounded-[var(--radius-control)] border-[var(--coral)] px-3 py-2 text-[length:var(--type-button-size)] text-[var(--coral)] shadow-none hover:border-[var(--coral)] hover:bg-[var(--coral-light)] hover:text-[var(--coral-dark)]">
                                                         Delete
                                                     </Button>
@@ -691,14 +776,18 @@ const AdminDashboard = () => {
                     <div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-labelledby="delete-user-dialog-title" className="bg-white w-full max-w-[360px] rounded-lg border border-[var(--border)] shadow-sm flex flex-col items-center p-8  text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--coral-accent)]"></div>
                         <div className="w-16 h-16 bg-[var(--coral-tint)] text-[var(--coral-accent)] rounded-lg flex items-center justify-center mb-5"><Icon name="trash" className="h-8 w-8" /></div>
-                        <h3 id="delete-user-dialog-title" className="text-xl font-bold text-[var(--text)] mb-2">Delete User?</h3>
+                        <h3 id="delete-user-dialog-title" className="text-xl font-bold text-[var(--text)] mb-2">{confirmAction === 'delete' ? 'Delete User?' : 'Deactivate Account?'}</h3>
                         <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-8">
-                            Are you sure you want to permanently delete <strong className="text-[var(--text)] font-bold">{userToDelete?.name}</strong>? This action cannot be undone.
+                            {confirmAction === 'delete' ? (
+                                <>Are you sure you want to permanently delete <strong className="text-[var(--text)] font-bold">{userToDelete?.name}</strong>? This action cannot be undone.</>
+                            ) : (
+                                <>This account has historical activity and cannot be permanently deleted. Deactivating it will prevent future access while preserving existing records and audit history.</>
+                            )}
                         </p>
                         <div className="flex w-full gap-3">
                             <Button ref={cancelDeleteRef} type="button" variant="ghost" onClick={closeConfirmModal} disabled={isSaving} className="flex-1 rounded-xl bg-[var(--surface-subtle)] py-3 text-[var(--text-2)] hover:bg-[var(--border-soft)]">Cancel</Button>
-                            <Button type="button" variant="danger" onClick={handleDeleteUser} disabled={isSaving} isLoading={isSaving} className="flex-1 rounded-xl py-3">
-                                {isSaving ? 'Deleting...' : 'Delete'}
+                            <Button type="button" variant="danger" onClick={confirmAction === 'delete' ? handleDeleteUser : handleDeactivateUser} disabled={isSaving} isLoading={isSaving} className="flex-1 rounded-xl py-3">
+                                {isSaving ? (confirmAction === 'delete' ? 'Deleting...' : 'Deactivating...') : (confirmAction === 'delete' ? 'Delete' : 'Deactivate account')}
                             </Button>
                         </div>
                     </div>
