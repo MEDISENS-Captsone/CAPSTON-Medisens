@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useNetworkSync';
+import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useToast } from '../../components/feedback/Toast';
 import { Icon } from '../../components/shared/Icon';
 import { RELIGION_OPTIONS, type FieldErrors, type PatientRegistrationForm } from '../../types/patient';
@@ -136,10 +136,6 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
     const { isOnline } = useNetworkSync();
 
     useEffect(() => {
-        initIndexedDB('MediSensDB', 'offline_patients');
-    }, []);
-
-    useEffect(() => {
         if (!touchWizard) return;
         const media = window.matchMedia('(max-width: 1439px)');
         const updateViewport = () => setIsTouchViewport(media.matches);
@@ -258,13 +254,12 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
         setSaving(true);
         const payload = toPatientRegistrationPayload(form);
         try {
-            if (isOnline) {
-                await createPatient(payload);
-                showToast('Patient registration recorded.', false);
-            } else {
-                await saveToIndexedDB('MediSensDB', 'offline_patients', { id: Date.now(), type: 'patient_registration', data: payload });
-                showToast('Offline Mode: Record saved locally. Will sync when online.', false);
+            if (!isOnline) {
+                showToast('You are offline. Patient registration cannot be saved yet. Keep this form open and try again when the connection is restored.', true);
+                return;
             }
+            await createPatient(payload);
+            showToast('Patient registration recorded.', false);
             setForm(EMPTY_FORM);
             setErrors({});
             setWizardStep(1);

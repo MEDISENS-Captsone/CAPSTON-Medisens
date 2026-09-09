@@ -37,14 +37,27 @@
 -- row. It is disabled here only for the single UPDATE statement below, only after
 -- an explicit precondition check confirms lab_request 35 still matches its exact
 -- known-bad shape (Completed, none of the seven current flags set, no `others`
--- text, the legacy flags set, and no lab_result row present). If the row does not
--- match -- including if this migration is mistakenly re-run after the row has
--- already been repaired, or run against a different database -- the migration
+-- text, the legacy flags set, and no lab_result row present). A fresh synthetic
+-- database does not contain this production fixture, so that case is a safe
+-- no-op. If row 35 exists but does not match -- including if this migration is
+-- mistakenly re-run after the row has already been repaired -- the migration
 -- raises and aborts without disabling the trigger or touching any row.
 do $$
 declare
+  row_exists boolean;
   row_matches boolean;
 begin
+  select exists (
+    select 1
+    from public.lab_request
+    where labrequest_id = 35
+  ) into row_exists;
+
+  if not row_exists then
+    raise notice 'Skipping lab_request #35 fixture repair: row does not exist in this database';
+    return;
+  end if;
+
   select
     lr.status = 'Completed'
     and coalesce(lr.is_clinical_microscopy, false) is false

@@ -6,7 +6,7 @@ import type { Role } from '../../types/user';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Icon } from '../../components/shared/Icon';
 import SignatureCanvas from 'react-signature-canvas';
-import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useNetworkSync';
+import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { OfflineBanner } from '../../components/feedback/OfflineBanner';
 import { useToast } from '../../components/feedback/Toast';
 import { upsertLatestFollowUpByPatient } from '../../features/consultation/services';
@@ -47,8 +47,6 @@ export default function FollowUp() {
 
     // ─── INIT & AUTH ─────────────────────────────────────────────────────────
     useEffect(() => {
-        initIndexedDB('MediSensDB', 'offline_patients');
-
         requireRole('doctor').then(async (profile) => {
             setRole(profile.role);
             setUserName(profile.fullName);
@@ -112,13 +110,12 @@ export default function FollowUp() {
                 signature_url: sigUrl
             };
 
-            if (isOnline) {
-                await upsertLatestFollowUpByPatient(patientId, payload);
-                showToast('Follow-up visit recorded.', false);
-            } else {
-                await saveToIndexedDB('MediSensDB', 'offline_patients', { id: Date.now(), type: 'follow_up', data: payload });
-                showToast('Offline Mode: Follow-up record saved locally!', false);
+            if (!isOnline) {
+                showToast('You are offline. The follow-up visit cannot be saved yet. Your entries are still on this screen; try again when the connection is restored.', true);
+                return;
             }
+            await upsertLatestFollowUpByPatient(patientId, payload);
+            showToast('Follow-up visit recorded.', false);
             
             setFormData(EMPTY_FORM);
             sigCanvas.current?.clear();

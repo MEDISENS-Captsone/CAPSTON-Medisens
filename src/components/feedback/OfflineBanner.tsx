@@ -8,7 +8,7 @@ export function OfflineBanner({ isOnline }: { isOnline: boolean }) {
             <Icon name="alert-triangle" className="h-6 w-6 flex-shrink-0" />
             <div>
                 <p className="font-bold text-sm leading-tight">You are working offline</p>
-                <p className="text-xs text-[var(--amber-text)] mt-0.5">Changes made now will be stored locally and sync securely when connection is restored.</p>
+                <p className="text-xs text-[var(--amber-text)] mt-0.5">Server-dependent changes cannot be saved until the connection is restored.</p>
             </div>
         </div>
     );

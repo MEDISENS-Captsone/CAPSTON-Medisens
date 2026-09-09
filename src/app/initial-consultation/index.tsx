@@ -7,7 +7,7 @@ import { Icon } from '../../components/shared/Icon';
 import { clinicalInputClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
 import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
 import { createActorOfflineStore, type OfflineDraft, type OfflineUuid } from '../../lib/offline';
-import { getCurrentNurseActorId, NURSE_INTAKE_ENTITY, replayNurseIntakeOutbox, type NurseIntakeOutboxPayload } from '../../features/consultation/nurseIntakeOffline';
+import { getCurrentNurseActorId, isActiveNurseActor, NURSE_INTAKE_ENTITY, replayNurseIntakeOutbox, type NurseIntakeOutboxPayload } from '../../features/consultation/nurseIntakeOffline';
 import { useNurseIntakeSync } from '../../hooks/useNurseIntakeSync';
 import { getNurseIntakeRecord, getNurseIntakeSnapshot, type NurseIntakeSnapshot } from '../../features/consultation/services';
 import { Modal } from '../../components/ui/Modal';
@@ -133,22 +133,58 @@ export function ConsultationComponent() {
     const { showToast, ToastComponent } = useToast();
     const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const draftIdRef = useRef<OfflineUuid | null>(null);
+    const actorIdRef = useRef<string | null>(null);
+    const sessionInvalidatedRef = useRef(false);
     const { isReachable, isSyncing, queuedCount, blockedCount, blockedOperations, refreshQueue, retryNow } = useNurseIntakeSync(actorId);
+
+    useEffect(() => { actorIdRef.current = actorId; }, [actorId]);
+
+    const clearPreviousNurseScreen = () => {
+        sessionInvalidatedRef.current = true;
+        if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+        draftIdRef.current = null;
+        setActorId(null);
+        setCurrentPatientId(null);
+        setPatientName('');
+        setPatientInfo(null);
+        setConsentedPatients([]);
+        setFormData(makeEmptyForm());
+        setPendingDraft(null);
+        setDraftSavedAt(null);
+        setIsDirty(false);
+        setIntakeSnapshot(null);
+        setReview(null);
+        setDiscardOperationId(null);
+        setIsLoadingServerReview(false);
+        setIsSubmitting(false);
+    };
 
     useEffect(() => {
         let active = true;
         void getCurrentNurseActorId().then(async id => {
             if (!active) return;
+            sessionInvalidatedRef.current = false;
             setActorId(id);
             const patientId = new URLSearchParams(window.location.search).get('id');
             if (!patientId) return;
+            if (!(await isActiveNurseActor(id))) return;
             const drafts = await createActorOfflineStore(id).listDrafts<NurseIntakeDraftPayload>();
             const draft = drafts
                 .filter(item => item.route === 'nurse-initial-intake' && item.patientContextId === patientId)
                 .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-            if (active && draft) setPendingDraft(draft);
+            if (active && !sessionInvalidatedRef.current && await isActiveNurseActor(id) && draft) setPendingDraft(draft);
         }).catch(error => logError('Unable to initialize nurse offline storage', error));
         return () => { active = false; };
+    }, []);
+
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const previousActorId = actorIdRef.current;
+            if (!previousActorId || (session?.user.id === previousActorId)) return;
+            clearPreviousNurseScreen();
+            window.location.replace(session?.user ? '/pages/nurse.html' : '/pages/login.html');
+        });
+        return () => subscription.unsubscribe();
     }, []);
 
     useEffect(() => {
@@ -170,7 +206,7 @@ export function ConsultationComponent() {
                 .order('lastName', { ascending: true })
                 .limit(CONSENTED_PATIENT_SEARCH_LIMIT);
 
-            if (!error && data) {
+            if (!sessionInvalidatedRef.current && !error && data) {
                 const consentedOnly = data.filter((p: any) =>
                     Array.isArray(p.patient_consent) ? p.patient_consent.length > 0 : p.patient_consent !== null
                 );
@@ -190,6 +226,7 @@ export function ConsultationComponent() {
             .or('archive_status.eq.active,archive_status.is.null')
             .single();
 
+        if (sessionInvalidatedRef.current) return;
         if (data) {
             setPatientName(safeTrim(`${data.lastName}, ${data.firstName} ${data.middleName || ''}`));
             setPatientInfo(data);
@@ -228,12 +265,16 @@ export function ConsultationComponent() {
         if (!actorId || !currentPatientId || !isDirty || pendingDraft) return;
         const timer = window.setTimeout(() => {
             const store = createActorOfflineStore(actorId);
-            void store.putDraft<NurseIntakeDraftPayload>({
+            void isActiveNurseActor(actorId).then(activeActor => {
+                if (!activeActor || sessionInvalidatedRef.current) return null;
+                return store.putDraft<NurseIntakeDraftPayload>({
                 ...(draftIdRef.current ? { draftId: draftIdRef.current } : {}),
                 route: 'nurse-initial-intake',
                 patientContextId: currentPatientId,
                 payload: { formData, patientName, patientInfo },
+                });
             }).then(draft => {
+                if (!draft) return;
                 draftIdRef.current = draft.draftId;
                 setDraftSavedAt(draft.updatedAt);
             }).catch(error => logError('Unable to save nurse intake draft', error));
@@ -311,13 +352,14 @@ export function ConsultationComponent() {
                 general_survey: formData.generalSurvey || null,
             };
 
-            if (!actorId) throw new Error('Authenticated nurse actor is unavailable.');
+            if (!actorId || !(await isActiveNurseActor(actorId))) throw new Error('Your session has changed. Please sign in again before saving this intake.');
             const store = createActorOfflineStore(actorId);
             const operation = await store.putOutboxOperation<NurseIntakeOutboxPayload>({
                 entityType: NURSE_INTAKE_ENTITY,
                 operationType: 'create',
                 payload: { initial: initialPayload, vitals: vitalsPayload, patientName, snapshot: intakeSnapshot },
             });
+            if (!(await isActiveNurseActor(actorId))) return;
             if (draftIdRef.current) await store.deleteDraft(draftIdRef.current);
 
             const replay = await replayNurseIntakeOutbox(actorId, true);
@@ -369,7 +411,8 @@ export function ConsultationComponent() {
                 <div className="mb-4 flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--amber-border)] bg-[var(--amber-surface)] p-4 text-[var(--amber-ink)] sm:flex-row sm:items-center sm:justify-between" role="status">
                     <div><p className="text-sm font-semibold">You have an unsaved intake draft from {new Date(pendingDraft.updatedAt).toLocaleString('en-PH')}.</p><p className="mt-1 text-xs">Restore it only for this selected patient.</p></div>
                     <div className="flex gap-2">
-                        <button type="button" className="min-h-11 rounded-lg border border-[var(--amber-border)] bg-white px-4 text-sm font-semibold" onClick={() => {
+                        <button type="button" className="min-h-11 rounded-lg border border-[var(--amber-border)] bg-white px-4 text-sm font-semibold" onClick={() => { void (async () => {
+                            if (!actorId || !(await isActiveNurseActor(actorId))) return;
                             setFormData(pendingDraft.payload.formData);
                             setPatientName(pendingDraft.payload.patientName);
                             if (pendingDraft.payload.patientInfo) setPatientInfo(pendingDraft.payload.patientInfo);
@@ -377,10 +420,13 @@ export function ConsultationComponent() {
                             setDraftSavedAt(pendingDraft.updatedAt);
                             setIsDirty(true);
                             setPendingDraft(null);
-                        }}>Restore draft</button>
+                        })(); }}>Restore draft</button>
                         <button type="button" className="min-h-11 rounded-lg px-4 text-sm font-semibold" onClick={() => {
                             if (!actorId) return;
-                            void createActorOfflineStore(actorId).deleteDraft(pendingDraft.draftId).then(() => setPendingDraft(null));
+                            void isActiveNurseActor(actorId).then(activeActor => {
+                                if (!activeActor) return;
+                                return createActorOfflineStore(actorId).deleteDraft(pendingDraft.draftId);
+                            }).then(() => setPendingDraft(null));
                         }}>Discard draft</button>
                     </div>
                 </div>
@@ -404,12 +450,17 @@ export function ConsultationComponent() {
                         <span className="w-fit rounded-full border border-[var(--amber-border)] px-2.5 py-1 text-xs font-semibold">Sync blocked</span>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={() => setReview({ title: 'Locally saved intake', initial: operation.payload.initial, vitals: operation.payload.vitals })}>Review saved intake</Button>
+                        <Button variant="outline" onClick={() => { void (async () => { if (actorId && await isActiveNurseActor(actorId)) setReview({ title: 'Locally saved intake', initial: operation.payload.initial, vitals: operation.payload.vitals }); })(); }}>Review saved intake</Button>
                         <Button variant="outline" disabled={!isReachable || !operation.conflict?.currentLatestIntakeId || isLoadingServerReview} isLoading={isLoadingServerReview} onClick={() => {
                             const recordId = operation.conflict?.currentLatestIntakeId;
                             if (!recordId) return;
                             setIsLoadingServerReview(true);
-                            void getNurseIntakeRecord(recordId).then(record => setReview({ title: 'Current server intake', initial: record.intake, vitals: record.vitals })).catch(error => {
+                            void (async () => {
+                                if (!actorId || !(await isActiveNurseActor(actorId))) return;
+                                return getNurseIntakeRecord(recordId);
+                            })().then(record => {
+                                if (record) setReview({ title: 'Current server intake', initial: record.intake, vitals: record.vitals });
+                            }).catch(error => {
                                 logError('Unable to review current Nurse intake', error);
                                 showToast('Unable to load the current server intake. Please try again.', true);
                             }).finally(() => setIsLoadingServerReview(false));
@@ -426,7 +477,7 @@ export function ConsultationComponent() {
                     {[['Intake', review.initial], ['Vitals', review.vitals]].map(([label, values]) => values && <div key={label as string} className="mt-5">
                         <h3 className="font-semibold text-[var(--text)]">{label as string}</h3>
                         <dl className="mt-2 grid gap-x-4 gap-y-2 rounded-lg border border-[var(--border)] p-3 sm:grid-cols-2">
-                            {Object.entries(values as Record<string, unknown>).map(([key, value]) => <div key={key} className="min-w-0"><dt className="text-xs font-medium text-[var(--text-secondary)]">{key.replaceAll('_', ' ')}</dt><dd className="break-words text-sm text-[var(--text)]">{value === null || value === '' ? '—' : String(value)}</dd></div>)}
+                            {Object.entries(values as Record<string, unknown>).map(([key, value]) => <div key={key} className="min-w-0"><dt className="text-xs font-medium text-[var(--text-secondary)]">{key.replace(/_/g, ' ')}</dt><dd className="break-words text-sm text-[var(--text)]">{value === null || value === '' ? '—' : String(value)}</dd></div>)}
                         </dl>
                     </div>)}
                     <div className="mt-5 flex justify-end"><Button variant="outline" onClick={() => setReview(null)}>Close</Button></div>
@@ -439,7 +490,10 @@ export function ConsultationComponent() {
                     <p className="mt-2 text-sm text-[var(--text-secondary)]">This removes only the queued copy from this device. The current server record and clinical history will remain unchanged.</p>
                     <div className="mt-5 flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => setDiscardOperationId(null)}>Cancel</Button><Button variant="danger" onClick={() => {
                         if (!actorId) return;
-                        void createActorOfflineStore(actorId).deleteOutboxOperation(discardOperationId).then(() => {
+                        void isActiveNurseActor(actorId).then(activeActor => {
+                            if (!activeActor) return;
+                            return createActorOfflineStore(actorId).deleteOutboxOperation(discardOperationId);
+                        }).then(() => {
                             setDiscardOperationId(null);
                             showToast('Locally saved intake discarded.', false);
                             void refreshQueue();

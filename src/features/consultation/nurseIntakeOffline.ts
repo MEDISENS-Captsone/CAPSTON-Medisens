@@ -74,9 +74,11 @@ function dependencyOrder(operations: OutboxOperation<NurseIntakeOutboxPayload>[]
 }
 
 async function replayNurseIntakeOutboxUnlocked(actorId: string, force: boolean): Promise<NurseIntakeReplayResult> {
-    const store = createActorOfflineStore(actorId);
     const result: NurseIntakeReplayResult = { acknowledged: [], retained: [], blocked: [] };
+    if (!(await isActiveNurseActor(actorId))) return result;
+    const store = createActorOfflineStore(actorId);
     if (!(await isBackendReachable())) return result;
+    if (!(await isActiveNurseActor(actorId))) return result;
 
     const operations = (await store.listOutboxOperations<NurseIntakeOutboxPayload>())
         .filter(operation => operation.entityType === NURSE_INTAKE_ENTITY);
@@ -84,6 +86,10 @@ async function replayNurseIntakeOutboxUnlocked(actorId: string, force: boolean):
     const acknowledgedIds = new Set<OfflineUuid>();
 
     for (const operation of dependencyOrder(operations)) {
+        if (!(await isActiveNurseActor(actorId))) {
+            result.retained.push(operation.operationId);
+            break;
+        }
         if (operation.status === 'blocked') {
             result.blocked.push(operation.operationId);
             continue;
@@ -101,7 +107,12 @@ async function replayNurseIntakeOutboxUnlocked(actorId: string, force: boolean):
         try {
             if (!operation.payload.snapshot) {
                 await store.putOutboxOperation({
-                    ...operation,
+                    operationId: operation.operationId,
+                    entityType: operation.entityType,
+                    operationType: 'create',
+                    dependencyOperationIds: operation.dependencyOperationIds,
+                    payload: operation.payload,
+                    createdAt: operation.createdAt,
                     status: 'blocked',
                     nextAttemptAt: null,
                     lastErrorCode: 'missing_intake_snapshot',
@@ -117,7 +128,12 @@ async function replayNurseIntakeOutboxUnlocked(actorId: string, force: boolean):
             );
             if (response.outcome === 'conflict') {
                 await store.putOutboxOperation({
-                    ...operation,
+                    operationId: operation.operationId,
+                    entityType: operation.entityType,
+                    operationType: 'create',
+                    dependencyOperationIds: operation.dependencyOperationIds,
+                    payload: operation.payload,
+                    createdAt: operation.createdAt,
                     status: 'blocked',
                     attemptCount: operation.attemptCount + 1,
                     lastAttemptAt: new Date().toISOString(),
@@ -135,7 +151,8 @@ async function replayNurseIntakeOutboxUnlocked(actorId: string, force: boolean):
                 continue;
             }
             if (response.outcome !== 'success' && response.outcome !== 'already_applied') {
-                throw new Error(`${response.outcome}: ${response.message ?? 'Nurse intake replay was rejected'}`);
+                const message = 'message' in response ? response.message : undefined;
+                throw new Error(`${response.outcome}: ${message ?? 'Nurse intake replay was rejected'}`);
             }
             await store.deleteOutboxOperation(operation.operationId);
             acknowledgedIds.add(operation.operationId);
@@ -188,4 +205,16 @@ export async function getCurrentNurseActorId(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user.id) throw new Error('An authenticated nurse session is required.');
     return session.user.id;
+}
+
+/**
+ * Actor-scoped IndexedDB is not encryption. This guard prevents the app from
+ * reading or replaying one nurse's local intake data under another session.
+ */
+export async function isActiveNurseActor(actorId: string): Promise<boolean> {
+    try {
+        return (await getCurrentNurseActorId()) === actorId;
+    } catch {
+        return false;
+    }
 }

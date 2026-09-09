@@ -7871,3 +7871,28 @@ textarea:focus {
         padding: 0.75rem;
     }
 }
+/* Phase 4: Nurse Downtime Reference Import */
+.downtime-import-page { display:flex; flex-direction:column; gap:1rem; }
+.downtime-import-card { padding:1.25rem; }
+.downtime-import-intro, .downtime-import-review-heading, .downtime-import-success { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.downtime-import-intro h2, .downtime-import-review-heading h2, .downtime-import-success h2 { margin:0; color:var(--text-primary); font-size:1.1rem; }
+.downtime-import-intro p, .downtime-import-review-heading p, .downtime-import-success p { margin:.3rem 0 0; color:var(--text-secondary); }
+.downtime-import-icon { display:flex; width:2.5rem; height:2.5rem; flex:0 0 auto; align-items:center; justify-content:center; border-radius:var(--radius-control); background:var(--brand-soft-surface); color:var(--brand-active); }
+.downtime-file-picker { display:flex; width:100%; min-height:3rem; margin-top:1.25rem; cursor:pointer; align-items:center; justify-content:center; border:1px dashed var(--brand-primary); border-radius:var(--radius-control); background:var(--brand-soft-surface); color:var(--brand-active); font-weight:600; }
+.downtime-file-picker input { position:absolute; width:1px; height:1px; opacity:0; }
+.downtime-file-picker:focus-within { outline:2px solid var(--focus-color); outline-offset:2px; }
+.downtime-file-name { margin:.75rem 0 0; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-import-counts { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.4rem; }
+.downtime-import-records { display:grid; gap:.5rem; margin-top:1rem; }
+.downtime-import-record { display:flex; align-items:center; justify-content:space-between; gap:1rem; border:1px solid var(--border); border-radius:var(--radius-control); padding:.75rem 1rem; background:var(--surface-subtle); }
+.downtime-import-record strong, .downtime-import-record span { display:block; }
+.downtime-import-record span { margin-top:.2rem; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-import-findings { margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem; }
+.downtime-import-findings h3 { margin:0 0 .5rem; font-size:.95rem; color:var(--text-primary); }
+.downtime-finding-error, .downtime-finding-skipped { margin:.35rem 0; font-size:var(--type-caption-size); }
+.downtime-finding-error { color:var(--coral); }
+.downtime-finding-skipped { color:var(--amber); }
+.downtime-import-actions { display:flex; justify-content:flex-end; gap:.75rem; margin-top:1.25rem; }
+.downtime-import-success { justify-content:flex-start; margin-bottom:1rem; }
+.downtime-import-success > svg { width:2rem; height:2rem; flex:0 0 auto; color:var(--green); }
+@media (max-width: 640px) { .downtime-import-review-heading { flex-direction:column; } .downtime-import-counts { justify-content:flex-start; } .downtime-import-actions { flex-direction:column-reverse; } .downtime-import-actions button { width:100%; } }

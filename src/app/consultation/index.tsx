@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { supabase } from '../../lib/supabase/client';
-import { useNetworkSync, saveToIndexedDB, initIndexedDB } from '../../hooks/useNetworkSync';
+import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useToast } from '../../components/feedback/Toast';
 import { completeConsultationAtomic, createLabRequest, createPrescription, upsertConsultation, upsertLatestFollowUpByPatient } from '../../features/consultation/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
@@ -709,7 +709,6 @@ export function ConsultationPage({
     // Init + load patient
     // -------------------------------------------------------------------------
     useEffect(() => {
-        initIndexedDB('MediSensDB', 'offline_patients');
         setFormData(prev => ({
             ...prev,
             attendingProvider: doctorName,
@@ -991,16 +990,14 @@ export function ConsultationPage({
         setLoading(true);
         try {
             const consultationPayload = buildConsultationPayload();
-            if (isOnline) {
-                const resolvedConsultationId = await upsertConsultation(consultationPayload, consultationId);
-                setConsultationId(resolvedConsultationId);
-                setConsultationSaved(true);
-                showToast('Diagnosis saved.', false);
-            } else {
-                await saveToIndexedDB('MediSensDB', 'offline_patients', { id: Date.now(), type: 'consultation', data: consultationPayload });
-                setConsultationSaved(true);
-                showToast('Offline Mode: Consultation saved locally and will sync when connection returns!', false);
+            if (!isOnline) {
+                showToast('You are offline. The consultation cannot be saved yet. Your entries are still on this screen; try again when the connection is restored.', true);
+                return;
             }
+            const resolvedConsultationId = await upsertConsultation(consultationPayload, consultationId);
+            setConsultationId(resolvedConsultationId);
+            setConsultationSaved(true);
+            showToast('Diagnosis saved.', false);
         } catch (err) {
             logError('Failed to save consultation', err);
             showToast(healthcareErrorMessage("save the consultation"), true);

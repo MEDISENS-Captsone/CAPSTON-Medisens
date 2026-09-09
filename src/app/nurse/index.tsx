@@ -11,6 +11,7 @@ import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { Badge, Button, Card, EmptyState, Input, LoadingState, SkeletonKpiGrid, SkeletonList } from '../../components/ui';
 import { useHashPage } from '../../hooks/useHashPage';
 import { FhsisNurseWorkspace } from '../../features/fhsis/nurse/FhsisNurseWorkspace';
+import { DowntimeReferenceImportPage } from '../../features/downtime-import/DowntimeReferenceImportPage';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -27,6 +28,7 @@ const pageTitles: Record<string, string> = {
     'new-record': 'New Record',
     consultation: 'Initial Consultation',
     'archive-review': 'Archive Review',
+    'downtime-import': 'Downtime Reference Import',
     'fhsis-encode': 'Encode FHSIS Report',
     'fhsis-history': 'FHSIS Report History',
 };
@@ -67,6 +69,7 @@ const NurseDashboard = () => {
         { id: 'fhsis-encode', label: 'Encode Report', icon: 'file-text', group: 'FHSIS Reports' },
         { id: 'fhsis-history', label: 'Report History', icon: 'clock', group: 'FHSIS Reports' },
         { id: 'archive-review', label: 'Archive Review', icon: 'clipboard', group: 'Records & Governance' },
+        { id: 'downtime-import', label: 'Downtime Import', icon: 'upload', group: 'Records & Governance' },
     ];
 
     // ─── Restored from old code: navigates to consultation with patient ID in URL ───
@@ -350,6 +353,7 @@ const NurseDashboard = () => {
                                 <ArchiveReviewPage isOnline={isOnline} />
                             </>
                         )}
+                        {activePage === 'downtime-import' && <DowntimeReferenceImportPage />}
                         {(activePage === 'fhsis-encode' || activePage === 'fhsis-history') && !roleReady && (
                             <div className="pwa-page-pad"><LoadingState label="Verifying access" /></div>
                         )}
