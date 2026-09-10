@@ -12,6 +12,10 @@ create index if not exists downtime_import_records_responsible_staff_idx
 revoke insert, update, delete, truncate on table public.downtime_import_batches from authenticated;
 revoke insert, update, delete, truncate on table public.downtime_import_records from authenticated;
 
+-- The quarantined baseline intentionally omits grants.  The existing Nurse
+-- workflow needs the care-team SELECT contract in addition to its RLS policy.
+grant select on table public.patient_consent to authenticated;
+
 -- Audit rows are written by trusted server-side functions only.  The existing
 -- RLS SELECT policy remains the read boundary for authorized staff.
 revoke insert, update, delete, truncate on table public.audit_logs from anon, authenticated;
