@@ -487,10 +487,10 @@ Use this section as the phase tracker.
 | Phase 3 — Validation | NOT STARTED |
 | Phase 4 — Import UI | NOT STARTED |
 | Phase 5 — Backend Import | NOT STARTED |
-| Phase 6 — Security/Audit | NOT STARTED |
-| Phase 7 — Runtime Testing | NOT STARTED |
-| Phase 8 — UX/Error Handling | NOT STARTED |
-| Phase 9 — Final End-to-End QA | NOT STARTED |
+| Phase 6 — Security/Audit | PASS — local authenticated RLS/runtime verification completed |
+| Phase 7 — Runtime Testing | PASS — local synthetic RPC/RLS scenarios completed; deferred V1 services marked N/A |
+| Phase 8 — UX/Error Handling | PASS — encoder statuses, confirmation, server summary, and failure-preserving UX refined |
+| Phase 9 — Final End-to-End QA | PASS — local synthetic fallback simulation completed; remote/browser QA remains outside this local run |
 
 Update this table after each approved phase.
 

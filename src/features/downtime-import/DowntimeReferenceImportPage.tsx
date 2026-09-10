@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { Badge, Button, Card, EmptyState } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Modal } from '../../components/ui';
 import { Icon } from '../../components/shared/Icon';
 import { supabase } from '../../lib/supabase/client';
 
@@ -12,6 +12,8 @@ type ValidationStatus = 'READY' | 'ERROR' | 'DUPLICATE' | 'CONFLICT' | 'SKIPPED'
 type ValidationFinding = { status: ValidationStatus; sheet: string; row?: number; field?: string; message: string };
 type PreviewRecord = { reference: string; patientId: string; status: ValidationStatus; findings: ValidationFinding[] };
 type ImportRecord = Record<string, unknown>;
+type ImportSummary = { imported?: number; errors?: number; duplicates?: number; skipped?: number };
+type ServerResult = { downtime_reference?: string; status?: ValidationStatus | 'IMPORTED'; message?: string };
 
 const REQUIRED_COLUMNS: Record<string, string[]> = {
     'Import Manifest': ['downtime_reference', 'patient_id', 'source', 'actual_service_date', 'actual_service_time', 'responsible_staff_reference', 'notes'],
@@ -120,6 +122,8 @@ export function DowntimeReferenceImportPage() {
     const [importing, setImporting] = useState(false);
     const [step, setStep] = useState<'upload' | 'review' | 'confirmed'>('upload');
     const [error, setError] = useState('');
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [summary, setSummary] = useState<ImportSummary | null>(null);
 
     const counts = useMemo(() => {
         const next: Record<ValidationStatus, number> = { READY: 0, ERROR: 0, DUPLICATE: 0, CONFLICT: 0, SKIPPED: 0 };
@@ -133,7 +137,7 @@ export function DowntimeReferenceImportPage() {
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        setError(''); setFileName(file.name); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setStep('upload');
+        setError(''); setSummary(null); setFileName(file.name); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setStep('upload');
         try {
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data, { type: 'array', cellDates: true });
@@ -151,14 +155,26 @@ export function DowntimeReferenceImportPage() {
     };
 
     const handleImport = async () => {
-        setImporting(true); setError('');
-        const { data, error: importError } = await supabase.rpc('import_downtime_batch', { p_template_version: TEMPLATE_VERSION, p_records: importPayload });
-        setImporting(false);
-        if (importError) { console.error('Downtime import failed.', importError); setError('The import could not be completed safely. Your workbook was not confirmed.'); return; }
-        const summary = (data as { summary?: Record<string, number> } | null)?.summary;
-        if (summary) setFindings((current) => [...current, { status: 'READY', sheet: 'Import Summary', message: `Server import complete: ${summary.imported ?? 0} imported, ${summary.errors ?? 0} errors, ${summary.duplicates ?? 0} duplicates.` }]);
-        setStep('confirmed');
+        setConfirmOpen(false); setImporting(true); setError('');
+        try {
+            const { data, error: importError } = await supabase.rpc('import_downtime_batch', { p_template_version: TEMPLATE_VERSION, p_records: importPayload });
+            if (importError) { console.error('Downtime import failed.', importError); setError('The import could not be completed safely. Your entries are still here; check your connection and try again.'); return; }
+            const response = data as { summary?: ImportSummary; results?: ServerResult[] } | null;
+            const nextSummary = response?.summary ?? {};
+            setSummary(nextSummary);
+            setRecords((current) => current.map((record) => {
+                const result = response?.results?.find((item) => item.downtime_reference === record.reference);
+                if (!result || !result.status) return record;
+                const status = result.status === 'IMPORTED' ? 'READY' : result.status;
+                return { ...record, status, findings: result.message ? [{ status, sheet: 'Server import', field: 'downtime_reference', message: result.message }] : record.findings };
+            }));
+            setFindings((current) => [...current, { status: 'READY', sheet: 'Import Summary', message: `Server result: ${nextSummary.imported ?? 0} imported, ${nextSummary.errors ?? 0} failed, ${nextSummary.duplicates ?? 0} duplicates, ${nextSummary.skipped ?? 0} skipped.` }]);
+            setStep('confirmed');
+        } finally { setImporting(false); }
     };
+
+    const resetImport = () => { setConfirmOpen(false); setStep('upload'); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setFileName(''); setError(''); setSummary(null); };
+    const statusHelp: Record<ValidationStatus, string> = { READY: 'Can be imported', ERROR: 'Fix the listed field before importing', DUPLICATE: 'Remove the repeated reference or review the existing import', CONFLICT: 'Review the conflicting record before retrying', SKIPPED: 'Not included in this version' };
 
     return <div className="pwa-page-pad downtime-import-page">
         <div className="fhsis-page-top">
@@ -171,11 +187,12 @@ export function DowntimeReferenceImportPage() {
             {fileName && <p className="downtime-file-name" role="status">Selected: {fileName}</p>}
             {error && <div className="role-dashboard-alert" role="alert"><p className="role-dashboard-alert-title">Workbook not ready</p><p className="role-dashboard-alert-copy">{error}</p></div>}
         </Card>
-        {step === 'review' && <Card className="downtime-import-card"><div className="downtime-import-review-heading"><div><p className="fhsis-kicker">Validation preview</p><h2>{version ? 'Review before confirmation' : 'Template version required'}</h2><p>{version ? 'No database write occurs in this phase. Phase 5 will add the server-authorized import step.' : `This workbook must contain ${TEMPLATE_VERSION}.`}</p></div><div className="downtime-import-counts">{(['READY', 'ERROR', 'DUPLICATE', 'SKIPPED'] as ValidationStatus[]).map((status) => <Badge key={status} tone={status === 'READY' ? 'green' : status === 'SKIPPED' ? 'amber' : 'red'}>{status}: {counts[status]}</Badge>)}</div></div>
+        {step === 'review' && <Card className="downtime-import-card"><div className="downtime-import-review-heading"><div><p className="fhsis-kicker">Validation preview</p><h2>{version ? 'Review before confirmation' : 'Template version required'}</h2><p>{version ? 'Nothing is sent to the server until you confirm. Errors and duplicates must be resolved first.' : `This workbook must contain ${TEMPLATE_VERSION}.`}</p></div><div className="downtime-import-counts">{(['READY', 'ERROR', 'DUPLICATE', 'SKIPPED'] as ValidationStatus[]).map((status) => <Badge title={statusHelp[status]} key={status} tone={status === 'READY' ? 'green' : status === 'SKIPPED' ? 'amber' : 'red'}>{status}: {counts[status]}</Badge>)}</div></div>
             {records.length ? <div className="downtime-import-records" role="list">{records.map((record) => <div key={record.reference} className="downtime-import-record" role="listitem"><div><strong>{record.reference}</strong><span>Patient ID · {record.patientId || 'missing'}</span></div><Badge tone={record.status === 'READY' ? 'green' : 'red'}>{record.status}</Badge></div>)}</div> : <EmptyState title="No active encounters found" description="Add active-sheet rows from the approved template before continuing." />}
             {findings.length > 0 && <div className="downtime-import-findings"><h3>Validation details</h3>{findings.map((finding, index) => <p key={`${finding.sheet}-${finding.row}-${finding.field}-${index}`} className={finding.status === 'SKIPPED' ? 'downtime-finding-skipped' : 'downtime-finding-error'}><strong>{finding.status}</strong> · {finding.sheet}{finding.row ? ` row ${finding.row}` : ''}{finding.field ? ` · ${finding.field}` : ''} — {finding.message}</p>)}</div>}
-            <div className="downtime-import-actions"><Button variant="outline" onClick={() => { setStep('upload'); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setFileName(''); }}>Cancel</Button><Button disabled={blocked || importing} isLoading={importing} onClick={() => void handleImport()}>Confirm and import</Button></div>
+            <div className="downtime-import-actions"><Button variant="outline" onClick={resetImport}>Cancel</Button><Button disabled={blocked || importing} isLoading={importing} onClick={() => setConfirmOpen(true)}>Review and confirm import</Button></div>
         </Card>}
-        {step === 'confirmed' && <Card className="downtime-import-card" role="status"><div className="downtime-import-success"><Icon name="check" /><div><h2>Validation preview confirmed</h2><p>No clinical records were written. This handoff is ready for the future Phase 5 server-authorized import.</p></div></div><Button variant="outline" onClick={() => setStep('review')}>Back to review</Button></Card>}
+        {step === 'confirmed' && <Card className="downtime-import-card" role="status"><div className="downtime-import-success"><Icon name="check" /><div><h2>Import completed</h2><p>The server returned a result for this batch. Review the counts before filing the paper records.</p></div></div><div className="downtime-import-summary">{(['imported', 'errors', 'duplicates', 'skipped'] as const).map((key) => <div key={key}><strong>{summary?.[key] ?? 0}</strong><span>{key === 'errors' ? 'Failed' : key[0].toUpperCase() + key.slice(1)}</span></div>)}</div><Button variant="outline" onClick={resetImport}>Start another import</Button></Card>}
+        {confirmOpen && <div className="clinical-dialog-backdrop"><Modal labelledBy="downtime-confirm-title" onClose={() => setConfirmOpen(false)}><div className="downtime-confirm"><p className="fhsis-kicker">Final review</p><h2 id="downtime-confirm-title">Import {counts.READY} record{counts.READY === 1 ? '' : 's'}?</h2><p>This sends the READY records to MediSens. Confirm that the workbook matches the paper records before continuing.</p><div className="downtime-import-actions"><Button variant="outline" onClick={() => setConfirmOpen(false)}>Go back</Button><Button disabled={importing} isLoading={importing} onClick={() => void handleImport()}>Confirm import</Button></div></div></Modal></div>}
     </div>;
 }
