@@ -28,7 +28,7 @@ const pageTitles: Record<string, string> = {
     'new-record': 'New Record',
     consultation: 'Initial Consultation',
     'archive-review': 'Archive Review',
-    'downtime-import': 'Downtime Reference Import',
+    'downtime-import': 'Downtime Import',
     'fhsis-encode': 'Encode FHSIS Report',
     'fhsis-history': 'FHSIS Report History',
 };

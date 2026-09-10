@@ -7871,36 +7871,123 @@ textarea:focus {
         padding: 0.75rem;
     }
 }
-/* Phase 4: Nurse Downtime Reference Import */
-.downtime-import-page { display:flex; flex-direction:column; gap:1rem; }
-.downtime-import-card { padding:1.25rem; }
-.downtime-import-intro, .downtime-import-review-heading, .downtime-import-success { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
-.downtime-import-intro h2, .downtime-import-review-heading h2, .downtime-import-success h2 { margin:0; color:var(--text-primary); font-size:1.1rem; }
-.downtime-import-intro p, .downtime-import-review-heading p, .downtime-import-success p { margin:.3rem 0 0; color:var(--text-secondary); }
-.downtime-import-icon { display:flex; width:2.5rem; height:2.5rem; flex:0 0 auto; align-items:center; justify-content:center; border-radius:var(--radius-control); background:var(--brand-soft-surface); color:var(--brand-active); }
-.downtime-file-picker { display:flex; width:100%; min-height:3rem; margin-top:1.25rem; cursor:pointer; align-items:center; justify-content:center; border:1px dashed var(--brand-primary); border-radius:var(--radius-control); background:var(--brand-soft-surface); color:var(--brand-active); font-weight:600; }
-.downtime-file-picker input { position:absolute; width:1px; height:1px; opacity:0; }
-.downtime-file-picker:focus-within { outline:2px solid var(--focus-color); outline-offset:2px; }
-.downtime-file-name { margin:.75rem 0 0; color:var(--text-secondary); font-size:var(--type-caption-size); }
-.downtime-import-counts { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.4rem; }
-.downtime-import-records { display:grid; gap:.5rem; margin-top:1rem; }
-.downtime-import-record { display:flex; align-items:center; justify-content:space-between; gap:1rem; border:1px solid var(--border); border-radius:var(--radius-control); padding:.75rem 1rem; background:var(--surface-subtle); }
-.downtime-import-record strong, .downtime-import-record span { display:block; }
-.downtime-import-record span { margin-top:.2rem; color:var(--text-secondary); font-size:var(--type-caption-size); }
-.downtime-import-findings { margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem; }
-.downtime-import-findings h3 { margin:0 0 .5rem; font-size:.95rem; color:var(--text-primary); }
-.downtime-finding-error, .downtime-finding-skipped { margin:.35rem 0; font-size:var(--type-caption-size); }
-.downtime-finding-error { color:var(--coral); }
-.downtime-finding-ready { color:var(--green); }
-.downtime-finding-skipped { color:var(--amber); }
-.downtime-import-summary { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:.75rem; margin:1rem 0 1.25rem; }
-.downtime-import-summary div { display:flex; flex-direction:column; gap:.15rem; border:1px solid var(--border); border-radius:var(--radius-control); padding:.75rem; background:var(--surface-subtle); }
-.downtime-import-summary strong { color:var(--text-primary); font-size:1.35rem; font-variant-numeric:tabular-nums; }
-.downtime-import-summary span { color:var(--text-secondary); font-size:var(--type-caption-size); }
-.downtime-confirm { padding:1.25rem; }
-.downtime-confirm h2 { margin:0; color:var(--text-primary); }
-.downtime-confirm p:not(.fhsis-kicker) { color:var(--text-secondary); line-height:1.5; }
-.downtime-import-actions { display:flex; justify-content:flex-end; gap:.75rem; margin-top:1.25rem; }
-.downtime-import-success { justify-content:flex-start; margin-bottom:1rem; }
-.downtime-import-success > svg { width:2rem; height:2rem; flex:0 0 auto; color:var(--green); }
-@media (max-width: 640px) { .downtime-import-review-heading { flex-direction:column; } .downtime-import-counts { justify-content:flex-start; } .downtime-import-actions { flex-direction:column-reverse; } .downtime-import-actions button { width:100%; } .downtime-import-summary { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+/* Nurse Downtime Import */
+.downtime-import-page { display:flex; max-width:72rem; flex-direction:column; gap:1rem; margin-inline:auto; }
+.downtime-page-description { margin:0; color:var(--text-secondary); }
+.downtime-stage-nav { padding:.15rem 0 .35rem; }
+.downtime-stage-nav ol { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); max-width:31rem; margin:0; padding:0; list-style:none; }
+.downtime-stage-nav li { position:relative; display:flex; min-width:0; align-items:center; gap:.45rem; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-stage-nav li:not(:last-child)::after { content:""; position:absolute; z-index:0; top:50%; left:calc(100% - .75rem); width:1.5rem; height:1px; background:var(--border); }
+.downtime-stage-nav li > span { z-index:1; display:flex; width:1.55rem; height:1.55rem; flex:0 0 auto; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; background:var(--surface); font-size:.7rem; font-weight:700; }
+.downtime-stage-nav li > span svg { width:.8rem; height:.8rem; }
+.downtime-stage-nav li.is-current { color:var(--brand-active); }
+.downtime-stage-nav li.is-current > span { border-color:var(--brand-active); background:var(--brand-active); color:white; }
+.downtime-stage-nav li.is-complete > span { border-color:var(--green); color:var(--green); }
+.downtime-workbook-card { padding:.85rem 1rem; }
+.downtime-workbook-heading,.downtime-review-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.downtime-workbook-heading h2,.downtime-review-heading h2 { margin:0; color:var(--text-primary); font-size:1.05rem; }
+.downtime-workbook-heading p,.downtime-review-heading p { margin:.25rem 0 0; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-template-link { display:inline-flex; min-height:2.75rem; flex:0 0 auto; align-items:center; gap:.45rem; border-radius:var(--radius-control); padding:.5rem .7rem; color:var(--brand-active); font-size:var(--type-caption-size); font-weight:700; text-decoration:none; }
+.downtime-template-link:hover { background:var(--brand-soft-surface); }
+.downtime-template-link svg { width:1rem; height:1rem; }
+.downtime-file-input { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; }
+.downtime-file-picker { display:flex; min-height:3.5rem; margin-top:.65rem; cursor:pointer; align-items:center; justify-content:center; gap:.7rem; border:1px dashed var(--brand-primary); border-radius:var(--radius-control); background:var(--brand-soft-surface); color:var(--brand-active); }
+.downtime-file-picker > svg { width:1.25rem; height:1.25rem; }
+.downtime-file-picker span,.downtime-file-picker small { display:block; }
+.downtime-file-picker small { margin-top:.1rem; color:var(--text-secondary); font-weight:400; }
+.downtime-file-input:focus-visible + .downtime-file-picker,.downtime-file-input:focus-visible + .downtime-selected-file { outline:2px solid var(--focus-color); outline-offset:2px; }
+.downtime-selected-file { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.75rem; margin-top:.65rem; border:1px solid var(--border); border-radius:var(--radius-control); padding:.55rem .75rem; background:var(--surface-subtle); }
+.downtime-selected-file-icon { display:flex; width:2.5rem; height:2.5rem; align-items:center; justify-content:center; border-radius:var(--radius-control); background:var(--brand-soft-surface); color:var(--brand-active); }
+.downtime-selected-file-copy { min-width:0; }
+.downtime-selected-file-copy strong,.downtime-selected-file-copy small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.downtime-selected-file-copy small { margin-top:.15rem; color:var(--text-secondary); }
+.downtime-selected-file-actions { display:flex; align-items:center; gap:.25rem; }
+.downtime-selected-file-actions :is(label,button) { display:inline-flex; min-height:2.75rem; cursor:pointer; align-items:center; border:0; border-radius:var(--radius-control); background:transparent; padding:.5rem .65rem; color:var(--brand-active); font:inherit; font-size:var(--type-caption-size); font-weight:700; }
+.downtime-selected-file-actions :is(label,button):hover { background:var(--brand-soft-surface); }
+.downtime-workbook-alert { margin-top:.75rem; }
+.downtime-unsupported-sheets { margin-top:.35rem; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-unsupported-sheets summary { display:flex; min-height:2.75rem; cursor:pointer; align-items:center; gap:.35rem; width:max-content; max-width:100%; border-radius:var(--radius-control); color:var(--text-secondary); font-weight:600; }
+.downtime-unsupported-sheets summary::-webkit-details-marker { display:none; }
+.downtime-unsupported-sheets summary > svg { width:.9rem; height:.9rem; flex:0 0 auto; transition:transform var(--motion-fast); }
+.downtime-unsupported-sheets[open] summary > svg { transform:rotate(90deg); }
+.downtime-unsupported-sheets summary:focus-visible,.downtime-encounter summary:focus-visible { outline:2px solid var(--focus-color); outline-offset:2px; }
+.downtime-unsupported-sheets ul { margin:.1rem 0 .5rem 1.25rem; }
+.downtime-review { display:grid; gap:.85rem; }
+.downtime-review-heading { margin-top:.3rem; }
+.downtime-review-heading > span { flex:0 0 auto; color:var(--text-secondary); font-size:var(--type-caption-size); font-weight:600; }
+.downtime-check-status { display:flex; align-items:flex-start; gap:.7rem; border:1px solid var(--border); border-radius:var(--radius-control); padding:.75rem .9rem; background:var(--surface); }
+.downtime-check-status > svg { width:1.1rem; height:1.1rem; flex:0 0 auto; margin-top:.1rem; }
+.downtime-check-status strong { color:var(--text-primary); }
+.downtime-check-status p { margin:.15rem 0 0; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-check-status ul { margin:.5rem 0 0; padding-left:1.1rem; color:var(--coral-dark); font-size:var(--type-caption-size); }
+.downtime-check-status.is-problem { border-color:color-mix(in srgb,var(--coral) 35%,var(--border)); background:color-mix(in srgb,var(--coral) 5%,var(--surface)); }
+.downtime-check-status.is-problem > svg { color:var(--coral); }
+.downtime-encounters { display:grid; gap:.65rem; }
+.downtime-encounter { overflow:hidden; border:1px solid var(--border); border-radius:var(--radius-card); background:var(--surface); box-shadow:var(--shadow-surface); }
+.downtime-encounter.has-problem { border-color:color-mix(in srgb,var(--coral) 40%,var(--border)); }
+.downtime-encounter summary { display:flex; min-height:4.5rem; cursor:pointer; align-items:center; justify-content:space-between; gap:1rem; padding:.75rem 1rem; list-style:none; }
+.downtime-encounter summary::-webkit-details-marker { display:none; }
+.downtime-encounter summary::after { content:"›"; color:var(--text-secondary); font-size:1.35rem; transform:rotate(90deg); transition:transform var(--motion-fast); }
+.downtime-encounter[open] summary::after { transform:rotate(-90deg); }
+.downtime-encounter-summary-copy { display:grid; min-width:0; flex:1; gap:.12rem; }
+.downtime-encounter-summary-copy small { color:var(--text-secondary); }
+.downtime-encounter-summary-copy strong { color:var(--text-primary); }
+.downtime-encounter-summary-copy > span { color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-encounter-check { flex:0 0 auto; color:var(--green); font-size:var(--type-caption-size); font-weight:700; }
+.downtime-encounter-check.is-problem { color:var(--coral-dark); }
+.downtime-encounter-body { border-top:1px solid var(--border); padding:1rem; }
+.downtime-encounter-problems { margin-bottom:1rem; border-left:3px solid var(--coral); padding:.6rem .75rem; background:color-mix(in srgb,var(--coral) 5%,var(--surface)); color:var(--coral-dark); font-size:var(--type-caption-size); }
+.downtime-encounter-problems ul { margin:.4rem 0 0; padding-left:1.1rem; }
+.downtime-review-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.15rem 2rem; }
+.downtime-review-section h4 { margin:0 0 .55rem; color:var(--brand-active); font-size:.78rem; letter-spacing:.035em; text-transform:uppercase; }
+.downtime-review-section dl { display:grid; gap:.5rem; margin:0; }
+.downtime-review-section dl > div { display:grid; grid-template-columns:minmax(7rem,.75fr) minmax(0,1.25fr); gap:.75rem; }
+.downtime-review-section dt { color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-review-section dd { margin:0; overflow-wrap:anywhere; color:var(--text-primary); font-size:var(--type-caption-size); font-weight:600; }
+.downtime-import-actions { display:flex; justify-content:flex-end; gap:.65rem; margin-top:.35rem; }
+.downtime-confirm-backdrop { position:fixed; z-index:1000; inset:0; display:grid; place-items:center; overflow-y:auto; overscroll-behavior:contain; padding:1rem; background:rgba(15,23,42,.7); backdrop-filter:blur(2px); }
+.clinical-dialog.downtime-confirm-dialog { position:relative; inset:auto; width:min(100%,32rem); max-width:32rem; height:auto; margin:auto; border-radius:var(--radius-card); box-shadow:0 24px 64px rgba(15,23,42,.28); }
+.downtime-confirm { padding:1.15rem; }
+.downtime-confirm-heading,.downtime-result-heading { display:flex; align-items:flex-start; gap:.75rem; }
+.downtime-confirm-heading > span,.downtime-result-heading > span { display:flex; width:2.4rem; height:2.4rem; flex:0 0 auto; align-items:center; justify-content:center; border-radius:50%; background:var(--brand-soft-surface); color:var(--brand-active); }
+.downtime-confirm h2,.downtime-result-heading h2 { margin:0; color:var(--text-primary); font-size:1.15rem; }
+.downtime-confirm-heading p,.downtime-result-heading p { margin:.25rem 0 0; color:var(--text-secondary); line-height:1.45; }
+.downtime-confirm-encounters { display:grid; max-height:min(50vh,28rem); gap:.6rem; overflow-y:auto; margin-top:1rem; padding-right:.2rem; }
+.downtime-confirm-encounters section { border:1px solid var(--border); border-radius:var(--radius-control); padding:.75rem; background:var(--surface-subtle); }
+.downtime-confirm-encounters h3 { margin:0; color:var(--text-primary); font-size:.95rem; }
+.downtime-confirm-encounters p { margin:.15rem 0 0; color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-confirm-encounters dl { display:grid; gap:.35rem; margin:.65rem 0 0; }
+.downtime-confirm-encounters dl > div { display:grid; grid-template-columns:8rem minmax(0,1fr); gap:.5rem; font-size:var(--type-caption-size); }
+.downtime-confirm-encounters dt { color:var(--text-secondary); }
+.downtime-confirm-encounters dd { margin:0; color:var(--text-primary); font-weight:600; }
+.downtime-result-card { padding:1.15rem; }
+.downtime-result-card.is-success .downtime-result-heading > span { background:color-mix(in srgb,var(--green) 10%,var(--surface)); color:var(--green); }
+.downtime-result-card.is-duplicate .downtime-result-heading > span,.downtime-result-card.is-failed .downtime-result-heading > span { background:color-mix(in srgb,var(--amber) 12%,var(--surface)); color:var(--amber); }
+.downtime-result-list { display:grid; gap:.5rem; margin-top:1rem; }
+.downtime-result-row { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; border-top:1px solid var(--border); padding:.7rem 0 0; }
+.downtime-result-row > div { display:grid; gap:.15rem; }
+.downtime-result-row > div:last-child { max-width:50%; text-align:right; }
+.downtime-result-row span { color:var(--text-secondary); font-size:var(--type-caption-size); }
+.downtime-result-row.is-imported > div:last-child strong { color:var(--green); }
+.downtime-result-row.is-duplicate > div:last-child strong { color:var(--amber); }
+.downtime-result-row.is-failed > div:last-child strong { color:var(--coral-dark); }
+@media (max-width:700px) {
+    .downtime-stage-nav li { justify-content:center; }
+    .downtime-stage-nav li strong { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+    .downtime-stage-nav li:not(:last-child)::after { left:calc(50% + .8rem); width:calc(100% - 1.6rem); }
+    .downtime-workbook-heading,.downtime-review-heading { flex-direction:column; gap:.55rem; }
+    .downtime-template-link { margin-left:-.7rem; }
+    .downtime-selected-file { grid-template-columns:auto minmax(0,1fr); }
+    .downtime-selected-file-actions { grid-column:1 / -1; justify-content:flex-end; border-top:1px solid var(--border); padding-top:.35rem; }
+    .downtime-review-grid { grid-template-columns:1fr; }
+    .downtime-encounter summary { align-items:flex-start; }
+    .downtime-encounter-check { display:none; }
+    .downtime-review-section dl > div { grid-template-columns:minmax(6.75rem,.8fr) minmax(0,1.2fr); }
+    .downtime-import-actions { flex-direction:column-reverse; }
+    .downtime-import-actions button { width:100%; min-height:2.75rem; }
+    .downtime-confirm-backdrop { place-items:center; padding:.75rem; }
+    .clinical-dialog.downtime-confirm-dialog { width:min(100%,32rem); max-height:calc(100dvh - 1.5rem); }
+    .downtime-confirm-encounters dl > div { grid-template-columns:1fr; gap:.1rem; }
+    .downtime-result-row { flex-direction:column; gap:.4rem; }
+    .downtime-result-row > div:last-child { max-width:none; text-align:left; }
+}
