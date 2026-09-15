@@ -556,11 +556,10 @@ export function PatientDetailModal({
                 <Modal labelledBy="patient-detail-dialog-title" onClose={onClose} className={`patient-chart-modal ${bhwTouchLayout ? 'bhw-patient-detail-modal' : ''}`}>
 
                     {/* Modal Header */}
-                    <div className="patient-chart-header">
-                        <PatientChartIdentityHeader patient={patient} titleId="patient-detail-dialog-title" className="flex-1 border-0 bg-transparent p-0" />
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                            {!showHistory && (
-                                <>
+                    <div className={`patient-chart-header ${showHistory ? 'relative' : ''}`}>
+                        <PatientChartIdentityHeader patient={patient} titleId="patient-detail-dialog-title" className={`min-w-0 flex-1 border-0 bg-transparent p-0 ${showHistory ? 'pr-14 sm:pr-16' : ''}`} />
+                        {!showHistory ? (
+                            <div className="flex flex-wrap items-center justify-end gap-2">
                                     {onRecordConsent && !consentSigned && !isEditing && (
                                         <button
                                             type="button"
@@ -598,17 +597,25 @@ export function PatientDetailModal({
                                     >
                                         {isEditing ? 'Cancel' : 'Edit Profile'}
                                     </button>
-                                </>
-                            )}
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    aria-label="Close patient details"
+                                    className={`h-11 w-11 -m-1 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
+                                >
+                                    X
+                                </button>
+                            </div>
+                        ) : (
                             <button
                                 type="button"
                                 onClick={onClose}
-                                aria-label="Close patient details"
-                                className={`h-11 w-11 -m-1 flex items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-[var(--text-secondary)] hover:bg-[var(--brand-accent-surface)] transition-colors font-bold text-sm ${focusCls}`}
+                                aria-label="Close patient history"
+                                className={`absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--disabled-bg)] text-sm font-bold text-[var(--text-secondary)] transition-colors hover:bg-[var(--brand-accent-surface)] ${focusCls}`}
                             >
                                 X
                             </button>
-                        </div>
+                        )}
                     </div>
 
                     {/* Scrollable Body */}

@@ -36,6 +36,25 @@ interface PatientData {
 
 interface Medication { name: string; dosage: string; frequency: string; duration: string; quantity: string; }
 
+interface DiagnosisEntry { id: number; value: string; }
+
+let nextDiagnosisEntryId = 0;
+
+const createDiagnosisEntry = (value = ''): DiagnosisEntry => ({
+    id: nextDiagnosisEntryId++,
+    value,
+});
+
+const diagnosisEntriesFromValue = (value?: string | null): DiagnosisEntry[] => {
+    const values = value ? value.split(/\r?\n/) : [''];
+    return values.map(entry => createDiagnosisEntry(entry));
+};
+
+const serializeDiagnosisEntries = (entries: DiagnosisEntry[]): string => entries
+    .map(entry => entry.value.trim())
+    .filter(Boolean)
+    .join('\n');
+
 interface ConsultationRecord {
     consultation_id: number;
     chief_complaints?: string;
@@ -566,7 +585,7 @@ export function ConsultationPage({
         followUpBp: '', followUpHr: '', followUpRr: '', followUpTemp: '', followUpO2: '', followUpWeight: '',
         followUpHeight: '', followUpMuac: '', followUpNutritionalStatus: '', followUpBmi: '', followUpVaL: '',
         followUpVaR: '', followUpBloodType: '', followUpGenSurvey: '', generalSurvey: '', followUpMedicationTreatment: '', followUpLabResults: '',
-        attendingProvider: '', chiefComplaints: '', diagnosis: '', hpi: '',
+        attendingProvider: '', chiefComplaints: '', hpi: '',
 
         bp: '', hr: '', rr: '', temp: '', weight: '', height: '', o2Saturation: '', muac: '',
         nutritionalStatus: '', bmi: '', visualAcuityLeft: '', visualAcuityRight: '',
@@ -592,6 +611,8 @@ export function ConsultationPage({
         return null;
     }, [formData.followUpWeight, formData.followUpHeight]);
 
+    const [diagnosisEntries, setDiagnosisEntries] = useState<DiagnosisEntry[]>(() => [createDiagnosisEntry()]);
+    const serializedDiagnosis = useMemo(() => serializeDiagnosisEntries(diagnosisEntries), [diagnosisEntries]);
     const [medications, setMedications] = useState<Medication[]>([{ name: '', dosage: '', frequency: '', duration: '', quantity: '' }]);
     const [consultationSaved, setConsultationSaved] = useState(false);
     const [followUpDone, setFollowUpDone] = useState(false);
@@ -611,6 +632,7 @@ export function ConsultationPage({
     const [consultationQueueLoading, setConsultationQueueLoading] = useState(true);
     const [consultationQueueError, setConsultationQueueError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isSavingConsultation, setIsSavingConsultation] = useState(false);
     const [consultationId, setConsultationId] = useState<number | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [consultationCompleted, setConsultationCompleted] = useState(false);
@@ -619,6 +641,7 @@ export function ConsultationPage({
     // Duplicate-submit latch: `disabled={loading}` only takes effect after a
     // re-render, so two rapid clicks in the same frame can both pass the check.
     const completingRef = useRef(false);
+    const savingConsultationRef = useRef(false);
     const followUpDateFieldRef = useRef<HTMLInputElement | null>(null);
     const followUpChoiceFieldRef = useRef<HTMLFieldSetElement | null>(null);
 
@@ -626,6 +649,10 @@ export function ConsultationPage({
     const primaryBtnBg = isOnline ? 'bg-[var(--brand-active)] hover:bg-[var(--brand-active-hover)] shadow-none' : 'bg-[var(--amber-accent)] hover:bg-[var(--amber-accent-strong)] shadow-amber-500/20';
 
     const { showToast, ToastComponent } = useToast();
+
+    useEffect(() => {
+        setDiagnosisEntries([createDiagnosisEntry()]);
+    }, [patientId]);
 
     const loadConsultationQueue = useCallback(async () => {
         setConsultationQueueLoading(true);
@@ -776,12 +803,12 @@ export function ConsultationPage({
             setConsultationSaved(true);
             if (data.status === 'Completed') setConsultationCompleted(true);
             if (data.follow_up_status === 'done') setFollowUpDone(true);
+            setDiagnosisEntries(diagnosisEntriesFromValue(data.diagnosis));
             setFormData(prev => ({
                 ...prev,
                 familyHistory: data.family_history ?? '',
                 pastMedSurgeHistory: data.past_med_surge_history ?? '',
                 chiefComplaints: data.chief_complaints ?? '',
-                diagnosis: data.diagnosis ?? '',
                 hpi: data.hpi ?? '',
                 attendingProvider: data.attending_provider ?? prev.attendingProvider,
                 medicationAndTreatment: data.medication_treatment ?? '',
@@ -860,11 +887,13 @@ export function ConsultationPage({
                 },
                 (payload) => {
                     const data = payload.new as any;
+                    if (data.diagnosis !== null && data.diagnosis !== undefined) {
+                        setDiagnosisEntries(diagnosisEntriesFromValue(data.diagnosis));
+                    }
                     // Only update fields the user hasn't actively changed
                     setFormData(prev => ({
                         ...prev,
                         chiefComplaints: data.chief_complaints ?? prev.chiefComplaints,
-                        diagnosis: data.diagnosis ?? prev.diagnosis,
                         hpi: data.hpi ?? prev.hpi,
                         attendingProvider: data.attending_provider ?? prev.attendingProvider,
                         medicationAndTreatment: data.medication_treatment ?? prev.medicationAndTreatment,
@@ -930,7 +959,7 @@ export function ConsultationPage({
         delivery_type: formData.typeOfDelivery || null, full_term_count: formData.fullTerm ? parseInt(formData.fullTerm) : null, premature_count: formData.premature ? parseInt(formData.premature) : null,
         abortion_count: formData.abortion ? parseInt(formData.abortion) : null, living_children_count: formData.livingChildren ? parseInt(formData.livingChildren) : null, pre_eclampsia: formData.preEclampsia || null,
         medication_treatment: formData.medicationAndTreatment || null, management_treatment: formData.managementTreatment || null, assessment: formData.assessment || null, plan: formData.plan || null, attending_provider: formData.attendingProvider || null,
-        chief_complaints: formData.chiefComplaints || null, diagnosis: formData.diagnosis || null, hpi: formData.hpi || null,
+        chief_complaints: formData.chiefComplaints || null, diagnosis: serializedDiagnosis || null, hpi: formData.hpi || null,
     });
 
     const buildFollowUpPayload = (resolvedConsultationId: number | null, followUpStatus: string = 'pending') => {
@@ -951,6 +980,9 @@ export function ConsultationPage({
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleLabTestChange = (testName: keyof typeof formData.labTests) => setFormData(prev => ({ ...prev, labTests: { ...prev.labTests, [testName]: !prev.labTests[testName] } }));
+    const handleDiagnosisChange = (id: number, value: string) => setDiagnosisEntries(prev => prev.map(entry => entry.id === id ? { ...entry, value } : entry));
+    const handleAddDiagnosis = () => setDiagnosisEntries(prev => [...prev, createDiagnosisEntry()]);
+    const handleRemoveDiagnosis = (id: number) => setDiagnosisEntries(prev => prev.length === 1 ? prev : prev.filter(entry => entry.id !== id));
     const handleMedChange = (index: number, field: keyof Medication, value: string) => { const newMeds = [...medications]; newMeds[index][field] = value; setMedications(newMeds); };
     const handleAddMed = () => setMedications(prev => [...prev, { name: '', dosage: '', frequency: '', duration: '', quantity: '' }]);
     const handleRemoveMed = (index: number) => { if (medications.length === 1) return; setMedications(prev => prev.filter((_, i) => i !== index)); };
@@ -985,23 +1017,42 @@ export function ConsultationPage({
     // follow-up and does not navigate away -- the consultation is not finished
     // yet at this point (Steps 6-7 still remain). See handleCompleteConsultation
     // for the actual end-of-encounter action.
-    const handleSaveConsultation = async () => {
-        if (!patient?.id) return;
+    const saveConsultationDraft = async (successMessage: string): Promise<boolean> => {
+        if (!patient?.id || loading || savingConsultationRef.current) return false;
+
+        savingConsultationRef.current = true;
+        setIsSavingConsultation(true);
         setLoading(true);
         try {
             const consultationPayload = buildConsultationPayload();
             if (!isOnline) {
                 showToast('You are offline. The consultation cannot be saved yet. Your entries are still on this screen; try again when the connection is restored.', true);
-                return;
+                return false;
             }
             const resolvedConsultationId = await upsertConsultation(consultationPayload, consultationId);
             setConsultationId(resolvedConsultationId);
             setConsultationSaved(true);
-            showToast('Diagnosis saved.', false);
+            showToast(successMessage, false);
+            return true;
         } catch (err) {
             logError('Failed to save consultation', err);
             showToast(healthcareErrorMessage("save the consultation"), true);
-        } finally { setLoading(false); }
+            return false;
+        } finally {
+            savingConsultationRef.current = false;
+            setIsSavingConsultation(false);
+            setLoading(false);
+        }
+    };
+
+    const handleDiagnosisNext = async () => {
+        const saved = await saveConsultationDraft('Diagnosis saved.');
+        if (saved) setActiveTab(currentTab => currentTab === 5 ? 4 : currentTab);
+    };
+
+    const handleManagementNext = async () => {
+        const saved = await saveConsultationDraft('Management and health education saved.');
+        if (saved) setActiveTab(currentTab => currentTab === 4 ? 7 : currentTab);
     };
 
     // The single explicit "today's consultation is finished" action (Step 7).
@@ -1164,7 +1215,7 @@ export function ConsultationPage({
     };
 
     const handlePrintMedCert = () => {
-        if (isBlank(formData.diagnosis)) { showToast('Please enter a Diagnosis before printing.', true); return; }
+        if (isBlank(serializedDiagnosis)) { showToast('Please enter a Diagnosis before printing.', true); return; }
         const html = `
             <!DOCTYPE html><html><head>
             <title>Medical Certificate - ${patientFullName}</title>
@@ -1183,7 +1234,7 @@ export function ConsultationPage({
                 .field-value { border-bottom: 1px solid #000; font-weight: bold; padding: 0 4px; display: inline-block; text-align: center; }
                 .section { margin-bottom: 20px; }
                 .section-label { font-weight: bold; font-size: 16px; display: block; margin-bottom: 4px; }
-                .section-content { min-height: 40px; border-bottom: 1px solid #000; font-weight: bold; padding-left: 10px; font-style: italic; line-height: 1.3; }
+                .section-content { min-height: 40px; border-bottom: 1px solid #000; font-weight: bold; padding-left: 10px; font-style: italic; line-height: 1.3; white-space: pre-line; }
                 .footer { margin-top: auto; display: flex; justify-content: flex-end; padding-bottom: 10mm; }
                 .doctor-block { text-align: center; width: 300px; }
                 .sig-line { border-bottom: 1.5px solid #000; margin-bottom: 5px; height: 40px; }
@@ -1207,7 +1258,7 @@ export function ConsultationPage({
                         <span class="field-value">${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                         with the following diagnosis:
                     </div>
-                    <div class="section"><span class="section-label">Diagnosis:</span><div class="section-content">${formData.diagnosis || ''}</div></div>
+                    <div class="section"><span class="section-label">Diagnosis:</span><div class="section-content">${serializedDiagnosis}</div></div>
                     <div class="section"><span class="section-label">Remarks / Recommendation:</span><div class="section-content">${formData.plan || formData.medicationAndTreatment || ''}</div></div>
                     <div class="footer">
                         <div class="doctor-block">
@@ -1630,7 +1681,15 @@ export function ConsultationPage({
                     ) : (
                         <div className="w-full bg-[var(--green-tint-strong)] text-[var(--green-dark)] py-3 px-6 rounded-xl font-bold border border-[var(--green-border-strong)] flex items-center justify-center gap-2 shadow-sm cursor-default"><Icon name="check" className="h-4 w-4" /> Follow-up Completed</div>
                     ))}
-                    <button onClick={() => setActiveTab(7)} className={`w-full text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Lab Request</button>
+                    <button
+                        type="button"
+                        onClick={handleManagementNext}
+                        disabled={loading || isSavingConsultation || !patient?.id}
+                        aria-busy={isSavingConsultation}
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${primaryBtnBg}`}
+                    >
+                        {isSavingConsultation ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : 'Next: Lab Request'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -1641,11 +1700,46 @@ export function ConsultationPage({
             <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-soft)] pb-4">
                 <h3 className="text-lg font-bold text-[var(--text)] border-b border-[var(--border-soft)] pb-3">IV. Diagnosis</h3>
             </div>
-            <div className="space-y-6">
-                <div>
-                    <label className={labelCls} htmlFor="consult-diagnosis">Diagnosis: <span className="text-[var(--marker-required)]">*</span></label>
-                    <textarea id="consult-diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} className={`${textareaCls} min-h-[120px] border-l-4 border-l-blue-500`} placeholder="Enter final diagnosis for the Medical Certificate..." />
+            <div className="space-y-4">
+                <p id="consult-diagnosis-help" className="text-sm text-[var(--text-secondary)]">
+                    Add each diagnosis as a separate entry. Diagnoses are saved in the order shown.
+                </p>
+                <div className="space-y-4">
+                    {diagnosisEntries.map((entry, index) => (
+                        <div key={entry.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4 shadow-sm sm:p-5">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                <label className={`${labelCls} mb-0`} htmlFor={`consult-diagnosis-${entry.id}`}>
+                                    Diagnosis {index + 1}{index === 0 && <span className="text-[var(--marker-required)]"> *</span>}
+                                </label>
+                                {diagnosisEntries.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveDiagnosis(entry.id)}
+                                        aria-label={`Remove Diagnosis ${index + 1}`}
+                                        className="min-h-11 rounded-lg border border-[var(--coral-border)] bg-white px-4 py-2 text-sm font-bold text-[var(--coral-accent)] transition-colors hover:bg-[var(--coral-tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-active)] focus-visible:ring-offset-2"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                            <textarea
+                                id={`consult-diagnosis-${entry.id}`}
+                                value={entry.value}
+                                onChange={event => handleDiagnosisChange(entry.id, event.target.value)}
+                                aria-describedby="consult-diagnosis-help"
+                                className={`${textareaCls} min-h-[120px] border-l-4 border-l-blue-500`}
+                                placeholder={index === 0 ? 'Enter final diagnosis for the Medical Certificate...' : 'Enter another diagnosis...'}
+                            />
+                        </div>
+                    ))}
                 </div>
+                <button
+                    type="button"
+                    onClick={handleAddDiagnosis}
+                    className="min-h-11 w-full rounded-2xl border-2 border-dashed border-[var(--border)] px-4 py-3 text-sm font-bold text-[var(--text-secondary)] transition-all hover:border-[var(--border-strong)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-active)] focus-visible:ring-offset-2"
+                >
+                    + Add another diagnosis
+                </button>
             </div>
             <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-8 mt-8 border-t border-[var(--border-soft)]">
                 <button onClick={() => setActiveTab(3)} className="order-2 sm:order-1 bg-[var(--surface-subtle)] hover:bg-[var(--border-soft)] text-[var(--text-2)] py-2.5 px-6 rounded-lg font-semibold transition-colors w-full sm:w-auto mb-1">Back</button>
@@ -1653,18 +1747,15 @@ export function ConsultationPage({
                     <div className="bg-[var(--surface-subtle)] p-2 rounded-xl border border-[var(--border)] shadow-sm w-full sm:w-auto">
                         <button onClick={handlePrintMedCert} className="w-full bg-white hover:bg-[var(--surface-subtle)] text-[var(--text-2)] py-2.5 px-5 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 text-sm border border-[var(--border-soft)]"><Icon name="file-text" className="h-4 w-4" /> Print Medical Certificate</button>
                     </div>
-                    <div className="flex gap-3 w-full sm:w-auto">
-                        <button
-                            type="button"
-                            onClick={handleSaveConsultation}
-                            disabled={loading || !patient?.id}
-                            aria-busy={loading}
-                            className="flex-1 min-h-11 bg-white border-2 border-[var(--border-strong)] text-[var(--text-2)] py-3 px-6 rounded-xl font-bold shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-[var(--surface-subtle)] hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-active)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-60 disabled:shadow-none flex items-center justify-center gap-2"
-                        >
-                            {loading ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : <><Icon name="save" className="h-4 w-4" /> Save Diagnosis</>}
-                        </button>
-                        <button onClick={() => setActiveTab(4)} className={`flex-1 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors ${primaryBtnBg}`}>Next: Management and Health Education</button>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={handleDiagnosisNext}
+                        disabled={loading || isSavingConsultation || !patient?.id}
+                        aria-busy={isSavingConsultation}
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${primaryBtnBg}`}
+                    >
+                        {isSavingConsultation ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : 'Next: Management and Health Education'}
+                    </button>
                 </div>
             </div>
         </div>

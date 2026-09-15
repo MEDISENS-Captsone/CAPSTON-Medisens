@@ -72,9 +72,29 @@ function formatDate(value?: string | null) {
         : date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function CardHeader({ type, title, date, status, summary }: PatientTransaction) {
+function getDoctorDiagnosisSummary(summary?: string) {
+    if (!summary) return null;
+
+    const diagnoses = summary
+        .split(/\r\n|\r|\n/)
+        .map(diagnosis => diagnosis.trim())
+        .filter(Boolean);
+
+    if (diagnoses.length === 0) return null;
+    return { first: diagnoses[0], additionalCount: diagnoses.length - 1 };
+}
+
+function CardHeader({ type, title, date, status, summary, items }: PatientTransaction) {
+    const diagnosisSummary = type === 'doctor_consultation' ? getDoctorDiagnosisSummary(summary) : null;
+    const consultationStatus = type === 'doctor_consultation'
+        ? items.find(group => group.label === 'Consultation status')?.values[0]
+        : null;
+    const displayStatus = [status, consultationStatus]
+        .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
+        .join(' · ');
+
     return (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className={`flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-[0.65rem] font-semibold ring-1 ${TYPE_MARK_CLASS[type]}`}>
@@ -83,12 +103,130 @@ function CardHeader({ type, title, date, status, summary }: PatientTransaction) 
                     <StatusBadge tone={type === 'lab_result' || type === 'pharmacy' ? 'green' : type === 'vaccine' ? 'indigo' : 'blue'}>
                         {TYPE_LABEL[type]}
                     </StatusBadge>
-                    {status && <span className="text-xs font-bold text-[var(--text-2)]">{status}</span>}
+                    {displayStatus && <span className="min-w-0 truncate text-xs font-bold text-[var(--text-2)]">{displayStatus}</span>}
                 </div>
                 <h4 className="mt-2 text-base font-extrabold text-[var(--text)]">{title}</h4>
-                {summary && <p className="mt-1 text-sm font-medium leading-snug text-[var(--text-2)]">{summary}</p>}
+                {diagnosisSummary ? (
+                    <p className="mt-1 flex min-w-0 items-baseline gap-1.5 text-xs font-medium leading-snug text-[var(--text-secondary)]">
+                        <span className="min-w-0 truncate">Diagnosis: {diagnosisSummary.first}</span>
+                        {diagnosisSummary.additionalCount > 0 && (
+                            <span className="shrink-0 whitespace-nowrap font-bold text-[var(--brand-active)]">+{diagnosisSummary.additionalCount} more</span>
+                        )}
+                    </p>
+                ) : summary && type !== 'doctor_consultation' ? (
+                    <p className="mt-1 line-clamp-2 break-words text-sm font-medium leading-snug text-[var(--text-2)]">{summary}</p>
+                ) : null}
             </div>
             <div className="whitespace-nowrap text-xs font-semibold text-[var(--text-secondary)] sm:text-right">{formatDate(date)}</div>
+        </div>
+    );
+}
+
+const DOCTOR_DETAIL_SECTIONS = [
+    {
+        title: 'Presenting Problem',
+        labels: ['Chief complaint', 'History of present illness'],
+    },
+    {
+        title: 'Clinical Assessment',
+        labels: ['Physical examination / assessment', 'Diagnosis'],
+    },
+    {
+        title: 'Management & Health Education',
+        labels: ['Management / treatment plan', 'Medication or treatment instructions', 'Patient instructions / health education', 'Follow-up'],
+    },
+    {
+        title: 'Relevant Histories',
+        labels: ['Family history', 'Past medical / surgical history', 'Immunization history', 'Smoking history', 'Drinking history'],
+    },
+] as const;
+
+const DOCTOR_OVERVIEW_LABELS = ['Consultation time', 'Attending provider', 'Consultation status'] as const;
+
+const DOCTOR_FULL_WIDTH_LABELS = new Set([
+    'Chief complaint',
+    'History of present illness',
+    'Physical examination / assessment',
+    'Diagnosis',
+    'Management / treatment plan',
+    'Medication or treatment instructions',
+    'Patient instructions / health education',
+    'Follow-up',
+]);
+
+function DoctorDetailRow({ label, values, compact = false }: PatientTransaction['items'][number] & { compact?: boolean }) {
+    return (
+        <div className={`min-w-0 border-b border-[var(--border-soft)] py-2.5 last:border-b-0 sm:rounded-lg sm:border-b-0 sm:border-l-2 sm:border-l-[var(--border-strong)] sm:bg-[var(--surface-subtle)] sm:px-3 ${compact ? 'grid grid-cols-[minmax(6.5rem,0.42fr)_minmax(0,1fr)] items-start gap-3' : ''} ${DOCTOR_FULL_WIDTH_LABELS.has(label) ? 'sm:col-span-2' : ''}`}>
+            <dt className="text-xs font-semibold leading-relaxed text-[var(--text-secondary)]">{label}</dt>
+            <dd className={`${compact ? 'mt-0' : 'mt-0.5'} min-w-0 text-sm font-medium leading-relaxed text-[var(--text)]`}>
+                <ul className="space-y-1">
+                    {values.map((value, index) => (
+                        <li key={`${label}-${index}`} className="flex min-w-0 gap-2">
+                            {values.length > 1 && <span className="shrink-0 text-[var(--text-muted)]" aria-hidden="true">•</span>}
+                            <span className="min-w-0 break-words">{value}</span>
+                        </li>
+                    ))}
+                </ul>
+            </dd>
+        </div>
+    );
+}
+
+function DoctorConsultationDetails({ transaction }: { transaction: PatientTransaction }) {
+    const groupsByLabel = new Map(transaction.items.map(group => [group.label, group]));
+    const assignedLabels = new Set([
+        ...DOCTOR_OVERVIEW_LABELS,
+        ...DOCTOR_DETAIL_SECTIONS.flatMap(section => [...section.labels]),
+    ]);
+    const remainingGroups = transaction.items.filter(group => group.values.length > 0 && !assignedLabels.has(group.label));
+    const consultationTime = groupsByLabel.get('Consultation time')?.values[0];
+    const consultationTimeDisplay = consultationTime?.match(/^\d{1,2}:\d{2}/)?.[0] ?? consultationTime;
+    const attendingProvider = groupsByLabel.get('Attending provider')?.values[0];
+    const consultationStatus = groupsByLabel.get('Consultation status')?.values[0];
+    const overviewPrimary = [transaction.date ? formatDate(transaction.date) : '', consultationTimeDisplay ?? ''].filter(Boolean).join(' · ');
+    const overviewSecondary = [attendingProvider, consultationStatus].filter(Boolean).join(' · ');
+
+    return (
+        <div className="mt-3 space-y-4 sm:mt-4 sm:space-y-5">
+            {(overviewPrimary || overviewSecondary) && (
+                <section aria-labelledby={`${transaction.id}-overview-heading`}>
+                    <h5 id={`${transaction.id}-overview-heading`} className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+                        Encounter Overview
+                    </h5>
+                    <div className="mt-1.5 border-y border-[var(--border-soft)] py-2 text-xs font-medium leading-relaxed text-[var(--text-secondary)] sm:rounded-lg sm:border sm:bg-[var(--surface-subtle)] sm:px-3">
+                        {overviewPrimary && <p>{overviewPrimary}</p>}
+                        {overviewSecondary && <p className={overviewPrimary ? 'mt-0.5' : ''}>{overviewSecondary}</p>}
+                    </div>
+                </section>
+            )}
+            {DOCTOR_DETAIL_SECTIONS.map((section, sectionIndex) => {
+                const sectionGroups = section.labels
+                    .map(label => groupsByLabel.get(label))
+                    .filter((group): group is PatientTransaction['items'][number] => Boolean(group?.values.length));
+
+                if (section.title === 'Relevant Histories') sectionGroups.push(...remainingGroups);
+                if (sectionGroups.length === 0) return null;
+                const isClinicalAssessment = section.title === 'Clinical Assessment';
+                const isSupportingHistory = section.title === 'Relevant Histories';
+
+                return (
+                    <section
+                        key={section.title}
+                        aria-labelledby={`${transaction.id}-${sectionIndex}-heading`}
+                        className={isClinicalAssessment ? 'rounded-xl border border-[var(--brand-accent-surface)] bg-[var(--brand-soft-surface)]/40 p-3 sm:p-4' : ''}
+                    >
+                        <div className="mb-1.5 flex items-center gap-3 sm:mb-2.5">
+                            <h5 id={`${transaction.id}-${sectionIndex}-heading`} className={`shrink-0 font-extrabold text-[var(--text)] ${isClinicalAssessment ? 'text-sm' : 'text-[0.8rem]'}`}>
+                                {section.title}
+                            </h5>
+                            <span className="h-px flex-1 bg-[var(--border-soft)]" aria-hidden="true" />
+                        </div>
+                        <dl className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-2.5">
+                            {sectionGroups.map(group => <DoctorDetailRow key={group.label} {...group} compact={isSupportingHistory} />)}
+                        </dl>
+                    </section>
+                );
+            })}
         </div>
     );
 }
@@ -226,6 +364,21 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
     const isInitialHistoryLoading = (isLoading || isFetching) && visibleTransactions.length === 0;
     const isRefreshingHistory = (isLoading || isFetching) && visibleTransactions.length > 0;
 
+    const handleFilterChange = (filter: HistoryFilter) => {
+        if (filter === activeFilter) return;
+        setExpandedTransactionIds(new Set());
+        setActiveFilter(filter);
+    };
+
+    const toggleTransaction = (transactionId: string) => {
+        setExpandedTransactionIds(current => {
+            const next = new Set(current);
+            if (next.has(transactionId)) next.delete(transactionId);
+            else next.add(transactionId);
+            return next;
+        });
+    };
+
     if (isInitialHistoryLoading) {
         return (
             <div role="status" aria-live="polite" aria-busy="true">
@@ -250,13 +403,13 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
     }
 
     const filterControls = (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-2 flex flex-wrap gap-2 sm:mb-3">
             {filterOptions.map(option => (
                 <button
                     key={option.id}
                     type="button"
-                    onClick={() => setActiveFilter(option.id)}
-                    className={`rounded-lg border px-3 py-2 text-xs font-extrabold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${
+                    onClick={() => handleFilterChange(option.id)}
+                    className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-extrabold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)] ${
                         activeFilter === option.id
                             ? 'border-[var(--brand-active)] bg-[var(--brand-active)] text-white'
                             : 'border-[var(--border)] bg-white text-[var(--text-2)] hover:border-[var(--border)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-2)]'
@@ -305,7 +458,7 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 {filterControls}
-                <div className={`doctor-analytics-updating ${isRefreshingHistory ? 'is-visible' : ''}`} role="status" aria-live="polite">
+                <div className={`doctor-analytics-updating ${isRefreshingHistory ? 'is-visible' : 'max-sm:hidden'}`} role="status" aria-live="polite">
                     <span className="doctor-analytics-spinner" aria-hidden="true" />
                     <span>Updating</span>
                 </div>
@@ -323,19 +476,20 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                 <div className="space-y-3">
                     {filteredTransactions.map(transaction => {
                     const isLabResult = transaction.type === 'lab_result';
-                    const handleLabResultClick = isLabResult
-                        ? () => {
-                            const meta = transaction.metadata ?? {};
-                            setSelectedLabResult({
-                                labresult_id: meta.labresult_id as string | number | undefined,
-                                findings: (meta.findings as string) ?? null,
-                                performed_by: (meta.performed_by as string) ?? null,
-                                date_performed: (meta.date_performed as string) ?? null,
-                                status: transaction.status ?? 'Completed',
-                                patientName: patientName,
-                            });
-                        }
-                        : undefined;
+                    const isExpanded = expandedTransactionIds.has(transaction.id);
+                    const detailsId = `patient-history-details-${transaction.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
+                    const openLabResult = () => {
+                        const meta = transaction.metadata ?? {};
+                        setSelectedLabResult({
+                            labresult_id: meta.labresult_id as string | number | undefined,
+                            findings: (meta.findings as string) ?? null,
+                            performed_by: (meta.performed_by as string) ?? null,
+                            date_performed: (meta.date_performed as string) ?? null,
+                            status: transaction.status ?? 'Completed',
+                            patientName: patientName,
+                        });
+                    };
 
                     return (
                     <div key={transaction.id} className="relative flex gap-4">
@@ -355,54 +509,41 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
                             }`} />
                         </div>
 
-                        {compact ? (() => {
-                            const isExpanded = expandedTransactionIds.has(transaction.id);
-                            return (
-                                <section className="bhw-history-compact-card min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white shadow-sm">
+                        <section
+                            className={`${compact ? 'bhw-history-compact-card' : ''} min-w-0 flex-1 overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm transition-all hover:border-[var(--border)] hover:shadow-md`}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => toggleTransaction(transaction.id)}
+                                aria-expanded={isExpanded}
+                                aria-controls={detailsId}
+                                className={`group flex min-h-11 w-full items-start gap-1.5 text-left transition-colors hover:bg-[var(--surface-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus-color)] ${compact ? 'p-3' : 'p-3 sm:p-4'}`}
+                            >
+                                <span className="min-w-0 flex-1"><CardHeader {...transaction} /></span>
+                                <span className="-my-1.5 -mr-1.5 flex h-11 w-11 shrink-0 items-center justify-center self-center text-[var(--brand-active)]" aria-hidden="true">
+                                    <Icon name="chevron-right" className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                                </span>
+                            </button>
+                            <div
+                                id={detailsId}
+                                hidden={!isExpanded}
+                                className={`border-t border-[var(--border-soft)] ${compact ? 'px-3 pb-3' : 'px-4 pb-4'}`}
+                            >
+                                {transaction.type === 'doctor_consultation'
+                                    ? <DoctorConsultationDetails transaction={transaction} />
+                                    : <ItemsGrid items={transaction.items} />}
+                                {isLabResult && !compact && (
                                     <button
                                         type="button"
-                                        onClick={() => setExpandedTransactionIds(current => {
-                                            const next = new Set(current);
-                                            if (next.has(transaction.id)) next.delete(transaction.id);
-                                            else next.add(transaction.id);
-                                            return next;
-                                        })}
-                                        aria-expanded={isExpanded}
-                                        className="flex w-full items-start gap-3 p-3 text-left"
+                                        onClick={openLabResult}
+                                        className="mt-3 flex min-h-11 items-center gap-2 rounded-lg border border-[var(--green-border-soft)] bg-[var(--green-surface)] px-3 py-2 text-xs font-bold text-[var(--green-ink-strong)] transition-colors hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
                                     >
-                                        <span className="min-w-0 flex-1"><CardHeader {...transaction} /></span>
-                                        <Icon name="chevron-right" className={`mt-1 h-5 w-5 shrink-0 text-[var(--brand-active)] transition-transform ${isExpanded ? '-rotate-90' : 'rotate-90'}`} />
+                                        <Icon name="flask" className="h-4 w-4" />
+                                        View Full Result
                                     </button>
-                                    {isExpanded && <div className="border-t border-[var(--border-soft)] px-3 pb-3"><ItemsGrid items={transaction.items} /></div>}
-                                </section>
-                            );
-                        })() : (
-                            <div
-                                className={`min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm transition-all ${
-                                    isLabResult
-                                        ? 'hover:border-[var(--green-border-soft)] hover:shadow-md hover:bg-[var(--green-surface)] cursor-pointer group'
-                                        : 'hover:border-[var(--border)] hover:shadow-md'
-                                }`}
-                                onClick={handleLabResultClick}
-                                role={isLabResult ? 'button' : undefined}
-                                tabIndex={isLabResult ? 0 : undefined}
-                                onKeyDown={isLabResult ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLabResultClick?.(); } } : undefined}
-                                aria-label={isLabResult ? 'View full lab result' : undefined}
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                        <CardHeader {...transaction} />
-                                    </div>
-                                    {isLabResult && (
-                                        <span className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-[var(--green-ink-strong)] group-hover:text-[var(--green-dark)] transition-colors mt-1">
-                                            <Icon name="flask" className="h-3.5 w-3.5" />
-                                            View Full Result
-                                        </span>
-                                    )}
-                                </div>
-                                <ItemsGrid items={transaction.items} />
+                                )}
                             </div>
-                        )}
+                        </section>
                     </div>
                     );
                     })}

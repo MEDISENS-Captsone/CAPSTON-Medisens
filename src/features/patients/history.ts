@@ -86,22 +86,27 @@ interface InitialConsultationRow {
 
 interface ConsultationRow {
     consultation_id: string | number;
-    consultation_date?: string | null;
-    created_at?: string | null;
+    initial_consultation_id: string | number | null;
+    completed_at: string | null;
+    status: string | null;
     chief_complaints?: string | null;
-    chief_complaint?: string | null;
+    hpi?: string | null;
+    history_present_illness?: string | null;
     assessment?: string | null;
     diagnosis?: string | null;
-    remarks?: string | null;
-    doctor_name?: string | null;
     medication_treatment?: string | null;
     management_treatment?: string | null;
     plan?: string | null;
     family_history?: string | null;
     immunization_history?: string | null;
     smoking_status?: string | null;
+    smoking_sticks_per_day?: string | number | null;
+    smoking_years?: string | number | null;
     drinking_status?: string | null;
+    drinking_frequency?: string | null;
+    drinking_years?: string | number | null;
     past_med_surge_history?: string | null;
+    past_med_surg_history?: string | null;
     attending_provider?: string | null;
 }
 
@@ -144,7 +149,9 @@ interface PrescriptionRow {
 
 interface FollowUpRow {
     followup_id: string | number;
+    consultation_id: string | number | null;
     visit_date: string | null;
+    visit_time: string | null;
     chief_complaint: string | null;
     medication_treatment: string | null;
     diagnosis: string | null;
@@ -278,21 +285,17 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
                 .select('initialconsultation_id, patient_id')
                 .eq('patient_id', idValue),
         ),
-        selectHistoryWithFallback<ConsultationRow>(
+        selectHistory<ConsultationRow>(
             'Doctor consultation',
-            () => supabase
+            supabase
                 .from('consultation')
-                .select('consultation_id, consultation_date, created_at, chief_complaints, chief_complaint, assessment, diagnosis, remarks, doctor_name, medication_treatment, management_treatment, plan, family_history, immunization_history, smoking_status, drinking_status, past_med_surge_history, attending_provider')
-                .eq('patient_id', idValue),
-            () => supabase
-                .from('consultation')
-                .select('consultation_id, patient_id')
+                .select('consultation_id, initial_consultation_id, completed_at, status, attending_provider, chief_complaints, hpi, history_present_illness, family_history, past_med_surge_history, past_med_surg_history, immunization_history, smoking_status, smoking_sticks_per_day, smoking_years, drinking_status, drinking_frequency, drinking_years, assessment, diagnosis, management_treatment, medication_treatment, plan')
                 .eq('patient_id', idValue),
         ),
         selectHistory<LabRequestRow>('Lab requests', supabase.from('lab_request').select('labrequest_id, request_date, chief_complaint, status, others, is_cbc, is_cbc_platelet, is_hgb_hct, is_xray, is_ultrasound, is_rbs, is_fbs, is_uric_acid, is_cholesterol, is_urinalysis, is_fecalysis, is_sputum').eq('patient_id', idValue)),
         selectHistory<LabResultRow>('Lab results', supabase.from('lab_result').select('labresult_id, date_performed, findings, performed_by, status').eq('patient_id', idValue)),
         selectHistory<PrescriptionRow>('Prescriptions', supabase.from('prescription').select('prescription_id, prescription_date, dispensed_at, status, doctor_name, rx_content').eq('patient_id', idValue)),
-        selectHistory<FollowUpRow>('Follow-ups', supabase.from('follow_up').select('followup_id, visit_date, chief_complaint, medication_treatment, diagnosis, follow_up_status').eq('patient_id', idValue)),
+        selectHistory<FollowUpRow>('Follow-ups', supabase.from('follow_up').select('followup_id, consultation_id, visit_date, visit_time, chief_complaint, medication_treatment, diagnosis, follow_up_status').eq('patient_id', idValue)),
         selectHistory<FhsisLogRow>('FHSIS/vaccines', supabase.from('fhsis_logs').select('id, category, created_at, data_fields').eq('patient_id', idValue)),
     ]);
 
@@ -368,34 +371,56 @@ export async function fetchPatientTransactions(patientId: string): Promise<Patie
         });
     });
 
+    const initialConsultationsById = new Map(
+        initialsResult.data.map(record => [String(record.initialconsultation_id), record]),
+    );
+
     appendHistorySection('Doctor consultation', warnings, () => {
         consultationsResult.data.forEach(record => {
-            const chiefComplaint = record.chief_complaints || record.chief_complaint;
-            const assessment = record.assessment || record.remarks || record.diagnosis;
-            const provider = record.attending_provider || record.doctor_name;
-            const treatmentItems = [
-                ...itemizeText(record.medication_treatment),
-                ...itemizeText(record.management_treatment),
-                ...itemizeText(record.plan),
-                ...itemizeText(record.remarks && record.remarks !== assessment ? record.remarks : null),
-            ];
+            const linkedInitial = record.initial_consultation_id == null
+                ? undefined
+                : initialConsultationsById.get(String(record.initial_consultation_id));
+            const linkedFollowUps = followUpsResult.data.filter(followUp => (
+                followUp.consultation_id != null
+                && String(followUp.consultation_id) === String(record.consultation_id)
+            ));
+            const followUpItems = linkedFollowUps
+                .map(followUp => compact([followUp.visit_date, followUp.visit_time, followUp.follow_up_status]).join(' · '))
+                .filter(Boolean);
+            const smokingHistory = compact([
+                record.smoking_status,
+                record.smoking_sticks_per_day == null ? '' : `${record.smoking_sticks_per_day} stick(s) per day`,
+                record.smoking_years == null ? '' : `${record.smoking_years} year(s)`,
+            ]);
+            const drinkingHistory = compact([
+                record.drinking_status,
+                record.drinking_frequency,
+                record.drinking_years == null ? '' : `${record.drinking_years} year(s)`,
+            ]);
             transactions.push({
                 id: `consultation-${record.consultation_id}`,
                 type: 'doctor_consultation',
                 title: 'Doctor consultation',
-                date: record.consultation_date || record.created_at,
-                status: provider,
+                date: record.completed_at || linkedInitial?.consultation_date,
+                status: record.attending_provider,
                 summary: asText(record.diagnosis),
                 items: groups([
-                    itemGroup('Chief complaints', itemizeText(chiefComplaint)),
-                    itemGroup('Assessment / findings', itemizeText(assessment)),
-                    itemGroup('Treatment / management', treatmentItems),
+                    itemGroup('Attending provider', compact([record.attending_provider])),
+                    itemGroup('Consultation status', compact([record.status])),
+                    itemGroup('Consultation time', compact([linkedInitial?.consultation_time])),
+                    itemGroup('Chief complaint', itemizeText(record.chief_complaints)),
+                    itemGroup('History of present illness', itemizeText(record.hpi || record.history_present_illness)),
+                    itemGroup('Physical examination / assessment', itemizeText(record.assessment)),
                     itemGroup('Diagnosis', itemizeText(record.diagnosis)),
+                    itemGroup('Management / treatment plan', itemizeText(record.management_treatment)),
+                    itemGroup('Medication or treatment instructions', itemizeText(record.medication_treatment)),
+                    itemGroup('Patient instructions / health education', itemizeText(record.plan)),
+                    itemGroup('Follow-up', followUpItems),
                     itemGroup('Family history', itemizeText(record.family_history)),
+                    itemGroup('Past medical / surgical history', itemizeText(record.past_med_surge_history || record.past_med_surg_history)),
                     itemGroup('Immunization history', itemizeText(record.immunization_history)),
-                    itemGroup('Smoking status', compact([record.smoking_status])),
-                    itemGroup('Drinking status', compact([record.drinking_status])),
-                    itemGroup('Past medical / surgical history', itemizeText(record.past_med_surge_history)),
+                    itemGroup('Smoking history', smokingHistory),
+                    itemGroup('Drinking history', drinkingHistory),
                 ]),
             });
         });
