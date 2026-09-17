@@ -5424,6 +5424,11 @@ textarea.lab-field-input {
     max-width: 30rem;
 }
 
+.clinical-dialog.duplicate-patient-dialog {
+    width: min(calc(100vw - 2rem), 30rem);
+    max-width: 30rem;
+}
+
 .consent-modal-header {
     display: flex;
     flex-shrink: 0;

@@ -465,15 +465,14 @@ export function PatientTransactionHistory({ patientId, transactions, isLoading, 
             </div>
             <HistoryWarning warnings={visibleWarnings} onRetry={retry} />
 
-            <div className="absolute bottom-3 left-[18px] top-3 hidden w-0.5 bg-[var(--border)] sm:block" />
-
             {filteredTransactions.length === 0 ? (
                 <EmptyState
                     title={emptyFilterCopy.title}
                     description={emptyFilterCopy.description}
                 />
             ) : (
-                <div className="space-y-3">
+                <div className="relative space-y-3">
+                    {filteredTransactions.length > 1 && <div className="absolute bottom-3 left-[18px] top-3 hidden w-0.5 bg-[var(--border)] sm:block" />}
                     {filteredTransactions.map(transaction => {
                     const isLabResult = transaction.type === 'lab_result';
                     const isExpanded = expandedTransactionIds.has(transaction.id);

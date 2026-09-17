@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useToast } from '../../components/feedback/Toast';
 import { Icon } from '../../components/shared/Icon';
 import { RELIGION_OPTIONS, type FieldErrors, type PatientRegistrationForm } from '../../types/patient';
 import { calcAge, formatPhilhealth, philhealthDigits, toPatientRegistrationPayload, validatePatientRegistration } from '../../features/patients/validation';
-import { createPatient } from '../../features/patients/services';
+import { createPatient, findPossibleDuplicatePatient, type DuplicatePatientCandidate, type DuplicatePatientMatch } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
+import { Button, Modal } from '../../components/ui';
 import { MALVAR_BARANGAYS } from '../../lib/utils/malvarBarangays';
 import { BirthdayPicker } from '../../components/patient/BirthdayPicker';
 
@@ -26,6 +28,10 @@ interface TemplatesComponentProps {
     touchWizard?: boolean;
     /** BHW-only SPA return action; omitted for shared clinician registration routes. */
     onBackToHome?: () => void;
+    /** Opens an active match through the role shell's existing Patient Records experience. */
+    onViewExistingPatient?: (patient: DuplicatePatientCandidate) => void;
+    /** Routes an archived match to the role's existing archive review experience. */
+    onReviewArchivedPatient?: (patient: DuplicatePatientCandidate) => void;
 }
 
 const EMPTY_FORM: PatientForm = {
@@ -148,7 +154,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 // ─── Exported Pure Component ──────────────────────────────────────────────────
-export function TemplatesComponent({ touchWizard = false, onBackToHome }: TemplatesComponentProps) {
+export function TemplatesComponent({ touchWizard = false, onBackToHome, onViewExistingPatient, onReviewArchivedPatient }: TemplatesComponentProps) {
     const [form, setForm] = useState<PatientForm>(EMPTY_FORM);
     const [otherReligion, setOtherReligion] = useState('');
     const [saving, setSaving] = useState(false);
@@ -161,6 +167,8 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
     const [wizardStep, setWizardStep] = useState(1);
     const [isEmergencyContactExpanded, setIsEmergencyContactExpanded] = useState(false);
     const [isLeaveConfirmationVisible, setIsLeaveConfirmationVisible] = useState(false);
+    const [duplicateMatch, setDuplicateMatch] = useState<DuplicatePatientMatch | null>(null);
+    const [isDuplicateOverrideConfirmationVisible, setIsDuplicateOverrideConfirmationVisible] = useState(false);
     const finalRegistrationIntentRef = useRef(false);
     const [isTouchViewport, setIsTouchViewport] = useState(() =>
         typeof window !== 'undefined' && window.matchMedia('(max-width: 1439px)').matches
@@ -291,6 +299,19 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
                 showToast('You are offline. Patient registration cannot be saved yet. Keep this form open and try again when the connection is restored.', true);
                 return;
             }
+            let possibleDuplicate: DuplicatePatientMatch | null;
+            try {
+                possibleDuplicate = await findPossibleDuplicatePatient(payload);
+            } catch (error) {
+                logError('Failed to check for duplicate patient records', error);
+                showToast('Unable to check for existing patient records. Please try again before registering this patient.', true);
+                return;
+            }
+            if (possibleDuplicate) {
+                setDuplicateMatch(possibleDuplicate);
+                setIsDuplicateOverrideConfirmationVisible(false);
+                return;
+            }
             await createPatient(payload);
             showToast('Patient registration recorded.', false);
             setForm(EMPTY_FORM);
@@ -306,6 +327,115 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
             setSaving(false);
         }
     };
+
+    const confirmDuplicateOverride = async () => {
+        const acceptedMatch = duplicateMatch;
+        if (!acceptedMatch || acceptedMatch.kind === 'strong' || acceptedMatch.kind === 'archived_exact' || savingRef.current) return;
+        if (!validate()) {
+            setDuplicateMatch(null);
+            setIsDuplicateOverrideConfirmationVisible(false);
+            showToast('Please fix the errors before saving.', true);
+            return;
+        }
+        if (!isOnline) {
+            showToast('You are offline. Patient registration cannot be saved yet. Keep this form open and try again when the connection is restored.', true);
+            return;
+        }
+        savingRef.current = true;
+        setSaving(true);
+        const payload = toPatientRegistrationPayload(form);
+        try {
+            let latestMatch: DuplicatePatientMatch | null;
+            try {
+                latestMatch = await findPossibleDuplicatePatient(payload);
+            } catch (error) {
+                logError('Failed to recheck for duplicate patient records', error);
+                showToast('Unable to recheck existing patient records. No patient was created. Please try again.', true);
+                return;
+            }
+            if (latestMatch && (latestMatch.kind === 'strong' || latestMatch.kind === 'archived_exact' || String(latestMatch.patient.id) !== String(acceptedMatch.patient.id))) {
+                setDuplicateMatch(latestMatch);
+                setIsDuplicateOverrideConfirmationVisible(false);
+                return;
+            }
+            await createPatient(payload, acceptedMatch.patient.id);
+            showToast('Patient registration recorded after duplicate review.', false);
+            setForm(EMPTY_FORM);
+            setErrors({});
+            setWizardStep(1);
+            setIsEmergencyContactExpanded(false);
+            setIsLeaveConfirmationVisible(false);
+            setDuplicateMatch(null);
+            setIsDuplicateOverrideConfirmationVisible(false);
+        } catch (error) {
+            logError('Failed to save patient registration after duplicate review', error);
+            showToast(healthcareErrorMessage('save the patient record'), true);
+        } finally {
+            savingRef.current = false;
+            setSaving(false);
+        }
+    };
+
+    const closeDuplicateReview = () => {
+        setDuplicateMatch(null);
+        setIsDuplicateOverrideConfirmationVisible(false);
+    };
+
+    const openDuplicateRecord = () => {
+        if (!duplicateMatch) return;
+        const { patient, kind } = duplicateMatch;
+        closeDuplicateReview();
+        if (kind === 'archived_exact' || kind === 'archived_partial') {
+            if (onReviewArchivedPatient) onReviewArchivedPatient(patient);
+            else showToast('This patient has an archived record. Ask a nurse to review the archive before registering another record.', true);
+            return;
+        }
+        if (onViewExistingPatient) onViewExistingPatient(patient);
+        else window.location.href = `/pages/details.html?id=${patient.id}`;
+    };
+
+    const duplicatePatientName = duplicateMatch
+        ? [duplicateMatch.patient.firstName, duplicateMatch.patient.middleName, duplicateMatch.patient.lastName].filter(Boolean).join(' ')
+        : '';
+    const duplicatePatientDetails = duplicateMatch
+        ? `${new Date(`${duplicateMatch.patient.birthday}T00:00:00`).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })} · ${duplicateMatch.patient.sex}`
+        : '';
+    const duplicateIsBlocking = duplicateMatch?.kind === 'strong' || duplicateMatch?.kind === 'archived_exact';
+    const duplicateIsArchived = duplicateMatch?.kind === 'archived_exact' || duplicateMatch?.kind === 'archived_partial';
+    const duplicateDialog = duplicateMatch && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 sm:p-5" onMouseDown={event => { if (event.target === event.currentTarget) closeDuplicateReview(); }}>
+            <Modal labelledBy="duplicate-patient-title" onClose={closeDuplicateReview} className="duplicate-patient-dialog min-w-0 overflow-x-hidden">
+                <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
+                    <div className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--amber-soft)] text-[var(--amber-strong)]"><Icon name="alert-triangle" className="h-5 w-5" /></span>
+                        <div className="min-w-0"><h2 id="duplicate-patient-title" className="break-words text-lg font-semibold text-[var(--text)]">{duplicateIsArchived ? 'Archived patient record found' : 'Possible duplicate patient found'}</h2><p className="mt-1 break-words text-sm text-[var(--text-secondary)]">Review the existing identity before creating another EMR.</p></div>
+                    </div>
+                </div>
+                <div className="min-w-0 space-y-3 px-5 py-5 sm:px-6">
+                    <div className="min-w-0 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4"><strong className="block break-words text-[var(--text)]">{duplicatePatientName}</strong><span className="mt-1 block break-words text-sm text-[var(--text-secondary)]">{duplicatePatientDetails}</span></div>
+                    {isDuplicateOverrideConfirmationVisible ? (
+                        <div role="alert" className="rounded-[var(--radius-control)] border border-[var(--coral-accent)] bg-[var(--coral-soft)] p-4 text-sm leading-6 text-[var(--text)]"><strong className="block">Confirm creation of a second record</strong><p className="mt-1">You reviewed the possible duplicate and still intend to create another patient record. This decision will be recorded in the audit trail.</p></div>
+                    ) : duplicateIsArchived ? (
+                        <p className="text-sm leading-6 text-[var(--text-secondary)]">This identity matches an archived patient record. Review the archive and restore the existing record when appropriate instead of creating a replacement.</p>
+                    ) : duplicateMatch.kind === 'demographic_conflict' ? (
+                        <p className="text-sm leading-6 text-[var(--text-secondary)]">The name, birthday, and sex match an existing patient, but the {duplicateMatch.conflictingIdentifiers.join(' and ')} differs. Contact or PhilHealth information may have changed; review the existing record first.</p>
+                    ) : duplicateMatch.kind === 'partial' ? (
+                        <p className="text-sm leading-6 text-[var(--text-secondary)]">A patient with the same birthday and a closely matching name already exists. Review the existing record before deciding whether this is a different person.</p>
+                    ) : (
+                        <p className="text-sm leading-6 text-[var(--text-secondary)]">A patient with the same identifying information already exists. Review the existing record instead of creating a duplicate.</p>
+                    )}
+                </div>
+                <div className="flex flex-col-reverse gap-3 border-t border-[var(--border)] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                    <Button variant="outline" onClick={closeDuplicateReview}>Cancel</Button>
+                    {!isDuplicateOverrideConfirmationVisible && <Button onClick={openDuplicateRecord}>{duplicateIsArchived ? 'Review Archive' : 'View Existing Record'}</Button>}
+                    {!duplicateIsBlocking && (isDuplicateOverrideConfirmationVisible
+                        ? <Button variant="danger" isLoading={saving} onClick={() => void confirmDuplicateOverride()}>Confirm Create Anyway</Button>
+                        : <Button variant="outline" onClick={() => setIsDuplicateOverrideConfirmationVisible(true)} className="text-[var(--coral-accent)]">Create Anyway</Button>)}
+                </div>
+            </Modal>
+        </div>,
+        document.body,
+    ) : null;
 
     const isTouchWizard = touchWizard && isTouchViewport;
     const requiredMark = <span aria-hidden="true" className="text-[var(--coral-accent)]"> *</span>;
@@ -362,6 +492,7 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
         return (
             <div className="bhw-registration-wizard relative mx-auto w-full max-w-[58rem] px-0 pb-6">
                 <ToastComponent />
+                {duplicateDialog}
                 <div className="bhw-registration-subheader">
                     {onBackToHome && <button type="button" className="bhw-wizard-home-action" onClick={requestBackToHome}><Icon name="home" className="h-4 w-4" />Back to Home</button>}
                     <div className="bhw-registration-subheader-context"><strong>Register Patient</strong><span>Step {wizardStep} of 4</span></div>
@@ -433,6 +564,7 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
     return (
         <div className="relative mx-auto w-full max-w-[72rem] px-3 pb-12 sm:px-5 lg:px-6">
             <ToastComponent />
+            {duplicateDialog}
 
             <div className="mb-5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:mb-6 sm:p-5 lg:p-6">
                 <div>

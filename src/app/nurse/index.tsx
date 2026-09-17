@@ -336,7 +336,10 @@ const NurseDashboard = () => {
                         )}
                         {activePage === 'new-record' && (
                             <Suspense fallback={<LazyPanelFallback />}>
-                                <TemplatesComponent />
+                                <TemplatesComponent
+                                    onViewExistingPatient={(patient) => { setActivePage('records'); setSelectedPatient(patient as Patient); }}
+                                    onReviewArchivedPatient={() => { setSelectedPatient(null); setActivePage('archive-review'); }}
+                                />
                             </Suspense>
                         )}
                         {activePage === 'consultation' && (

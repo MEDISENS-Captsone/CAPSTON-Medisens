@@ -611,7 +611,11 @@ const BhwDashboard = () => {
                         {activePage === 'new-record' && (
                             <div className="bhw-registration-touch w-full min-h-[500px] pwa-dense-panel m-3 md:m-4 xl:m-5">
                                 <Suspense fallback={<LazyPanelFallback />}>
-                                    <TemplatesComponent touchWizard onBackToHome={() => setActivePage('dashboard')} />
+                                    <TemplatesComponent
+                                        touchWizard
+                                        onBackToHome={() => setActivePage('dashboard')}
+                                        onViewExistingPatient={(patient) => { setActivePage('records'); setSelectedPatient(patient as Patient); }}
+                                    />
                                 </Suspense>
                             </div>
                         )}
