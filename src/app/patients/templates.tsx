@@ -8,6 +8,7 @@ import { createPatient } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass } from '../../components/ui/ClinicalForm';
 import { MALVAR_BARANGAYS } from '../../lib/utils/malvarBarangays';
+import { BirthdayPicker } from '../../components/patient/BirthdayPicker';
 
 // ─── Reusable Tailwind Classes ───────────────────────────────────────────────
 const inputClasses = clinicalInputClass;
@@ -109,6 +110,38 @@ function RadioOption({ name, value, label, checked, onChange }: {
     );
 }
 
+function SexSegmentedControl({ value: selectedValue, onChange, hasError = false }: {
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    hasError?: boolean;
+}) {
+    return (
+        <fieldset>
+            <legend className={labelClasses}>Sex <span aria-hidden="true" className="text-[var(--coral-accent)]">*</span></legend>
+            <div className={`grid w-full grid-cols-2 gap-3 rounded-[var(--radius-control)] ${hasError ? 'outline outline-1 outline-offset-2 outline-[var(--coral-accent)]' : ''}`}>
+                {(['Male', 'Female'] as const).map(value => {
+                    const checked = selectedValue === value;
+                    return (
+                        <label key={value} className={`flex min-h-11 min-w-0 cursor-pointer items-center gap-3 rounded-lg px-3 text-sm transition-colors hover:bg-[var(--brand-soft-surface)] ${checked ? 'font-semibold text-[var(--brand-active)]' : 'font-medium text-[var(--text)]'}`}>
+                            <input
+                                type="radio"
+                                name="sex"
+                                value={value}
+                                checked={checked}
+                                onChange={onChange}
+                                className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--brand-active)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-color)]"
+                                aria-invalid={hasError || undefined}
+                                required
+                            />
+                            <span>{value}</span>
+                        </label>
+                    );
+                })}
+            </div>
+        </fieldset>
+    );
+}
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="mt-1.5 text-xs text-[var(--coral-accent)] font-semibold flex items-center gap-1"><Icon name="alert-triangle" className="h-3.5 w-3.5 shrink-0" />{message}</p>;
@@ -168,8 +201,7 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
         if (errors[id]) setErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
     };
 
-    const handleBirthday = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const birthday = e.target.value;
+    const handleBirthday = (birthday: string) => {
         const age = calcAge(birthday);
         setForm(f => ({ ...f, birthday, age }));
         if (errors['birthday']) setErrors(prev => { const n = { ...prev }; delete n['birthday']; return n; });
@@ -203,6 +235,7 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
 
     const validate = (): boolean => {
         const newErrors = validatePatientRegistration(form);
+        if (!form.birthday) newErrors.birthday = 'This field is required.';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -356,10 +389,10 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
                                 <div><label className={labelClasses}>First Name{requiredMark}</label><input id="firstName" value={form.firstName} onChange={handleTextOnly} className={errors.firstName ? inputErrorClasses : inputClasses} placeholder="Juan" required /><FieldError message={errors.firstName} /></div>
                                 <div><label className={labelClasses}>Middle Name</label><input id="middleName" value={form.middleName} onChange={handleTextOnly} className={inputClasses} placeholder="Santos" /></div>
                                 <div><label className={labelClasses}>Suffix</label><input id="suffix" value={form.suffix} onChange={handleTextOnly} className={inputClasses} placeholder="Jr." /></div>
-                                <div><label className={labelClasses}>Birthday{requiredMark}</label><input type="date" id="birthday" value={form.birthday} onChange={handleBirthday} className={errors.birthday ? inputErrorClasses : inputClasses} max={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })} required /><FieldError message={errors.birthday} /></div>
+                                <div><label className={labelClasses} htmlFor="birthday">Birthday{requiredMark}</label><BirthdayPicker id="birthday" value={form.birthday} onChange={handleBirthday} className={errors.birthday ? inputErrorClasses : inputClasses} hasError={Boolean(errors.birthday)} required /><FieldError message={errors.birthday} /></div>
                                 <div><label className={labelClasses}>Age <span className="font-normal text-[var(--text-3)]">(auto)</span></label><input id="age" value={form.age} readOnly className={readOnlyInputClasses} placeholder="Birthday" tabIndex={-1} /><FieldError message={errors.age} /></div>
                                 <div><label className={labelClasses}>Blood Type{requiredMark}</label><select id="bloodType" value={form.bloodType} onChange={handleChange} className={inputClasses} required><option value="" disabled>Select blood type</option>{BLOOD_TYPES.map(value => <option key={value} value={value}>{value}</option>)}</select><FieldError message={errors.bloodType} /></div>
-                                <div className="sm:col-span-2"><label className={labelClasses}>Sex{requiredMark}</label><div className="bhw-wizard-choice-grid" role="radiogroup" aria-label="Sex">{['Male', 'Female'].map(value => <RadioOption key={value} name="sex" value={value} label={value} checked={form.sex === value} onChange={handleRadio} />)}</div><FieldError message={errors.sex} /></div>
+                                <div className="sm:col-span-2"><SexSegmentedControl value={form.sex} onChange={handleRadio} hasError={Boolean(errors.sex)} /><FieldError message={errors.sex} /></div>
                             </div>
                         </fieldset>
                     )}
@@ -457,14 +490,8 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
                                     />
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Birthday</label>
-                                    <input
-                                        type="date" id="birthday" value={form.birthday}
-                                        onChange={handleBirthday}
-                                        className={errors['birthday'] ? inputErrorClasses : inputClasses}
-                                        max={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })}
-                                        required
-                                    />
+                                    <label className={labelClasses} htmlFor="birthday">Birthday</label>
+                                    <BirthdayPicker id="birthday" value={form.birthday} onChange={handleBirthday} className={errors['birthday'] ? inputErrorClasses : inputClasses} hasError={Boolean(errors.birthday)} required />
                                     <FieldError message={errors['birthday']} />
                                 </div>
                                 <div>
@@ -478,32 +505,7 @@ export function TemplatesComponent({ touchWizard = false, onBackToHome }: Templa
                                     />
                                     <FieldError message={errors['age']} />
                                 </div>
-                                <div>
-                                    <fieldset>
-                                        <legend className={labelClasses}>Sex</legend>
-                                        <div className="grid min-h-11 w-full max-w-sm grid-cols-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1" role="radiogroup">
-                                            {['Male', 'Female'].map(value => {
-                                                const checked = form.sex === value;
-                                                return (
-                                                    <label key={value} className="relative min-w-0 cursor-pointer">
-                                                        <input
-                                                            type="radio"
-                                                            name="sex"
-                                                            value={value}
-                                                            checked={checked}
-                                                            onChange={handleRadio}
-                                                            className="peer sr-only"
-                                                            required
-                                                        />
-                                                        <span className={`flex min-h-11 items-center justify-center rounded-[calc(var(--radius-control)-0.25rem)] px-3 text-sm font-semibold transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-color)] ${checked ? 'bg-[var(--surface)] text-[var(--brand-active)] shadow-sm ring-1 ring-[var(--border)]' : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`}>
-                                                            {value}
-                                                        </span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </fieldset>
-                                </div>
+                                <div><SexSegmentedControl value={form.sex} onChange={handleRadio} hasError={Boolean(errors.sex)} /><FieldError message={errors.sex} /></div>
                                 <div>
                                     <label className={labelClasses}>Civil Status</label>
                                     <select id="civilStatus" value={form.civilStatus} onChange={handleChange} className={inputClasses} required>
