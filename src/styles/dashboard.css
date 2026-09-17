@@ -5409,6 +5409,307 @@ textarea.lab-field-input {
     flex-direction: column;
 }
 
+.patient-corrections-count {
+    display: inline-flex;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--brand-primary-hover);
+    color: white;
+    padding-inline: 0.3rem;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.patient-corrections-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 240;
+}
+
+.patient-corrections-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.patient-corrections-positioner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    pointer-events: none;
+}
+
+.clinical-dialog.patient-corrections-modal {
+    display: flex;
+    width: min(100%, 38rem);
+    max-width: 38rem;
+    max-height: min(86dvh, 46rem);
+    flex-direction: column;
+    pointer-events: auto;
+}
+
+.patient-corrections-header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.125rem;
+}
+
+.patient-corrections-header h2,
+.patient-corrections-header p {
+    margin: 0;
+}
+
+.patient-corrections-header h2 {
+    color: var(--text);
+    font-size: 1.125rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.35;
+}
+
+.patient-corrections-header p {
+    margin-top: 0.2rem;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.patient-corrections-close {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-control);
+    color: var(--text-secondary);
+}
+
+.patient-corrections-close:hover,
+.patient-corrections-close:focus-visible {
+    background: var(--surface-muted);
+    color: var(--text);
+}
+
+.patient-corrections-body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg);
+    padding: 1rem;
+}
+
+.patient-corrections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.patient-correction-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    padding: 1rem;
+}
+
+.patient-correction-card.is-pending {
+    border-color: var(--amber-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.patient-correction-card.is-history {
+    background: var(--surface-subtle);
+    color: var(--text-secondary);
+}
+
+.patient-correction-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.patient-correction-card-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-weight: var(--font-weight-semibold);
+}
+
+.patient-correction-status {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-semibold);
+}
+
+.patient-correction-status.is-submitted {
+    border-color: var(--amber-border);
+    background: var(--amber-surface);
+    color: var(--amber-text);
+}
+
+.patient-correction-status.is-resolved {
+    border-color: var(--green-border-soft);
+    background: var(--green-surface);
+    color: var(--green-text);
+}
+
+.patient-correction-status.is-declined {
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+}
+
+.patient-correction-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0.875rem 0 0;
+}
+
+.patient-correction-values div {
+    min-width: 0;
+}
+
+.patient-correction-values dt {
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-semibold);
+}
+
+.patient-correction-values dd {
+    margin: 0.2rem 0 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.45;
+}
+
+.patient-correction-values .patient-correction-note {
+    grid-column: 1 / -1;
+    border-left: 3px solid var(--border-strong);
+    padding-left: 0.75rem;
+}
+
+.patient-correction-submitted {
+    margin: 0.75rem 0 0;
+    color: var(--text-muted);
+    font-size: var(--type-caption-size);
+    font-weight: var(--font-weight-medium);
+}
+
+.patient-correction-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.875rem;
+}
+
+.patient-correction-actions > button,
+.patient-correction-reject-confirm button,
+.patient-corrections-state button {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--brand-active);
+    padding: 0.55rem 0.75rem;
+    font-size: var(--type-button-size);
+    font-weight: var(--font-weight-semibold);
+}
+
+.patient-correction-actions button:hover:not(:disabled),
+.patient-correction-actions button:focus-visible,
+.patient-corrections-state button:hover,
+.patient-corrections-state button:focus-visible {
+    background: var(--brand-soft-surface);
+}
+
+.patient-correction-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.patient-correction-actions .is-resolve {
+    border-color: var(--brand-primary-hover);
+    background: var(--brand-primary-hover);
+    color: white;
+}
+
+.patient-correction-actions .is-resolve:hover:not(:disabled),
+.patient-correction-actions .is-resolve:focus-visible {
+    background: var(--brand-active);
+}
+
+.patient-correction-actions .is-reject,
+.patient-correction-reject-confirm .is-reject {
+    border-color: var(--coral-border);
+    color: var(--coral-accent-strong);
+}
+
+.patient-correction-reject-confirm {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    background: var(--coral-surface-soft);
+    padding: 0.5rem;
+}
+
+.patient-correction-reject-confirm span {
+    margin-right: auto;
+    color: var(--text);
+    font-size: var(--type-supporting-size);
+    font-weight: var(--font-weight-semibold);
+}
+
+.patient-corrections-state {
+    display: flex;
+    min-height: 12rem;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.patient-corrections-state strong {
+    color: var(--text);
+    font-size: var(--type-supporting-size);
+}
+
+.patient-corrections-state span {
+    font-size: var(--type-caption-size);
+}
+
 /* Consent dialog: wide enough for the two side-by-side signature pads on
    desktop, full-screen sheet on narrow mobile. */
 .clinical-dialog.consent-modal {
@@ -5449,6 +5750,32 @@ textarea.lab-field-input {
 }
 
 @media (max-width: 640px) {
+    .patient-corrections-positioner {
+        align-items: flex-end;
+        padding: 0.5rem;
+    }
+
+    .clinical-dialog.patient-corrections-modal {
+        width: 100%;
+        max-height: calc(100dvh - 1rem);
+    }
+
+    .patient-corrections-body {
+        padding: 0.75rem;
+    }
+
+    .patient-correction-values {
+        grid-template-columns: 1fr;
+    }
+
+    .patient-correction-values .patient-correction-note {
+        grid-column: auto;
+    }
+
+    .patient-correction-actions > button {
+        flex: 1 1 calc(50% - 0.25rem);
+    }
+
     .clinical-dialog.consent-modal {
         width: 100vw;
         max-width: 100vw;
@@ -7230,7 +7557,7 @@ textarea:focus {
 
     .bhw-patient-primary-actions {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.75rem;
     }
 

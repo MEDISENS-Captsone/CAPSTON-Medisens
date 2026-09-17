@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useToast } from '../feedback/Toast';
 import { updatePatientRecord } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
@@ -21,7 +21,14 @@ import { formatPatientChartName, PatientChartIdentityHeader, PatientHistoryPanel
 import { LastPatientHandler } from './LastPatientHandler';
 import { PediatricGrowth } from './PediatricGrowth';
 import { PatientAccountSection } from './PatientAccountSection';
+import { PatientCorrectionRequestsModal } from './PatientCorrectionRequestsModal';
 import type { Role } from '../../types/user';
+import {
+    fetchPatientCorrectionRequests,
+    reviewPatientCorrectionRequest,
+    type StaffCorrectionRequest,
+    type StaffCorrectionStatus,
+} from '../../features/patients/correctionRequests';
 
 export interface Patient {
     id: string;
@@ -268,6 +275,8 @@ function BhwPatientOverview({
     category,
     onEdit,
     onHistory,
+    onCorrections,
+    pendingCorrectionCount,
     onReviewClinical,
 }: {
     patient: Patient;
@@ -275,6 +284,8 @@ function BhwPatientOverview({
     category: string;
     onEdit: () => void;
     onHistory: () => void;
+    onCorrections: () => void;
+    pendingCorrectionCount: number;
     onReviewClinical: () => void;
 }) {
     return (
@@ -305,11 +316,15 @@ function BhwPatientOverview({
             </section>
 
             <div className="bhw-patient-primary-actions">
+                <button type="button" onClick={onHistory} className="bhw-patient-secondary-action">
+                    <Icon name="clock" className="h-4 w-4" /> History
+                </button>
+                <button type="button" onClick={onCorrections} className="bhw-patient-secondary-action">
+                    Corrections
+                    {pendingCorrectionCount > 0 && <span className="patient-corrections-count">{pendingCorrectionCount}</span>}
+                </button>
                 <button type="button" onClick={onEdit} className="bhw-patient-edit-action">
                     <Icon name="edit" className="h-4 w-4" /> Edit Profile
-                </button>
-                <button type="button" onClick={onHistory} className="bhw-patient-secondary-action">
-                    <Icon name="clock" className="h-4 w-4" /> View history
                 </button>
             </div>
 
@@ -368,6 +383,7 @@ export function PatientDetailModal({
 }: PatientDetailModalProps) {
     const [patient, setPatient] = useState<Patient>(initialPatient);
     const [showHistory, setShowHistory] = useState(false);
+    const [showCorrections, setShowCorrections] = useState(false);
     const [showBhwClinicalDetails, setShowBhwClinicalDetails] = useState(false);
 
     const [isEditing, setIsEditing] = useState(false);
@@ -384,6 +400,12 @@ export function PatientDetailModal({
     const [vaccineLoadError, setVaccineLoadError] = useState<string | null>(null);
     const [showAddVaccine, setShowAddVaccine] = useState(false);
     const [newVaccine, setNewVaccine] = useState<VaccineRecord>(createVaccineRecord());
+    const [correctionRequests, setCorrectionRequests] = useState<StaffCorrectionRequest[]>([]);
+    const [correctionsLoading, setCorrectionsLoading] = useState(false);
+    const [correctionsLoadError, setCorrectionsLoadError] = useState(false);
+    const [reviewingCorrectionId, setReviewingCorrectionId] = useState<string | null>(null);
+    const canReviewCorrections = Boolean(staffRole && ['admin', 'nurse', 'BHW', 'midwives'].includes(staffRole));
+    const pendingCorrectionCount = correctionRequests.filter(request => request.status === 'submitted').length;
 
     // Sync local state if prop changes (though usually initialPatient won't change while modal is open)
     useEffect(() => {
@@ -391,9 +413,62 @@ export function PatientDetailModal({
         setEditForm({ ...initialPatient });
         setOtherReligion((initialPatient.religion || '').replace(/^Other:\s*/, ''));
         setShowBhwClinicalDetails(false);
+        setShowCorrections(false);
     }, [initialPatient]);
 
     const loadHistory = () => setShowHistory(true);
+
+    const loadCorrectionRequests = useCallback(async () => {
+        if (!canReviewCorrections) {
+            setCorrectionRequests([]);
+            setCorrectionsLoadError(false);
+            return;
+        }
+
+        setCorrectionsLoading(true);
+        setCorrectionsLoadError(false);
+        try {
+            setCorrectionRequests(await fetchPatientCorrectionRequests(patient.id));
+        } catch (err) {
+            logError('Failed to load patient correction requests', err);
+            setCorrectionsLoadError(true);
+        } finally {
+            setCorrectionsLoading(false);
+        }
+    }, [canReviewCorrections, patient.id]);
+
+    useEffect(() => {
+        void loadCorrectionRequests();
+    }, [loadCorrectionRequests]);
+
+    const handleCorrectionReview = async (
+        request: StaffCorrectionRequest,
+        outcome: Exclude<StaffCorrectionStatus, 'submitted'>,
+    ) => {
+        try {
+            setReviewingCorrectionId(request.id);
+            await reviewPatientCorrectionRequest({
+                requestId: request.id,
+                patientId: patient.id,
+                outcome,
+            });
+            await loadCorrectionRequests();
+            showToast(outcome === 'resolved' ? 'Correction request marked as resolved.' : 'Correction request rejected.');
+        } catch (err) {
+            logError('Failed to review patient correction request', err);
+            showToast('Unable to update the correction request. Please try again.', true);
+            await loadCorrectionRequests();
+        } finally {
+            setReviewingCorrectionId(null);
+        }
+    };
+
+    const editPatientFromCorrection = () => {
+        setShowCorrections(false);
+        setShowHistory(false);
+        setShowBhwClinicalDetails(true);
+        setIsEditing(true);
+    };
 
     const loadVaccineRecords = async () => {
         setVaccineLoading(true);
@@ -590,6 +665,16 @@ export function PatientDetailModal({
                                             History
                                         </button>
                                     )}
+                                    {!isEditing && canReviewCorrections && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCorrections(true)}
+                                            className={`min-h-11 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-white text-[var(--brand-active)] border border-[var(--border-strong)] hover:bg-[var(--surface-muted)] ${focusCls}`}
+                                        >
+                                            Corrections
+                                            {pendingCorrectionCount > 0 && <span className="patient-corrections-count">{pendingCorrectionCount}</span>}
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={handleEditToggle}
@@ -630,6 +715,8 @@ export function PatientDetailModal({
                                         category={displayCategory()}
                                         onEdit={handleEditToggle}
                                         onHistory={loadHistory}
+                                        onCorrections={() => setShowCorrections(true)}
+                                        pendingCorrectionCount={pendingCorrectionCount}
                                         onReviewClinical={() => setShowBhwClinicalDetails(true)}
                                     />
                                 ) : (
@@ -977,6 +1064,19 @@ export function PatientDetailModal({
                     </div>
                 </Modal>
             </div>
+            {showCorrections && canReviewCorrections && (
+                <PatientCorrectionRequestsModal
+                    patient={patient}
+                    requests={correctionRequests}
+                    isLoading={correctionsLoading}
+                    loadError={correctionsLoadError}
+                    reviewingRequestId={reviewingCorrectionId}
+                    onClose={() => setShowCorrections(false)}
+                    onRetry={() => void loadCorrectionRequests()}
+                    onEditPatient={editPatientFromCorrection}
+                    onReview={handleCorrectionReview}
+                />
+            )}
             {pendingRemoveVaccine && (
                 <div className="fixed inset-0 z-[260] flex items-center justify-center bg-[var(--overlay)] p-4">
                     <div className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-white p-4 shadow-lg">
