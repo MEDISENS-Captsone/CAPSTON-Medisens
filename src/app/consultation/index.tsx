@@ -10,7 +10,7 @@ import { printHtmlDocument } from '../../lib/utils/print';
 import { itemizeText } from '../../features/patients/itemization';
 import { Icon } from '../../components/shared/Icon';
 import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
-import { clinicalInputClass, clinicalLabelClass, clinicalTextareaClass } from '../../components/ui/ClinicalForm';
+import { clinicalInputClass, clinicalInputErrorClass, clinicalLabelClass, clinicalTextareaClass } from '../../components/ui/ClinicalForm';
 import { Skeleton, SkeletonList } from '../../components/ui/Skeleton';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
@@ -38,6 +38,13 @@ interface Medication { name: string; dosage: string; frequency: string; duration
 
 interface DiagnosisEntry { id: number; value: string; }
 
+interface VaccineEntry {
+    id: number;
+    vaccineName: string;
+    dose: string;
+    dateReceived: string;
+}
+
 let nextDiagnosisEntryId = 0;
 
 const createDiagnosisEntry = (value = ''): DiagnosisEntry => ({
@@ -54,6 +61,50 @@ const serializeDiagnosisEntries = (entries: DiagnosisEntry[]): string => entries
     .map(entry => entry.value.trim())
     .filter(Boolean)
     .join('\n');
+
+let nextVaccineEntryId = 0;
+
+const createVaccineEntry = (vaccineName = '', dose = '', dateReceived = ''): VaccineEntry => ({
+    id: nextVaccineEntryId++,
+    vaccineName,
+    dose,
+    dateReceived,
+});
+
+const isVaccineEntryBlank = (entry: VaccineEntry): boolean =>
+    !entry.vaccineName.trim() && !entry.dose.trim() && !entry.dateReceived.trim();
+
+const parseImmunizationHistory = (value?: string | null): { entries: VaccineEntry[]; legacyText: string } => {
+    if (!value) return { entries: [createVaccineEntry()], legacyText: '' };
+
+    const structuredEntries: VaccineEntry[] = [];
+    const legacyLines: string[] = [];
+
+    value.split(/\r?\n/).forEach(line => {
+        const parts = line.split('|');
+        if (parts.length === 3 && parts[0].trim()) {
+            structuredEntries.push(createVaccineEntry(parts[0].trim(), parts[1].trim(), parts[2].trim()));
+        } else {
+            legacyLines.push(line);
+        }
+    });
+
+    return {
+        entries: structuredEntries.length > 0 ? structuredEntries : [createVaccineEntry()],
+        legacyText: structuredEntries.length > 0 ? legacyLines.join('\n') : value,
+    };
+};
+
+const serializeImmunizationHistory = (entries: VaccineEntry[], legacyText: string): string => {
+    const structuredValue = entries
+        .filter(entry => !isVaccineEntryBlank(entry))
+        .map(entry => `${entry.vaccineName.trim()} | ${entry.dose.trim()} | ${entry.dateReceived.trim()}`)
+        .join('\n');
+
+    return [legacyText.trim() ? legacyText : '', structuredValue]
+        .filter(Boolean)
+        .join('\n');
+};
 
 interface ConsultationRecord {
     consultation_id: number;
@@ -127,7 +178,7 @@ interface InitialConsultationRecord {
 const toNumberOrNull = (val: unknown): number | null => parseNumberOrNull(val);
 const FOLLOW_UP_LOAD_COLUMNS = 'followup_id, consultation_id, patient_id, visit_date, visit_time, mode_of_transaction, mode_of_transfer, chief_complaint, diagnosis, history_of_present_illness, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, blood_type, general_survey, medication_treatment, follow_up_status';
 const LATEST_VITAL_COLUMNS = 'vitals_id, bp, heart_rate, respiratory_rate, temperature, o2_saturation, weight, height, muac, nutritional_status, bmi, visual_acuity_left, visual_acuity_right, general_survey, initial_consultation_id';
-const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, past_med_surge_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status, status, completed_at';
+const CONSULTATION_LOAD_COLUMNS = 'consultation_id, patient_id, initial_consultation_id, family_history, past_med_surge_history, immunization_history, chief_complaints, diagnosis, hpi, attending_provider, medication_treatment, management_treatment, assessment, plan, follow_up_status, status, completed_at';
 
 // --- History Panel Sub-Component ----------------------------------------------
 function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData; patientName: string; onClose: () => void; }) {
@@ -264,11 +315,11 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
         </article>
     );
 
-    const Field = ({ label, value }: { label: string; value?: string | number | null }) =>
+    const Field = ({ label, value, preserveLineBreaks = false }: { label: string; value?: string | number | null; preserveLineBreaks?: boolean }) =>
         value ? (
             <div>
                 <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide mb-0.5">{label}</div>
-                <div className="text-sm text-[var(--text-2)]">{value}</div>
+                <div className={`text-sm text-[var(--text-2)] ${preserveLineBreaks ? 'whitespace-pre-line break-words' : ''}`}>{value}</div>
             </div>
         ) : null;
 
@@ -455,7 +506,7 @@ function HistoryPanel({ patient, patientName, onClose }: { patient: PatientData;
                                                 <SectionHeader label="Social &amp; Family History" />
                                                 <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                                                     <Field label="Family History" value={rec.family_history} />
-                                                    <Field label="Immunization History" value={rec.immunization_history} />
+                                                    <Field label="Immunization History" value={rec.immunization_history} preserveLineBreaks />
                                                     <Field label="Smoking" value={rec.smoking_status === 'Yes' ? `Yes - ${rec.smoking_sticks_per_day ?? '?'} sticks/day for ${rec.smoking_years ?? '?'} yrs` : rec.smoking_status} />
                                                     <Field label="Drinking" value={rec.drinking_status === 'Yes' ? `Yes - ${rec.drinking_frequency ?? '?'}, ${rec.drinking_years ?? '?'} yrs` : rec.drinking_status} />
                                                 </div>
@@ -570,7 +621,7 @@ export function ConsultationPage({
     const icidFromUrl = icidProp || urlParams.get('icid');
 
     const [formData, setFormData] = useState({
-        familyHistory: '', pastMedSurgeHistory: '', immunizationHistory: '', smoking: '', smokingSticksPerDay: '', smokingYears: '',
+        familyHistory: '', pastMedSurgeHistory: '', smoking: '', smokingSticksPerDay: '', smokingYears: '',
         drinking: '', drinkingFrequency: '', drinkingYears: '', menarche: '', onsetSexualIntercourse: '',
         menopause: '', menopauseAge: '', lmp: '', intervalCycle: '', periodDuration: '', padsPerDay: '',
         birthControlMethod: '', gravidity: '', parity: '', typeOfDelivery: '', fullTerm: '', premature: '',
@@ -613,6 +664,13 @@ export function ConsultationPage({
 
     const [diagnosisEntries, setDiagnosisEntries] = useState<DiagnosisEntry[]>(() => [createDiagnosisEntry()]);
     const serializedDiagnosis = useMemo(() => serializeDiagnosisEntries(diagnosisEntries), [diagnosisEntries]);
+    const [vaccineEntries, setVaccineEntries] = useState<VaccineEntry[]>(() => [createVaccineEntry()]);
+    const [legacyImmunizationHistory, setLegacyImmunizationHistory] = useState('');
+    const [showImmunizationErrors, setShowImmunizationErrors] = useState(false);
+    const serializedImmunizationHistory = useMemo(
+        () => serializeImmunizationHistory(vaccineEntries, legacyImmunizationHistory),
+        [vaccineEntries, legacyImmunizationHistory]
+    );
     const [medications, setMedications] = useState<Medication[]>([{ name: '', dosage: '', frequency: '', duration: '', quantity: '' }]);
     const [consultationSaved, setConsultationSaved] = useState(false);
     const [followUpDone, setFollowUpDone] = useState(false);
@@ -652,6 +710,9 @@ export function ConsultationPage({
 
     useEffect(() => {
         setDiagnosisEntries([createDiagnosisEntry()]);
+        setVaccineEntries([createVaccineEntry()]);
+        setLegacyImmunizationHistory('');
+        setShowImmunizationErrors(false);
     }, [patientId]);
 
     const loadConsultationQueue = useCallback(async () => {
@@ -804,6 +865,10 @@ export function ConsultationPage({
             if (data.status === 'Completed') setConsultationCompleted(true);
             if (data.follow_up_status === 'done') setFollowUpDone(true);
             setDiagnosisEntries(diagnosisEntriesFromValue(data.diagnosis));
+            const parsedImmunizationHistory = parseImmunizationHistory(data.immunization_history);
+            setVaccineEntries(parsedImmunizationHistory.entries);
+            setLegacyImmunizationHistory(parsedImmunizationHistory.legacyText);
+            setShowImmunizationErrors(false);
             setFormData(prev => ({
                 ...prev,
                 familyHistory: data.family_history ?? '',
@@ -948,7 +1013,7 @@ export function ConsultationPage({
     // -------------------------------------------------------------------------
     const buildConsultationPayload = () => ({
         patient_id: patient?.id, ...(icidFromUrl ? { initial_consultation_id: parseInt(icidFromUrl as string) } : {}),
-        family_history: formData.familyHistory || null, past_med_surge_history: formData.pastMedSurgeHistory || null, immunization_history: formData.immunizationHistory || null,
+        family_history: formData.familyHistory || null, past_med_surge_history: formData.pastMedSurgeHistory || null, immunization_history: serializedImmunizationHistory || null,
         smoking_status: formData.smoking || null, smoking_sticks_per_day: formData.smokingSticksPerDay ? parseInt(formData.smokingSticksPerDay) : null,
         smoking_years: formData.smokingYears ? parseInt(formData.smokingYears) : null, drinking_status: formData.drinking || null,
         drinking_frequency: formData.drinkingFrequency || null, drinking_years: formData.drinkingYears ? parseInt(formData.drinkingYears) : null,
@@ -983,6 +1048,44 @@ export function ConsultationPage({
     const handleDiagnosisChange = (id: number, value: string) => setDiagnosisEntries(prev => prev.map(entry => entry.id === id ? { ...entry, value } : entry));
     const handleAddDiagnosis = () => setDiagnosisEntries(prev => [...prev, createDiagnosisEntry()]);
     const handleRemoveDiagnosis = (id: number) => setDiagnosisEntries(prev => prev.length === 1 ? prev : prev.filter(entry => entry.id !== id));
+    const handleVaccineChange = (id: number, field: keyof Omit<VaccineEntry, 'id'>, value: string) => {
+        setVaccineEntries(prev => prev.map(entry => entry.id === id ? { ...entry, [field]: value } : entry));
+    };
+    const focusVaccineName = (id: number) => {
+        setTimeout(() => document.getElementById(`consult-vaccine-name-${id}`)?.focus(), 0);
+    };
+    const handleAddVaccine = () => {
+        const existingEmptyEntry = vaccineEntries.find(isVaccineEntryBlank);
+        if (existingEmptyEntry) {
+            focusVaccineName(existingEmptyEntry.id);
+            return;
+        }
+        const newEntry = createVaccineEntry();
+        setVaccineEntries(prev => [...prev, newEntry]);
+        focusVaccineName(newEntry.id);
+    };
+    const handleRemoveVaccine = (id: number) => {
+        setVaccineEntries(prev => prev.length === 1
+            ? prev.map(entry => entry.id === id ? { ...entry, vaccineName: '', dose: '', dateReceived: '' } : entry)
+            : prev.filter(entry => entry.id !== id));
+    };
+    const validateImmunizationEntries = (): boolean => {
+        const invalidEntry = vaccineEntries.find(entry => !entry.vaccineName.trim() && (entry.dose.trim() || entry.dateReceived.trim()));
+        setShowImmunizationErrors(Boolean(invalidEntry));
+        if (!invalidEntry) return true;
+
+        setActiveTab(2);
+        showToast('Enter a Vaccine Name for every row that includes a dose or date.', true);
+        setTimeout(() => {
+            const field = document.getElementById(`consult-vaccine-name-${invalidEntry.id}`);
+            field?.focus();
+            field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+        return false;
+    };
+    const handleRelevantHistoriesNext = () => {
+        if (validateImmunizationEntries()) setActiveTab(3);
+    };
     const handleMedChange = (index: number, field: keyof Medication, value: string) => { const newMeds = [...medications]; newMeds[index][field] = value; setMedications(newMeds); };
     const handleAddMed = () => setMedications(prev => [...prev, { name: '', dosage: '', frequency: '', duration: '', quantity: '' }]);
     const handleRemoveMed = (index: number) => { if (medications.length === 1) return; setMedications(prev => prev.filter((_, i) => i !== index)); };
@@ -1019,6 +1122,7 @@ export function ConsultationPage({
     // for the actual end-of-encounter action.
     const saveConsultationDraft = async (successMessage: string): Promise<boolean> => {
         if (!patient?.id || loading || savingConsultationRef.current) return false;
+        if (!validateImmunizationEntries()) return false;
 
         savingConsultationRef.current = true;
         setIsSavingConsultation(true);
@@ -1064,6 +1168,7 @@ export function ConsultationPage({
     // 20260830140000_atomic_complete_consultation.sql.
     const handleCompleteConsultation = async () => {
         if (!patient?.id || completingRef.current) return;
+        if (!validateImmunizationEntries()) return;
 
         if (formData.needsFollowUp !== 'no' && formData.needsFollowUp !== 'yes') {
             setFollowUpChoiceError(true);
@@ -1121,6 +1226,7 @@ export function ConsultationPage({
 
     const handleMarkFollowUpDone = async () => {
         if (!patient?.id) return;
+        if (!consultationId && !validateImmunizationEntries()) return;
         setLoading(true);
         try {
             const resolvedConsultationId = await ensureConsultationExists();
@@ -1276,6 +1382,7 @@ export function ConsultationPage({
 
     const handleSaveLabRequest = async () => {
         if (!patient?.id) return;
+        if (!consultationId && !validateImmunizationEntries()) return;
         setLoading(true);
         try {
             if (isOnline) {
@@ -1300,6 +1407,7 @@ export function ConsultationPage({
 
     const handleSavePrescription = async () => {
         if (!patient?.id) return;
+        if (!consultationId && !validateImmunizationEntries()) return;
         if (sigCanvas.current?.isEmpty()) { showToast('Doctor signature is required before saving.', true); return; }
         const validMedications = medications.filter(m => !isBlank(m.name));
         if (validMedications.length === 0) { showToast('Please add at least one medication before saving.', true); return; }
@@ -1418,7 +1526,99 @@ export function ConsultationPage({
                 <div className="space-y-4">
                     <div><label className={labelCls} htmlFor="consult-pastMedSurgeHistory">Past Medical / Surgical History</label><textarea id="consult-pastMedSurgeHistory" name="pastMedSurgeHistory" value={formData.pastMedSurgeHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
                     <div><label className={labelCls} htmlFor="consult-familyHistory">Family History</label><textarea id="consult-familyHistory" name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
-                    <div><label className={labelCls} htmlFor="consult-immunizationHistory">Immunization History</label><textarea id="consult-immunizationHistory" name="immunizationHistory" value={formData.immunizationHistory} onChange={handleChange} rows={4} className={textareaCls} /></div>
+                    <div className="min-w-0 space-y-3">
+                        <div>
+                            <p className={labelCls}>Immunization History</p>
+                            <p className="text-xs leading-5 text-[var(--text-muted)]">Record each vaccine separately. Dose and date are optional.</p>
+                        </div>
+
+                        {legacyImmunizationHistory.trim() && (
+                            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-subtle)] p-3">
+                                <label className={labelCls} htmlFor="consult-legacyImmunizationHistory">Previous immunization history</label>
+                                <textarea
+                                    id="consult-legacyImmunizationHistory"
+                                    value={legacyImmunizationHistory}
+                                    onChange={event => setLegacyImmunizationHistory(event.target.value)}
+                                    rows={3}
+                                    className={textareaCls}
+                                    aria-describedby="consult-legacyImmunizationHistory-help"
+                                />
+                                <p id="consult-legacyImmunizationHistory-help" className="mt-1.5 text-xs leading-5 text-[var(--text-muted)]">
+                                    This earlier free-text entry is kept when the consultation is saved.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            {vaccineEntries.map((entry, index) => {
+                                const vaccineNameError = showImmunizationErrors
+                                    && !entry.vaccineName.trim()
+                                    && Boolean(entry.dose.trim() || entry.dateReceived.trim());
+                                const errorId = `consult-vaccine-name-${entry.id}-error`;
+
+                                return (
+                                    <fieldset key={entry.id} className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+                                        <legend className="sr-only">Vaccine entry {index + 1}</legend>
+                                        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                                            <div className="min-w-0">
+                                                <label className={labelCls} htmlFor={`consult-vaccine-name-${entry.id}`}>Vaccine Name</label>
+                                                <input
+                                                    id={`consult-vaccine-name-${entry.id}`}
+                                                    type="text"
+                                                    value={entry.vaccineName}
+                                                    onChange={event => handleVaccineChange(entry.id, 'vaccineName', event.target.value)}
+                                                    className={vaccineNameError ? clinicalInputErrorClass : inputCls}
+                                                    aria-invalid={vaccineNameError}
+                                                    aria-describedby={vaccineNameError ? errorId : undefined}
+                                                    placeholder="e.g., BCG"
+                                                />
+                                                {vaccineNameError && <p id={errorId} className="mt-1.5 text-xs font-medium text-[var(--coral-accent-strong)]">Vaccine Name is required when a dose or date is entered.</p>}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <label className={labelCls} htmlFor={`consult-vaccine-dose-${entry.id}`}>Dose / Shot</label>
+                                                <input
+                                                    id={`consult-vaccine-dose-${entry.id}`}
+                                                    type="text"
+                                                    value={entry.dose}
+                                                    onChange={event => handleVaccineChange(entry.id, 'dose', event.target.value)}
+                                                    className={inputCls}
+                                                    placeholder="e.g., 1st Dose"
+                                                />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <label className={labelCls} htmlFor={`consult-vaccine-date-${entry.id}`}>Date Received</label>
+                                                <input
+                                                    id={`consult-vaccine-date-${entry.id}`}
+                                                    type="date"
+                                                    value={entry.dateReceived}
+                                                    onChange={event => handleVaccineChange(entry.id, 'dateReceived', event.target.value)}
+                                                    className={`${inputCls} min-w-0`}
+                                                />
+                                            </div>
+                                            <div className="flex min-w-0 items-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveVaccine(entry.id)}
+                                                    className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-2.5 text-sm font-semibold text-[var(--text-2)] transition-colors hover:bg-[var(--border-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2"
+                                                    aria-label={`Remove vaccine entry ${index + 1}`}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleAddVaccine}
+                            className="min-h-11 w-full rounded-lg border border-[var(--brand-primary)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 sm:w-auto"
+                        >
+                            + Add Another Vaccine
+                        </button>
+                    </div>
                 </div>
                 <div className="bg-[var(--surface-subtle)]/70 rounded-xl border border-[var(--border)] p-5 space-y-6 shadow-sm">
                     <div><label className={labelCls}>Smoking History</label><RadioGroup name="smoking" options={['Yes', 'No']} value={formData.smoking} />{formData.smoking === 'Yes' && <div className="grid grid-cols-2 gap-3 mt-3"><div><label className={labelCls} htmlFor="consult-smokingSticksPerDay">Sticks / Day</label><input id="consult-smokingSticksPerDay" type="number" name="smokingSticksPerDay" value={formData.smokingSticksPerDay} onChange={handleChange} className={inputCls} /></div><div><label className={labelCls} htmlFor="consult-smokingYears">Years</label><input id="consult-smokingYears" type="number" name="smokingYears" value={formData.smokingYears} onChange={handleChange} className={inputCls} /></div></div>}</div>
@@ -1467,7 +1667,7 @@ export function ConsultationPage({
                 </div>
                 </div>
             </div>}
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(3)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Pertinent Physical Examination Findings</button></div>
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={handleRelevantHistoriesNext} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Pertinent Physical Examination Findings</button></div>
         </div>
     );
 
