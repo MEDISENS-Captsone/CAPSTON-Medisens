@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase/client';
 import { Icon } from '../../components/shared/Icon';
 import { Badge, Button, EmptyState, Input } from '../../components/ui';
 import { SkeletonTable } from '../../components/ui/Skeleton';
+import { PatientCsvImport } from '../../features/patients/PatientCsvImport';
 
 const MALVAR_BARANGAYS = [
     'Bagong Pook, Malvar, Batangas',
@@ -169,7 +170,7 @@ export function RecordsComponent({ onPatientClick, updatedPatient = null, touchL
                         <h2 className="clinical-table-title">Patient Registry</h2>
                         <p className="clinical-table-subtitle">{allPatients.length} registered patient{allPatients.length !== 1 ? 's' : ''}</p>
                     </div>
-                    <Badge tone="slate" className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</Badge>
+                    <div className="flex flex-wrap items-center gap-3"><PatientCsvImport onImported={() => void fetchPatients()} /><Badge tone="slate" className="clinical-count-badge">{patients.length} result{patients.length !== 1 ? 's' : ''}</Badge></div>
                 </div>
 
                 <div className={`clinical-toolbar ${touchLayout ? 'bhw-records-toolbar' : ''}`}>

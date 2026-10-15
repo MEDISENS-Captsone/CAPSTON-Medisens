@@ -5,6 +5,7 @@ import { Icon } from '../../components/shared/Icon';
 import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
 import { SkeletonList } from '../../components/ui/Skeleton';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
+import { PatientCsvImport } from '../patients/PatientCsvImport';
 
 interface Props {
     patients: any[];
@@ -15,6 +16,7 @@ interface Props {
     onPatientClick?: (patient: any) => void;
     onNavigateToRecords?: () => void;
     onStartIntake?: (patientId: string) => void;
+    onImported?: () => void;
 }
 
 // ─── History Modal ────────────────────────────────────────────────────────────
@@ -95,7 +97,7 @@ function HistoryModal({ patient, logs, onClose }: { patient: any; logs: any[]; o
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, onPatientClick, onStartIntake }: Props) => {
+const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, onPatientClick, onStartIntake, onImported }: Props) => {
     const [searchQuery,    setSearchQuery]    = useState('');
     const [historyPatient, setHistoryPatient] = useState<any>(null);
 
@@ -125,6 +127,7 @@ const PatientRecords = ({ patients, records, isLoading, hasLoadError = false, on
                         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Patient care</p>
                         <h2 id="midwife-patient-directory-heading" className="text-xl font-semibold text-[var(--text)] tracking-tight">Patient Directory</h2>
                         <p className="text-sm text-[var(--text-secondary)] mt-1">Open a patient record or review FHSIS care history.</p>
+                        <div className="mt-3"><PatientCsvImport onImported={onImported} /></div>
                     </div>
                     <div className="relative w-full md:max-w-sm">
                         <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />

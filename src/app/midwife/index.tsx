@@ -10,6 +10,7 @@ import { SkeletonList } from '../../components/ui/Skeleton';
 import { LoadingState } from '../../components/ui';
 import { safeTrim } from '../../lib/utils/strings';
 import { PatientTransactionHistory } from '../../components/patient/PatientTransactionHistory';
+import { ConsultationPhotos } from '../../features/patients/ConsultationPhotos';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 
 import Dashboard from '../../features/midwife/dashboard';
@@ -197,6 +198,7 @@ function PatientModal({
                             <PatientHistoryPanel title="Patient History">
                                 <PatientTransactionHistory patientId={patient.id} />
                             </PatientHistoryPanel>
+                            <ConsultationPhotos key={patient.id} patientId={patient.id} />
                         </div>
                     )}
                 </div>
@@ -329,6 +331,7 @@ const MidwifeApp = () => {
                                     rhuPersonnel={userData.name}
                                     onPatientClick={(p) => setSelectedPatient(p)}  // ← passes modal opener
                                     onStartIntake={handleStartIntake}
+                                    onImported={() => void refreshData()}
                                 />
                             )}
                             {activeTab === 'consultation' && (
