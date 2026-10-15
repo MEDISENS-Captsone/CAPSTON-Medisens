@@ -18,6 +18,7 @@ import { AuditLogPage } from '../../features/audit/AuditLogPage';
 import { logAuditEvent } from '../../features/audit/services';
 import { useDialogFocus } from '../../components/ui/useDialogFocus';
 import { useHashPage } from '../../hooks/useHashPage';
+import { AdminPatientTransferPage } from '../../features/patient-transfer/AdminPatientTransferPage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserProfile {
@@ -156,7 +157,7 @@ const AdminDashboard = () => {
 
     // Context & Auth
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [activePage, setActivePage] = useHashPage('admin', page => (page === 'audit-log' ? page : 'admin'));
+    const [activePage, setActivePage] = useHashPage('admin', page => (page === 'audit-log' || page === 'import-export' ? page : 'admin'));
 
     const isOnline = useOnlineStatus();
     const [userName, setUserName] = useState('Loading...');
@@ -199,6 +200,7 @@ const AdminDashboard = () => {
 
     const navItems = [
         { id: 'admin', label: 'User Management', icon: 'users', group: 'Administration' },
+        { id: 'import-export', label: 'Import & Export', icon: 'upload', group: 'Records & Governance' },
         { id: 'audit-log', label: 'Audit Log', icon: 'clipboard', group: 'Records & Governance' },
     ];
 
@@ -505,9 +507,9 @@ const AdminDashboard = () => {
             <main className="app-shell-main flex-1 min-w-0 overflow-auto md:ml-[240px] w-full">
                 {/* ─── Topbar ─── */}
                 <Topbar
-                    title={activePage === 'audit-log' ? 'Audit Log' : 'User Management'}
+                    title={activePage === 'audit-log' ? 'Audit Log' : activePage === 'import-export' ? 'Import & Export' : 'User Management'}
                     sectionLabel="Administration"
-                    breadcrumbs={[{ label: 'Administration' }, { label: activePage === 'audit-log' ? 'Audit Log' : 'User Management', current: true }]}
+                    breadcrumbs={[{ label: 'Administration' }, { label: activePage === 'audit-log' ? 'Audit Log' : activePage === 'import-export' ? 'Import & Export' : 'User Management', current: true }]}
                     userName={userName}
                     userInitials={userInitials}
                     userRole="Administrator"
@@ -517,7 +519,7 @@ const AdminDashboard = () => {
                 />
 
                 <div className="app-content-canvas w-full flex flex-col gap-5 overflow-x-hidden">
-                    {activePage === 'audit-log' ? (
+                    {activePage === 'import-export' ? <AdminPatientTransferPage /> : activePage === 'audit-log' ? (
                         <>
                             <PageHeader
                                 title="Audit Log"

@@ -1,21 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
-import { Button, Card, EmptyState, Modal } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Modal } from '../../components/ui';
 import { Icon } from '../../components/shared/Icon';
 import { supabase } from '../../lib/supabase/client';
 
 const TEMPLATE_VERSION = 'MEDISENS-DOWNTIME-V1';
 const TEMPLATE_DOWNLOAD = '/downloads/MediSens_Downtime_Reference_Import_Phase2.xlsx';
+const MAX_WORKBOOK_BYTES = 10 * 1024 * 1024;
+const MAX_RECORDS = 500;
 const ACTIVE_SHEETS = ['Import Manifest', 'Existing Patients', 'Initial Intake', 'Vitals'] as const;
-const DEFERRED_SHEETS = ['Doctor Consultation', 'Laboratory Requests', 'Laboratory Results', 'Prescriptions', 'Follow-Ups'] as const;
+const OPTIONAL_SHEETS = ['Instructions', ...ACTIVE_SHEETS] as const;
 
 type ValidationStatus = 'READY' | 'ERROR' | 'DUPLICATE' | 'CONFLICT' | 'SKIPPED';
-type ValidationFinding = { status: ValidationStatus; sheet: string; row?: number; field?: string; message: string };
+type ValidationFinding = { status: ValidationStatus; sheet: string; row?: number; field?: string; message: string; hasData?: boolean };
 type ImportRecord = Record<string, unknown>;
 type ImportSummary = { imported?: number; errors?: number; duplicates?: number; skipped?: number };
 type ServerResult = { downtime_reference?: string; status?: ValidationStatus | 'IMPORTED'; message?: string };
 type PreviewRecord = { reference: string; patientId: string; patientName: string; status: ValidationStatus; findings: ValidationFinding[]; data: ImportRecord; hasInitialIntake: boolean; hasVitals: boolean; importStatus?: ServerResult['status']; importMessage?: string };
+type ImportErrorKind = 'file' | 'connection' | 'server';
+
+function isConnectionFailure(error: unknown): boolean {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+    const message = error instanceof Error ? error.message : String((error as { message?: unknown })?.message ?? '');
+    return /failed to fetch|network|connection|timeout|load failed/i.test(message);
+}
 
 const REQUIRED_COLUMNS: Record<string, string[]> = {
     'Import Manifest': ['downtime_reference', 'patient_id', 'source', 'actual_service_date', 'actual_service_time', 'responsible_staff_reference', 'notes'],
@@ -48,7 +57,10 @@ function validateWorkbook(workbook: XLSX.WorkBook): { findings: ValidationFindin
     const skipped: ValidationFinding[] = [];
     const missingSheets = ACTIVE_SHEETS.filter((name) => !workbook.SheetNames.includes(name));
     missingSheets.forEach((sheet) => findings.push({ status: 'ERROR', sheet, field: '*', message: 'Required sheet is missing.' }));
-    DEFERRED_SHEETS.filter((name) => workbook.SheetNames.includes(name)).forEach((sheet) => skipped.push({ status: 'SKIPPED', sheet, field: '*', message: 'Not supported in V1; no records will be imported from this sheet.' }));
+    workbook.SheetNames.filter((name) => !OPTIONAL_SHEETS.includes(name as typeof OPTIONAL_SHEETS[number])).forEach((sheet) => {
+        const rows = rowsFor(workbook.Sheets[sheet]);
+        skipped.push({ status: 'SKIPPED', sheet, field: '*', hasData: rows.length > 0, message: rows.length ? `Contains ${rows.length} data row${rows.length === 1 ? '' : 's'}; no records from this unsupported sheet will be imported.` : 'Unsupported sheet is empty and will not be imported.' });
+    });
 
     const rowsBySheet = new Map<string, Record<string, unknown>[]>();
     ACTIVE_SHEETS.forEach((name) => {
@@ -183,6 +195,7 @@ function serviceMoment(data: ImportRecord): string {
 }
 
 export function DowntimeReferenceImportPage() {
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [fileName, setFileName] = useState('');
     const [version, setVersion] = useState<string | null>(null);
     const [records, setRecords] = useState<PreviewRecord[]>([]);
@@ -191,7 +204,9 @@ export function DowntimeReferenceImportPage() {
     const [importing, setImporting] = useState(false);
     const [step, setStep] = useState<'upload' | 'review' | 'confirmed'>('upload');
     const [error, setError] = useState('');
+    const [errorKind, setErrorKind] = useState<ImportErrorKind | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [unsupportedAcknowledged, setUnsupportedAcknowledged] = useState(false);
     const [summary, setSummary] = useState<ImportSummary | null>(null);
 
     const counts = useMemo(() => {
@@ -201,35 +216,44 @@ export function DowntimeReferenceImportPage() {
         findings.filter((finding) => finding.status === 'ERROR' && (!finding.row || !['Import Manifest', 'Initial Intake', 'Vitals'].includes(finding.sheet))).forEach(() => { next.ERROR += 1; });
         return next;
     }, [findings, records]);
-    const blocked = counts.ERROR > 0 || counts.DUPLICATE > 0 || records.length === 0 || version !== TEMPLATE_VERSION;
+    const unsupportedSheets = findings.filter((finding) => finding.status === 'SKIPPED');
+    const unsupportedSheetsWithData = unsupportedSheets.filter((finding) => finding.hasData);
+    const blocked = counts.ERROR > 0 || counts.DUPLICATE > 0 || records.length === 0 || records.length > MAX_RECORDS || version !== TEMPLATE_VERSION || (unsupportedSheetsWithData.length > 0 && !unsupportedAcknowledged);
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        setError(''); setSummary(null); setFileName(file.name); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setStep('upload');
+        setError(''); setErrorKind(null); setSummary(null); setFileName(file.name); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setStep('upload'); setUnsupportedAcknowledged(false);
         try {
+            if (file.size > MAX_WORKBOOK_BYTES) throw new Error('FILE_TOO_LARGE');
+            if (!/\.xlsx$/i.test(file.name) || (file.type && file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && file.type !== 'application/octet-stream')) throw new Error('INVALID_XLSX');
             const data = await file.arrayBuffer();
+            const signature = new Uint8Array(data.slice(0, 4));
+            if (signature[0] !== 0x50 || signature[1] !== 0x4b || ![0x03, 0x05, 0x07].includes(signature[2]) || ![0x04, 0x06, 0x08].includes(signature[3])) throw new Error('INVALID_XLSX');
             const workbook = XLSX.read(data, { type: 'array', cellDates: true });
             const instructionSheet = workbook.Sheets.Instructions;
             const instructionText = instructionSheet ? XLSX.utils.sheet_to_json<unknown[]>(instructionSheet, { header: 1, defval: '' }).flat().map(cellText).join(' ') : '';
             const detectedVersion = instructionText.includes(TEMPLATE_VERSION) ? TEMPLATE_VERSION : null;
             setVersion(detectedVersion);
             const result = validateWorkbook(workbook);
+            if (result.records.length > MAX_RECORDS) result.findings.push({ status: 'ERROR', sheet: 'Workbook', field: '*', message: `This workbook contains ${result.records.length} encounters. The maximum is ${MAX_RECORDS}.` });
             if (!detectedVersion) result.findings.unshift({ status: 'ERROR', sheet: 'Instructions', row: 1, field: 'template_version', message: `Unsupported or missing template version. Expected ${TEMPLATE_VERSION}.` });
             setFindings(result.findings); setRecords(result.records); setImportPayload(result.payload); setStep('review');
         } catch (parseError) {
-            console.error('Unable to read downtime workbook.', parseError);
-            setError('This file could not be read as a MediSens downtime workbook. Choose the approved .xlsx template and try again.');
+            const code = parseError instanceof Error ? parseError.message : '';
+            setErrorKind('file');
+            setError(code === 'FILE_TOO_LARGE' ? 'This workbook exceeds the 10 MB limit. Choose a smaller .xlsx workbook.' : code === 'INVALID_XLSX' ? 'Choose a valid .xlsx Excel workbook.' : 'This workbook could not be read. Choose the approved .xlsx template and try again.');
+            setStep('upload');
         } finally {
             event.target.value = '';
         }
     };
 
     const handleImport = async () => {
-        setConfirmOpen(false); setImporting(true); setError('');
+        setConfirmOpen(false); setImporting(true); setError(''); setErrorKind(null);
         try {
             const { data, error: importError } = await supabase.rpc('import_downtime_batch', { p_template_version: TEMPLATE_VERSION, p_records: importPayload });
-            if (importError) { console.error('Downtime import failed.', importError); setError('The import could not be completed safely. Your entries are still here; check your connection and try again.'); return; }
+            if (importError) { setErrorKind(isConnectionFailure(importError) ? 'connection' : 'server'); setError(isConnectionFailure(importError) ? 'Connection was interrupted. Your reviewed workbook is still here; reconnect and retry.' : 'The server rejected this import. Your reviewed workbook is still here; correct any listed issues or contact the system administrator.'); return; }
             const response = data as { summary?: ImportSummary; results?: ServerResult[] } | null;
             const nextSummary = response?.summary ?? {};
             setSummary(nextSummary);
@@ -241,11 +265,13 @@ export function DowntimeReferenceImportPage() {
             }));
             setFindings((current) => [...current, { status: 'READY', sheet: 'Import Summary', message: `Server result: ${nextSummary.imported ?? 0} imported, ${nextSummary.errors ?? 0} failed, ${nextSummary.duplicates ?? 0} duplicates, ${nextSummary.skipped ?? 0} skipped.` }]);
             setStep('confirmed');
+        } catch (cause) {
+            setErrorKind(isConnectionFailure(cause) ? 'connection' : 'server');
+            setError(isConnectionFailure(cause) ? 'Connection was interrupted. Your reviewed workbook is still here; reconnect and retry.' : 'The server could not complete this import. Your reviewed workbook is still here; try again or contact the system administrator.');
         } finally { setImporting(false); }
     };
 
-    const resetImport = () => { setConfirmOpen(false); setStep('upload'); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setFileName(''); setError(''); setSummary(null); };
-    const unsupportedSheets = findings.filter((finding) => finding.status === 'SKIPPED');
+    const resetImport = () => { setConfirmOpen(false); setStep('upload'); setRecords([]); setFindings([]); setImportPayload([]); setVersion(null); setFileName(''); setError(''); setErrorKind(null); setSummary(null); setUnsupportedAcknowledged(false); if (fileInputRef.current) fileInputRef.current.value = ''; };
     const workbookProblems = findings.filter((finding) => finding.status !== 'SKIPPED' && finding.sheet !== 'Import Summary' && !records.some((record) => record.findings.includes(finding)));
     const activeStage = step === 'confirmed' ? 3 : confirmOpen ? 2 : step === 'review' ? 1 : 0;
     const resultKind = (summary?.errors ?? 0) > 0 ? 'failed' : (summary?.duplicates ?? 0) > 0 && (summary?.imported ?? 0) === 0 ? 'duplicate' : 'success';
@@ -255,17 +281,17 @@ export function DowntimeReferenceImportPage() {
         : resultKind === 'duplicate'
             ? 'No new encounter was added because this downtime encounter was already imported.'
             : 'One or more encounters could not be imported. Review the result below before trying again.';
+    const resultCounts = useMemo(() => ({ imported: records.filter((record) => record.importStatus === 'IMPORTED').length, duplicates: records.filter((record) => record.importStatus === 'DUPLICATE').length, rejected: records.filter((record) => record.importStatus === 'ERROR').length }), [records]);
 
-    return <><div className="pwa-page-pad downtime-import-page" inert={confirmOpen ? true : undefined}>
-        <p className="downtime-page-description">Encode completed paper records after an internet outage.</p>
+    return <><div className="downtime-import-page">
         <nav className="downtime-stage-nav" aria-label="Downtime import progress"><ol>{['Upload', 'Review', 'Confirm', 'Result'].map((label, index) => <li key={label} className={index < activeStage ? 'is-complete' : index === activeStage ? 'is-current' : ''} aria-current={index === activeStage ? 'step' : undefined}><span>{index < activeStage ? <Icon name="check" /> : index + 1}</span><strong>{label}</strong></li>)}</ol></nav>
 
         {step !== 'confirmed' && <Card className="downtime-workbook-card">
             <div className="downtime-workbook-heading"><div><h2>Workbook</h2><p>Use the approved Excel template for completed downtime records.</p></div><a className="downtime-template-link" href={TEMPLATE_DOWNLOAD} download><Icon name="file-text" />Download Excel Template</a></div>
-            <input id="downtime-workbook-file" className="downtime-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void handleFile(event)} />
+            <input ref={fileInputRef} id="downtime-workbook-file" className="downtime-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void handleFile(event)} />
             {!fileName ? <label className="downtime-file-picker" htmlFor="downtime-workbook-file"><Icon name="upload" /><span><strong>Choose completed workbook</strong><small>Excel files (.xlsx)</small></span></label> : <div className="downtime-selected-file" aria-live="polite"><span className="downtime-selected-file-icon"><Icon name="file-text" /></span><span className="downtime-selected-file-copy"><strong>{fileName}</strong><small>{step === 'review' && !blocked ? 'Ready for encounter review' : step === 'review' ? 'Workbook needs attention' : 'Checking workbook…'}</small></span><span className="downtime-selected-file-actions"><label htmlFor="downtime-workbook-file">Replace</label><button type="button" onClick={resetImport}>Remove file</button></span></div>}
             {error && <div className="role-dashboard-alert downtime-workbook-alert" role="alert"><p className="role-dashboard-alert-title">Workbook could not be reviewed</p><p className="role-dashboard-alert-copy">{error}</p></div>}
-            {unsupportedSheets.length > 0 && <details className="downtime-unsupported-sheets"><summary><Icon name="chevron-right" /><span>{unsupportedSheets.length} unsupported sheet{unsupportedSheets.length === 1 ? '' : 's'} will be ignored</span></summary><ul>{unsupportedSheets.map((finding) => <li key={finding.sheet}>{finding.sheet}</li>)}</ul></details>}
+            {unsupportedSheets.length > 0 && <div className="downtime-unsupported-sheets"><p>{unsupportedSheets.length} unsupported sheet{unsupportedSheets.length === 1 ? '' : 's'} will not be imported</p><ul>{unsupportedSheets.map((finding) => <li key={finding.sheet}><strong>{finding.sheet}:</strong> {finding.message}</li>)}</ul>{unsupportedSheetsWithData.length > 0 && <label className="downtime-acknowledgement"><input type="checkbox" checked={unsupportedAcknowledged} onChange={(event) => setUnsupportedAcknowledged(event.target.checked)} /> I understand that data in these sheets will not be imported.</label>}</div>}
         </Card>}
 
         {step === 'review' && <section className="downtime-review" aria-labelledby="downtime-review-title">
@@ -280,13 +306,15 @@ export function DowntimeReferenceImportPage() {
                 const visualAcuity = [vital('visual_acuity_left') && `Left: ${vital('visual_acuity_left')}`, vital('visual_acuity_right') && `Right: ${vital('visual_acuity_right')}`].filter(Boolean).join(' · ');
                 return <details key={`${fileName}-${record.reference}-${index}`} className={`downtime-encounter${hasProblem ? ' has-problem' : ''}`} open={hasProblem || records.length === 1 ? true : undefined}><summary><span className="downtime-encounter-summary-copy"><small>Downtime encounter</small><strong>{record.patientName || `Patient ID ${record.patientId || 'missing'}`}</strong><span>{record.reference}</span></span>{hasProblem && <span className="downtime-encounter-check is-problem">Needs attention</span>}</summary><div className="downtime-encounter-body">
                     {record.findings.length > 0 && <div className="downtime-encounter-problems" role="alert"><strong>Review these workbook problems</strong><ul>{record.findings.map((finding, findingIndex) => <li key={`${finding.sheet}-${finding.row}-${finding.field}-${findingIndex}`}>{userFacingFinding(finding)}</li>)}</ul></div>}
-                    <div className="downtime-review-grid"><ReviewSection title="Patient" fields={[{ label: 'Patient name', value: record.patientName }, { label: 'Patient ID', value: record.patientId }]} /><ReviewSection title="Service Information" fields={[{ label: 'Service date and time', value: serviceMoment(data) }, { label: 'Responsible staff', value: value('responsible_staff_reference') }, { label: 'Consultation mode', value: formatDisplayText(value('mode_of_transaction')) }]} /><ReviewSection title="Initial Intake" fields={[{ label: 'Chief complaint', value: value('chief_complaint') }, { label: 'Referred by', value: value('referred_by') }, { label: 'Mode of transfer', value: formatDisplayText(value('mode_of_transfer')) }, { label: 'Diagnosis', value: value('diagnosis') }, { label: 'Visit disposition', value: formatDisplayText(value('visit_disposition')) }]} /><ReviewSection title="Vitals" fields={[{ label: 'Blood pressure', value: withUnit(vital('bp'), 'mmHg') }, { label: 'Heart rate', value: withUnit(vital('heart_rate'), 'bpm') }, { label: 'Respiratory rate', value: withUnit(vital('respiratory_rate'), '/min') }, { label: 'Temperature', value: withUnit(vital('temperature'), '°C') }, { label: 'O₂ saturation', value: withUnit(vital('o2_saturation'), '%') }, { label: 'Weight', value: withUnit(vital('weight'), 'kg') }, { label: 'Height', value: withUnit(vital('height'), 'cm') }, { label: 'BMI', value: vital('bmi') }, { label: 'MUAC', value: withUnit(vital('muac'), 'cm') }, { label: 'Nutritional status', value: formatDisplayText(vital('nutritional_status')) }, { label: 'Visual acuity', value: visualAcuity }, { label: 'General survey', value: formatDisplayText(vital('general_survey')) }]} /></div>
+                    <div className="downtime-review-grid"><ReviewSection title="Patient" fields={[{ label: 'Patient name', value: record.patientName }, { label: 'Patient ID', value: record.patientId }]} /><ReviewSection title="Service Information" fields={[{ label: 'Service date and time', value: serviceMoment(data) }, { label: 'Responsible staff', value: value('responsible_staff_reference') }, { label: 'Consultation mode', value: formatDisplayText(value('mode_of_transaction')) }]} /><ReviewSection title="Initial Intake" fields={[{ label: 'Chief complaint', value: value('chief_complaint') }, { label: 'Referred by', value: value('referred_by') }, { label: 'Mode of transfer', value: formatDisplayText(value('mode_of_transfer')) }, { label: 'Diagnosis', value: 'Not imported by this workflow' }, { label: 'Visit disposition', value: formatDisplayText(value('visit_disposition')) }]} /><ReviewSection title="Vitals" fields={[{ label: 'Blood pressure', value: withUnit(vital('bp'), 'mmHg') }, { label: 'Heart rate', value: withUnit(vital('heart_rate'), 'bpm') }, { label: 'Respiratory rate', value: withUnit(vital('respiratory_rate'), '/min') }, { label: 'Temperature', value: withUnit(vital('temperature'), '°C') }, { label: 'O₂ saturation', value: withUnit(vital('o2_saturation'), '%') }, { label: 'Weight', value: withUnit(vital('weight'), 'kg') }, { label: 'Height', value: withUnit(vital('height'), 'cm') }, { label: 'BMI', value: vital('bmi') }, { label: 'MUAC', value: withUnit(vital('muac'), 'cm') }, { label: 'Nutritional status', value: formatDisplayText(vital('nutritional_status')) }, { label: 'Visual acuity', value: visualAcuity }, { label: 'General survey', value: formatDisplayText(vital('general_survey')) }]} /></div>
                 </div></details>;
             })}</div> : <EmptyState title="No downtime encounters found" description="Add rows to the supported sheets in the approved template, then replace this file." />}
+            {error && errorKind !== 'file' && <div className="role-dashboard-alert downtime-workbook-alert" role="alert"><p className="role-dashboard-alert-title">{errorKind === 'connection' ? 'Connection problem' : 'Import rejected'}</p><p className="role-dashboard-alert-copy">{error}</p><Button variant="outline" disabled={importing} onClick={() => void handleImport()}>Retry import</Button></div>}
+            {records.length > MAX_RECORDS && <p className="downtime-limit-message" role="alert">This workbook exceeds the {MAX_RECORDS}-encounter import limit.</p>}
             <div className="downtime-import-actions"><Button disabled={blocked || importing} isLoading={importing} onClick={() => setConfirmOpen(true)}>Continue</Button></div>
         </section>}
 
-        {step === 'confirmed' && <Card className={`downtime-result-card is-${resultKind}`} role="status"><div className="downtime-result-heading"><span><Icon name={resultKind === 'success' ? 'check' : 'alert-triangle'} /></span><div><h2>{resultTitle}</h2><p>{resultCopy}</p></div></div><div className="downtime-result-list" role="list">{records.map((record) => { const statusLabel = record.importStatus === 'IMPORTED' ? 'Imported' : record.importStatus === 'DUPLICATE' ? 'Duplicate' : record.importStatus === 'ERROR' ? 'Failed' : 'Processed'; return <div key={record.reference} className={`downtime-result-row is-${statusLabel.toLowerCase()}`} role="listitem"><div><strong>{record.patientName || `Patient ID ${record.patientId || 'missing'}`}</strong><span>{record.reference}</span></div><div><strong>{statusLabel}</strong>{record.importMessage && <span>{userFacingServerMessage(record.importStatus, record.importMessage)}</span>}</div></div>; })}</div><div className="downtime-import-actions"><Button onClick={resetImport}>Import another workbook</Button></div></Card>}
+        {step === 'confirmed' && <Card className={`downtime-result-card is-${resultKind}`} role="status"><div className="downtime-result-heading"><span><Icon name={resultKind === 'success' ? 'check' : 'alert-triangle'} /></span><div><h2>{resultTitle}</h2><p>{resultCopy}</p></div></div>{error && <div className="role-dashboard-alert downtime-workbook-alert" role="alert"><p className="role-dashboard-alert-title">{errorKind === 'connection' ? 'Connection problem' : 'Import rejected'}</p><p className="role-dashboard-alert-copy">{error}</p><Button variant="outline" disabled={importing} onClick={() => void handleImport()}>Retry import</Button></div>}<div className="downtime-result-counts" aria-label="Import result counts"><span><Badge tone="green">{resultCounts.imported} imported</Badge></span><span><Badge tone="amber">{resultCounts.duplicates} duplicate</Badge></span><span><Badge tone="red">{resultCounts.rejected} rejected</Badge></span>{summary && (summary.imported ?? 0) + (summary.duplicates ?? 0) + (summary.errors ?? 0) < records.length && <span><Badge tone="slate">{records.length - (summary.imported ?? 0) - (summary.duplicates ?? 0) - (summary.errors ?? 0)} unprocessed</Badge></span>}</div><div className="downtime-result-list" role="list">{records.map((record) => { const statusLabel = record.importStatus === 'IMPORTED' ? 'Imported' : record.importStatus === 'DUPLICATE' ? 'Duplicate' : record.importStatus === 'ERROR' ? 'Rejected' : 'Not processed'; return <div key={record.reference} className={`downtime-result-row is-${statusLabel.toLowerCase()}`} role="listitem"><div><strong>{record.patientName || `Patient ID ${record.patientId || 'missing'}`}</strong><span>{record.reference}</span></div><div><strong>{statusLabel}</strong>{record.importMessage && <span>{userFacingServerMessage(record.importStatus, record.importMessage)}</span>}</div></div>; })}</div><div className="downtime-import-actions">{error && <Button disabled={importing} isLoading={importing} onClick={() => void handleImport()}>Retry import</Button>}<Button onClick={resetImport}>Import another workbook</Button></div></Card>}
 
     </div>{confirmOpen && typeof document !== 'undefined' && createPortal(<div className="downtime-confirm-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmOpen(false); }}><Modal labelledBy="downtime-confirm-title" className="downtime-confirm-dialog" onClose={() => setConfirmOpen(false)}><div className="downtime-confirm"><div className="downtime-confirm-heading"><span><Icon name="clipboard" /></span><div><h2 id="downtime-confirm-title">Import {records.length} downtime encounter{records.length === 1 ? '' : 's'}?</h2><p>Confirm that these details match the completed paper record{records.length === 1 ? '' : 's'}.</p></div></div><div className="downtime-confirm-encounters">{records.map((record) => { const additions = [record.hasInitialIntake && 'Initial Intake', record.hasVitals && 'Vitals'].filter(Boolean); return <section key={record.reference}><h3>{record.patientName || `Patient ID ${record.patientId || 'missing'}`}</h3>{record.patientName && <p>Patient ID {record.patientId}</p>}<dl>{serviceMoment(record.data) && <div><dt>Service date and time</dt><dd>{serviceMoment(record.data)}</dd></div>}{cellText(record.data.responsible_staff_reference) && <div><dt>Responsible staff</dt><dd>{cellText(record.data.responsible_staff_reference)}</dd></div>}{additions.length > 0 && <div><dt>Will add</dt><dd>{additions.join(' and ')}</dd></div>}</dl></section>; })}</div><div className="downtime-import-actions"><Button variant="outline" onClick={() => setConfirmOpen(false)}>Back</Button><Button disabled={importing} isLoading={importing} onClick={() => void handleImport()}>Import encounter{records.length === 1 ? '' : 's'}</Button></div></div></Modal></div>, document.body)}</>;
 }

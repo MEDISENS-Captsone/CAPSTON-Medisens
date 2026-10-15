@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.patient-login]
 verify_jwt = false
+
+[functions.admin-patient-transfer]
+verify_jwt = true

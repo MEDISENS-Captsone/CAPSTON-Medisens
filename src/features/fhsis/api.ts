@@ -61,6 +61,19 @@ export async function listFhsisReportHistory(): Promise<readonly FhsisReport[]> 
     return (data as DatabaseReport[] | null ?? []).map(mapReport);
 }
 
+/** Nurse-owned verified reports for official export selection; RLS remains the authorization boundary. */
+export async function listVerifiedNurseFhsisReports(): Promise<readonly FhsisReport[]> {
+    const { data, error } = await supabase
+        .from('fhsis_reports')
+        .select(reportColumns)
+        .eq('report_type', 'm1-brgy')
+        .eq('status', 'verified')
+        .order('reporting_month', { ascending: false })
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as DatabaseReport[] | null ?? []).map(mapReport);
+}
+
 // PostgREST caps unbounded selects at its configured max row count (1000 by
 // default). An M1 BRGY report can hold well over 1000 values, so this reads
 // fhsis_report_values in successive .range() pages rather than one select.

@@ -6,7 +6,13 @@ import { reportValuesToTemplateValues } from './validation';
 const escapeHtml = (value: string | number | null | undefined) => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
-const csvCell = (value: string | number | null | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+function csvCell(value: string | number | null | undefined): string {
+    let text = String(value ?? '');
+    // Quoting alone does not stop spreadsheet applications evaluating formulas.
+    // Prefix suspicious text with an apostrophe while leaving numeric values intact.
+    if (typeof value !== 'number' && /^[\u0000-\u0020]*[=+\-@]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+}
 
 function reportMetadata(detail: FhsisReportDetail): readonly [string, string | number][] {
     const report = detail.report;

@@ -11,7 +11,7 @@ import { ArchiveReviewPage } from '../../features/admin/ArchiveReviewPage';
 import { Badge, Button, Card, EmptyState, Input, LoadingState, SkeletonKpiGrid, SkeletonList } from '../../components/ui';
 import { useHashPage } from '../../hooks/useHashPage';
 import { FhsisNurseWorkspace } from '../../features/fhsis/nurse/FhsisNurseWorkspace';
-import { DowntimeReferenceImportPage } from '../../features/downtime-import/DowntimeReferenceImportPage';
+import { NurseImportExportPage } from '../../features/downtime-import/NurseImportExportPage';
 
 
 // ─── Imported Pure Components ────────────────────────────────────────────────
@@ -356,7 +356,7 @@ const NurseDashboard = () => {
                                 <ArchiveReviewPage isOnline={isOnline} />
                             </>
                         )}
-                        {activePage === 'downtime-import' && <DowntimeReferenceImportPage />}
+                        {activePage === 'downtime-import' && <NurseImportExportPage />}
                         {(activePage === 'fhsis-encode' || activePage === 'fhsis-history') && !roleReady && (
                             <div className="pwa-page-pad"><LoadingState label="Verifying access" /></div>
                         )}
