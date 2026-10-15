@@ -16,6 +16,7 @@ import { ClinicalDrawer } from '../../components/ui/ClinicalDrawer';
 import { Skeleton, SkeletonList } from '../../components/ui/Skeleton';
 import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../components/patient/PatientChart';
 import { Badge, Button, Card, EmptyState } from '../../components/ui';
+import { ConsultationPhotos } from '../../features/patients/ConsultationPhotos';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -512,6 +513,7 @@ function DetailsPage() {
                     <PatientHistoryPanel>
                         {patientId && <PatientTransactionHistory patientId={patientId} />}
                     </PatientHistoryPanel>
+                    {patientId && <ConsultationPhotos key={patientId} patientId={patientId} />}
                 </ClinicalDrawer>
             )}
 

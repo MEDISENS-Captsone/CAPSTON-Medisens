@@ -3,6 +3,7 @@ import { useToast } from '../feedback/Toast';
 import { updatePatientRecord } from '../../features/patients/services';
 import { healthcareErrorMessage, logError } from '../../lib/utils/errors';
 import { PatientTransactionHistory } from './PatientTransactionHistory';
+import { ConsultationPhotos } from '../../features/patients/ConsultationPhotos';
 import { saveVaccineRecord, fetchVaccineRecords, removeVaccineRecord } from '../../features/patients/vaccineService';
 import type { VaccineRecord } from '../../features/patients/itemization';
 import {
@@ -1059,6 +1060,7 @@ export function PatientDetailModal({
                                         patientName={`${patient.firstName} ${patient.lastName}`}
                                     />
                                 </PatientHistoryPanel>
+                                <ConsultationPhotos key={patient.id} patientId={patient.id} />
                             </>
                         )}
                     </div>

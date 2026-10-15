@@ -16,6 +16,7 @@ import { PatientChartIdentityHeader, PatientHistoryPanel } from '../../component
 import { ClinicalPatientWorklist } from '../../components/patient/ClinicalPatientWorklist';
 import { PediatricGrowth } from '../../components/patient/PediatricGrowth';
 import { LabResultDetailModal, type LabResultData } from '../../components/shared/LabResultDetailModal';
+import { ConsultationPhotos } from '../../features/patients/ConsultationPhotos';
 
 // --- Interfaces ---------------------------------------------------------------
 export interface ConsultationPageProps {
@@ -1515,7 +1516,7 @@ export function ConsultationPage({
                 <div><label className={labelCls} htmlFor="consult-chiefComplaints">Chief Complaint</label><textarea id="consult-chiefComplaints" name="chiefComplaints" value={formData.chiefComplaints} onChange={handleChange} rows={6} className={textareaCls} placeholder="Describe the patient’s main concern..." /></div>
                 <div><label className={labelCls} htmlFor="consult-hpi">History of Present Illness</label><textarea id="consult-hpi" name="hpi" value={formData.hpi} onChange={handleChange} rows={6} className={textareaCls} placeholder="Document onset, course, and relevant symptoms..." /></div>
             </div>
-            <div className="flex justify-end pt-4"><button onClick={() => setActiveTab(2)} className={`w-full md:w-auto text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors duration-200 ${primaryBtnBg}`}>Next: Relevant Patient Histories</button></div>
+            <div className="flex justify-end pt-4"><button onClick={() => setActiveTab(2)} className={`w-full md:w-auto text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors duration-200 ${primaryBtnBg}`}>Next</button></div>
         </div>
     );
 
@@ -1667,7 +1668,7 @@ export function ConsultationPage({
                 </div>
                 </div>
             </div>}
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={handleRelevantHistoriesNext} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Pertinent Physical Examination Findings</button></div>
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(1)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={handleRelevantHistoriesNext} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next</button></div>
         </div>
     );
 
@@ -1688,7 +1689,8 @@ export function ConsultationPage({
             </div>
             <div><label className={labelCls} htmlFor="consult-generalSurvey">General Survey</label><textarea id="consult-generalSurvey" value={formData.generalSurvey} readOnly rows={3} className={`${textareaCls} cursor-default bg-[var(--surface-subtle)]`} placeholder="Not recorded" /></div>
             <div><label className={labelCls} htmlFor="consult-assessment">Relevant Physical Examination Findings</label><textarea id="consult-assessment" name="assessment" value={formData.assessment} onChange={handleChange} rows={6} className={textareaCls} placeholder="Document pertinent examination findings..." /></div>
-            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(2)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(5)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next: Diagnosis</button></div>
+            {patient?.id && <ConsultationPhotos key={patient.id} patientId={patient.id} consultationId={consultationId} resolveConsultation={ensureConsultationExists} />}
+            <div className="flex justify-between pt-4"><button onClick={() => setActiveTab(2)} className="bg-[var(--surface-subtle)] py-2.5 px-6 rounded-lg font-semibold">Back</button><button onClick={() => setActiveTab(5)} className={`text-white py-2.5 px-6 rounded-lg shadow-sm font-semibold ${primaryBtnBg}`}>Next</button></div>
         </div>
     );
 
@@ -1888,7 +1890,7 @@ export function ConsultationPage({
                         aria-busy={isSavingConsultation}
                         className={`flex min-h-11 w-full items-center justify-center gap-2 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${primaryBtnBg}`}
                     >
-                        {isSavingConsultation ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : 'Next: Lab Request'}
+                        {isSavingConsultation ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : 'Next'}
                     </button>
                 </div>
             </div>
@@ -1954,7 +1956,7 @@ export function ConsultationPage({
                         aria-busy={isSavingConsultation}
                         className={`flex min-h-11 w-full items-center justify-center gap-2 text-white py-2.5 px-6 rounded-lg font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${primaryBtnBg}`}
                     >
-                        {isSavingConsultation ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : 'Next: Management and Health Education'}
+                        {isSavingConsultation ? <><span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> Saving...</> : 'Next'}
                     </button>
                 </div>
             </div>
@@ -1995,7 +1997,7 @@ export function ConsultationPage({
                     <button onClick={handleSaveLabRequest} disabled={loading || !patient?.id} className={`w-full sm:w-auto py-3.5 px-6 rounded-xl font-extrabold transition-colors shadow-sm border-2 disabled:opacity-50 ${isOnline ? 'bg-white border-[var(--border-strong)] text-[var(--text-2)] hover:bg-[var(--surface-subtle)]' : 'bg-[var(--amber-surface)] border-[var(--amber-tint-strong)] text-[var(--amber-text)] hover:bg-[var(--amber-tint)]'}`}>
                         {loading ? 'Sending...' : <><Icon name="clipboard" className="inline h-4 w-4 mr-2" />Send to Laboratory</>}
                     </button>
-                    <button onClick={() => setActiveTab(8)} className={`w-full sm:w-auto text-white py-2.5 px-6 rounded-lg font-semibold transition-colors ${primaryBtnBg}`}>Next: E-Prescription</button>
+                    <button onClick={() => setActiveTab(8)} className={`w-full sm:w-auto text-white py-2.5 px-6 rounded-lg font-semibold transition-colors ${primaryBtnBg}`}>Next</button>
                 </div>
             </div>
         </div>
